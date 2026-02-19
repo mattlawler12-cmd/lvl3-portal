@@ -27,6 +27,19 @@ export type GSCMetrics = {
   topQueries: { query: string; clicks: number; impressions: number }[]
 }
 
+export async function listGSCSites(): Promise<string[]> {
+  const credentials = getCredentials()
+  const auth = new google.auth.GoogleAuth({
+    credentials,
+    scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
+  })
+  const searchconsole = google.searchconsole({ version: 'v1', auth })
+  const { data } = await searchconsole.sites.list()
+  return (data.siteEntry ?? [])
+    .map((s) => s.siteUrl ?? '')
+    .filter(Boolean)
+}
+
 export async function fetchGSCMetrics(siteUrl: string): Promise<GSCMetrics> {
   const credentials = getCredentials()
 

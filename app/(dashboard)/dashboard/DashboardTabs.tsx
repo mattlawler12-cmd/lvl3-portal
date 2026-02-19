@@ -3,22 +3,48 @@
 import { useState } from "react";
 import LookerEmbed from "@/components/dashboard/looker-embed";
 import AnalyticsKpiStrip from "@/components/analytics/AnalyticsKpiStrip";
-import type { AnalyticsData } from "@/app/actions/analytics";
+import RefreshAnalyticsButton from "@/components/home/RefreshAnalyticsButton";
+import type { AnalyticsData, SnapshotInsights } from "@/app/actions/analytics";
 
 interface Props {
   lookerUrl: string | null;
   clientName: string;
   isAdmin: boolean;
   analyticsData: AnalyticsData;
+  snapshotInsights: SnapshotInsights | null;
+  snapshotUpdatedAt: string | null;
+  clientId: string;
 }
 
 type Tab = "snapshot" | "full" | "definitions";
+
+function SnapshotSection({
+  title,
+  content,
+  isEmpty,
+}: {
+  title: string;
+  content: string;
+  isEmpty: boolean;
+}) {
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+      <p className="text-sm font-semibold text-white mb-2">{title}</p>
+      <p className={`text-sm leading-relaxed ${isEmpty ? "text-zinc-500 italic" : "text-zinc-300"}`}>
+        {content}
+      </p>
+    </div>
+  );
+}
 
 export default function DashboardTabs({
   lookerUrl,
   clientName,
   isAdmin,
   analyticsData,
+  snapshotInsights,
+  snapshotUpdatedAt,
+  clientId,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("snapshot");
   const [iframeEverActive, setIframeEverActive] = useState(false);
@@ -43,6 +69,12 @@ export default function DashboardTabs({
     ...(hasLooker ? [{ key: "full" as Tab, label: "Full Dashboard" }] : []),
     { key: "definitions" as Tab, label: "Definitions & Notes" },
   ];
+
+  const hasInsights =
+    snapshotInsights &&
+    (snapshotInsights.takeaways ||
+      snapshotInsights.anomalies ||
+      snapshotInsights.opportunities);
 
   return (
     <div className="flex flex-col h-full">
@@ -89,41 +121,66 @@ export default function DashboardTabs({
 
             {/* Context panel */}
             <div>
-              <p className="text-xs font-medium uppercase tracking-widest text-zinc-500 mb-3">
-                Context
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+                  Context
+                </p>
+                <div className="flex items-center gap-3">
+                  {snapshotUpdatedAt && (
+                    <p className="text-xs text-zinc-600">
+                      Updated{" "}
+                      {new Date(snapshotUpdatedAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                  )}
+                  {isAdmin && (
+                    <RefreshAnalyticsButton clientId={clientId} />
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-3">
-                {[
-                  {
-                    title: "Takeaways",
-                    body: "Takeaways will be added by your IgniteIQ strategist.",
-                  },
-                  {
-                    title: "Anomalies",
-                    body: "No anomalies detected this period.",
-                  },
-                  {
-                    title: "What we changed",
-                    body: "Recent agency activity notes will appear here.",
-                  },
-                ].map((section) => (
-                  <div
-                    key={section.title}
-                    className="bg-zinc-900 border border-zinc-800 rounded-xl p-5"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="text-sm font-semibold text-white mb-2">
-                        {section.title}
-                      </p>
-                      {isAdmin && (
-                        <button className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors shrink-0">
-                          Admin: Edit
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-sm text-zinc-500 italic">{section.body}</p>
+                <SnapshotSection
+                  title="Takeaways"
+                  content={
+                    snapshotInsights?.takeaways ||
+                    "Takeaways will appear here once analytics insights are generated."
+                  }
+                  isEmpty={!snapshotInsights?.takeaways}
+                />
+                <SnapshotSection
+                  title="Anomalies"
+                  content={
+                    snapshotInsights?.anomalies ||
+                    "No anomalies detected this period."
+                  }
+                  isEmpty={!snapshotInsights?.anomalies}
+                />
+                <SnapshotSection
+                  title="Opportunities"
+                  content={
+                    snapshotInsights?.opportunities ||
+                    "Opportunities will appear here once analytics insights are generated."
+                  }
+                  isEmpty={!snapshotInsights?.opportunities}
+                />
+                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm font-semibold text-white mb-2">
+                      What we changed
+                    </p>
+                    {isAdmin && (
+                      <button className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors shrink-0">
+                        Admin: Edit
+                      </button>
+                    )}
                   </div>
-                ))}
+                  <p className="text-sm text-zinc-500 italic">
+                    Recent agency activity notes will appear here.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

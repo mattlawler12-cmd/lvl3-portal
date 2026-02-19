@@ -9,6 +9,7 @@ import {
   fetchLogoUrl,
   getSheetHeadersAction,
   generateAnalyticsInsights,
+  detectGSCSiteUrl,
 } from '@/app/actions/analytics'
 
 interface ClientData {
@@ -69,6 +70,9 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
   const [logoFetching, setLogoFetching] = useState(false)
   const [headersLoading, setHeadersLoading] = useState(false)
   const [headersError, setHeadersError] = useState<string | null>(null)
+  const [gscDetecting, setGscDetecting] = useState(false)
+  const [gscSites, setGscSites] = useState<string[]>([])
+  const [gscDetectError, setGscDetectError] = useState<string | null>(null)
   const [analyticsRefreshing, setAnalyticsRefreshing] = useState(false)
   const [analyticsError, setAnalyticsError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -95,6 +99,21 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
       setHeaders(result.headers)
     }
     setHeadersLoading(false)
+  }
+
+  async function handleDetectGSC() {
+    if (!ga4PropertyId) return
+    setGscDetecting(true)
+    setGscDetectError(null)
+    setGscSites([])
+    const result = await detectGSCSiteUrl(ga4PropertyId)
+    if (result.error) {
+      setGscDetectError(result.error)
+    } else {
+      setGscSites(result.sites)
+      if (result.matched) setGscSiteUrl(result.matched)
+    }
+    setGscDetecting(false)
   }
 
   async function handleRefreshAnalytics() {
@@ -357,16 +376,51 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
 
         <div>
           <label className="block text-zinc-400 text-sm mb-1.5">Search Console Site URL</label>
-          <input
-            type="text"
-            value={gscSiteUrl}
-            onChange={(e) => setGscSiteUrl(e.target.value)}
-            placeholder="https://example.com/"
-            className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-600"
-          />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={gscSiteUrl}
+              onChange={(e) => setGscSiteUrl(e.target.value)}
+              placeholder="https://example.com/"
+              className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-600"
+            />
+            <button
+              type="button"
+              onClick={handleDetectGSC}
+              disabled={!ga4PropertyId || gscDetecting}
+              className="shrink-0 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg px-3 py-2 text-sm hover:bg-zinc-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              <RefreshCw size={12} className={gscDetecting ? 'animate-spin' : ''} />
+              Detect from GA4
+            </button>
+          </div>
           <p className="text-zinc-600 text-xs mt-1.5">
-            Must match exactly what&apos;s registered in Search Console (including trailing slash)
+            Must match exactly what&apos;s registered in Search Console (including trailing slash). Enter GA4 Property ID first, then click &ldquo;Detect from GA4&rdquo;.
           </p>
+          {gscDetectError && (
+            <p className="text-red-400 text-xs mt-1.5">{gscDetectError}</p>
+          )}
+          {gscSites.length > 0 && (
+            <div className="mt-2">
+              <p className="text-zinc-500 text-xs mb-1.5">Accessible GSC sites — click to select:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {gscSites.map((site) => (
+                  <button
+                    key={site}
+                    type="button"
+                    onClick={() => setGscSiteUrl(site)}
+                    className={`text-xs px-2 py-1 rounded-full border transition-colors ${
+                      gscSiteUrl === site
+                        ? 'bg-blue-600 border-blue-500 text-white'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'
+                    }`}
+                  >
+                    {site}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="pt-1">

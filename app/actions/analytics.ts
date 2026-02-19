@@ -1,13 +1,22 @@
 'use server'
 
+import { google } from 'googleapis'
 import { requireAdmin } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
 import { parseSheetId, fetchSheetHeaders } from '@/lib/google-sheets'
 import { fetchGA4Metrics, GA4Metrics } from '@/lib/google-analytics'
-import { fetchGSCMetrics, GSCMetrics } from '@/lib/google-search-console'
+import { fetchGSCMetrics, GSCMetrics, listGSCSites } from '@/lib/google-search-console'
 import Anthropic from '@anthropic-ai/sdk'
 
 export type { GA4Metrics, GSCMetrics }
+
+export type SnapshotInsights = {
+  takeaways: string
+  anomalies: string
+  opportunities: string
+}
+
+// ── Logo ──────────────────────────────────────────────────────────────────────
 
 export async function fetchLogoUrl(domain: string): Promise<string | null> {
   const clean = domain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
@@ -20,6 +29,8 @@ export async function fetchLogoUrl(domain: string): Promise<string | null> {
     return null
   }
 }
+
+// ── Sheet headers ─────────────────────────────────────────────────────────────
 
 export async function getSheetHeadersAction(
   sheetIdOrUrl: string,
@@ -34,6 +45,8 @@ export async function getSheetHeadersAction(
     return { error: err instanceof Error ? err.message : 'Failed to load headers' }
   }
 }
+
+// ── Analytics data ────────────────────────────────────────────────────────────
 
 export type AnalyticsData = {
   ga4: GA4Metrics | null
@@ -71,6 +84,93 @@ export async function fetchAnalyticsData(clientId: string): Promise<AnalyticsDat
 
   return { ga4, gsc, error: firstError }
 }
+
+// ── GSC site detection ────────────────────────────────────────────────────────
+
+function getCredentials() {
+  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY env var is not set')
+  raw = raw.trim().replace(/^['"]|['"]$/g, '')
+  return JSON.parse(raw)
+}
+
+function extractDomain(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return url.replace(/^www\./, '')
+  }
+}
+
+function siteMatchesDomain(site: string, domain: string): boolean {
+  if (site.startsWith('sc-domain:')) {
+    const d = site.replace('sc-domain:', '').replace(/^www\./, '')
+    return d === domain || d.endsWith('.' + domain)
+  }
+  try {
+    const d = new URL(site).hostname.replace(/^www\./, '')
+    return d === domain
+  } catch {
+    return false
+  }
+}
+
+export async function detectGSCSiteUrl(
+  propertyId: string
+): Promise<{ sites: string[]; matched?: string; error?: string }> {
+  try {
+    await requireAdmin()
+
+    // Fetch GSC sites and GA4 web stream in parallel
+    const credentials = getCredentials()
+    const auth = new google.auth.GoogleAuth({
+      credentials,
+      scopes: [
+        'https://www.googleapis.com/auth/webmasters.readonly',
+        'https://www.googleapis.com/auth/analytics.readonly',
+      ],
+    })
+
+    const analyticsadmin = google.analyticsadmin({ version: 'v1beta', auth })
+
+    const [sitesResult, streamsResult] = await Promise.allSettled([
+      listGSCSites(),
+      analyticsadmin.properties.dataStreams.list({
+        parent: `properties/${propertyId}`,
+      }),
+    ])
+
+    const sites = sitesResult.status === 'fulfilled' ? sitesResult.value : []
+
+    let matched: string | undefined
+    if (streamsResult.status === 'fulfilled') {
+      const streams = streamsResult.value.data.dataStreams ?? []
+      const webStream = streams.find((s) => s.type === 'WEB_DATA_STREAM')
+      const defaultUri = webStream?.webStreamData?.defaultUri ?? ''
+      if (defaultUri) {
+        const domain = extractDomain(defaultUri)
+        matched = sites.find((s) => siteMatchesDomain(s, domain))
+      }
+    }
+
+    if (sites.length === 0) {
+      return {
+        sites: [],
+        error:
+          'No Search Console sites found. Ensure the service account has been added as a user in Search Console.',
+      }
+    }
+
+    return { sites, matched }
+  } catch (err) {
+    return {
+      sites: [],
+      error: err instanceof Error ? err.message : 'Failed to detect GSC sites',
+    }
+  }
+}
+
+// ── Generate insights ─────────────────────────────────────────────────────────
 
 export async function generateAnalyticsInsights(
   clientId: string
@@ -114,18 +214,43 @@ export async function generateAnalyticsInsights(
 
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 500,
+      max_tokens: 1200,
+      system:
+        'You are a digital marketing analyst. Respond with valid JSON only — no markdown, no explanation, no code blocks.',
       messages: [
         {
           role: 'user',
-          content: `You are a digital marketing analyst writing a concise analytics summary for a client report. Write 2-3 short paragraphs summarizing the following data in plain, client-friendly language. Focus on notable trends, wins, and areas of opportunity. Do not use bullet points or markdown formatting.\n\n${parts.join('\n\n')}`,
+          content: `Based on this analytics data, generate a structured report using this exact JSON format:
+{
+  "summary": "2-3 paragraphs in plain, client-friendly language covering overall performance.",
+  "takeaways": "2-3 sentences highlighting the most notable positive results.",
+  "anomalies": "2-3 sentences on any unusual patterns or concerns. If nothing notable, write: No significant anomalies detected this period.",
+  "opportunities": "2-3 sentences on specific, actionable opportunities to improve performance."
+}
+
+Data:
+${parts.join('\n\n')}`,
         },
       ],
     })
 
-    const summary =
-      message.content[0].type === 'text' ? message.content[0].text.trim() : ''
-    if (!summary) return { error: 'Claude returned an empty response' }
+    const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '{}'
+    // Strip accidental markdown code fences
+    const cleaned = raw.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+
+    let parsed: Partial<SnapshotInsights & { summary: string }> = {}
+    try {
+      parsed = JSON.parse(cleaned)
+    } catch {
+      parsed = { summary: raw, takeaways: '', anomalies: '', opportunities: '' }
+    }
+
+    const summary = parsed.summary ?? ''
+    const snapshot_insights: SnapshotInsights = {
+      takeaways: parsed.takeaways ?? '',
+      anomalies: parsed.anomalies ?? '',
+      opportunities: parsed.opportunities ?? '',
+    }
 
     const service = await createServiceClient()
     const { error: dbError } = await service
@@ -133,6 +258,7 @@ export async function generateAnalyticsInsights(
       .update({
         analytics_summary: summary,
         analytics_summary_updated_at: new Date().toISOString(),
+        snapshot_insights,
       })
       .eq('id', clientId)
 
