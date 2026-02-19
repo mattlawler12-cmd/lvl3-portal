@@ -48,8 +48,6 @@ export async function syncSheet(clientId: string): Promise<void> {
     .eq('id', user.id)
     .single()
 
-  if (profile?.role !== 'admin') throw new Error('Unauthorized')
-
   const service = await createServiceClient()
   const { data: client } = await service
     .from('clients')
@@ -63,5 +61,7 @@ export async function syncSheet(clientId: string): Promise<void> {
 
   revalidatePath('/projects')
 
-  await generateClientSummary(clientId)
+  if (profile?.role === 'admin') {
+    await generateClientSummary(clientId)
+  }
 }

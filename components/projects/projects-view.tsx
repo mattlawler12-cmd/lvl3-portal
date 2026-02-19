@@ -14,7 +14,7 @@ import {
 import TaskTable from "./task-table";
 import HeroCard from "./hero-card";
 import FiltersBar from "./filters-bar";
-import CollapsibleSection, { ProgressBar } from "./collapsible-section";
+import CollapsibleSection from "./collapsible-section";
 import NarrativeCard from "@/components/ui/NarrativeCard";
 
 type Props = {
@@ -29,7 +29,6 @@ type Props = {
 export default function ProjectsView({
   rows,
   fetchedAt,
-  isAdmin,
   clientId,
   aiSummary,
 }: Props) {
@@ -57,11 +56,42 @@ export default function ProjectsView({
   const flatRows =
     viewMode === "all" ? sortRows(filteredRows, sortConfig) : [];
 
-  const totalCompleted = rows.filter((r) => r.status === "Completed").length;
-  const totalRows = rows.length;
   const minutesAgo = getMinutesSince(fetchedAt);
 
+  // Status breakdown
+  const statusCounts: { label: string; color: string; count: number }[] = [
+    { label: "Completed", color: "text-emerald-400", count: rows.filter((r) => r.status === "Completed").length },
+    { label: "In Progress", color: "text-blue-400", count: rows.filter((r) => r.status === "In Progress").length },
+    { label: "Blocked", color: "text-amber-400", count: rows.filter((r) => r.status === "Blocked").length },
+    { label: "Not Started", color: "text-zinc-500", count: rows.filter((r) => !["Completed", "In Progress", "Blocked"].includes(r.status)).length },
+  ].filter((s) => s.count > 0);
+
   const blockedCount = rows.filter((r) => r.status === "Blocked").length;
+
+  // This month stats (heroGroup is the most recent month)
+  const thisMonthRows = heroGroup?.rows ?? [];
+  const thisMonthCompleted = thisMonthRows.filter((r) => r.status === "Completed").length;
+  const thisMonthBlocked = thisMonthRows.filter((r) => r.status === "Blocked").length;
+
+  // Fees by category
+  const feesByCategory = Object.entries(
+    rows.reduce<Record<string, number>>((acc, r) => {
+      if (r.fee == null) return acc;
+      const cat = r.category || "Other";
+      acc[cat] = (acc[cat] ?? 0) + r.fee;
+      return acc;
+    }, {})
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  const hasFees = feesByCategory.length > 0;
+
+  function formatFee(n: number) {
+    return n >= 1000
+      ? `$${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`
+      : `$${n}`;
+  }
 
   function handleToggleStatus(status: string) {
     setActiveStatuses((prev) => {
@@ -128,16 +158,14 @@ export default function ProjectsView({
         </div>
       )}
 
-      {/* Overall progress */}
-      <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-zinc-300">
-            Overall Progress
+      {/* Project status card */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+        {/* Card header with sync */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-800">
+          <span className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+            Project Status
           </span>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-zinc-400">
-              {totalCompleted} of {totalRows} tasks completed
-            </span>
             <span
               className={`text-xs px-2 py-0.5 rounded-full border ${
                 minutesAgo < 5
@@ -151,9 +179,79 @@ export default function ProjectsView({
                 ? "1 min ago"
                 : `${minutesAgo}m ago`}
             </span>
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Syncing…" : "Sync Now"}
+            </button>
           </div>
         </div>
-        <ProgressBar value={totalCompleted} total={totalRows} />
+
+        {/* 3-column stats */}
+        <div className={`grid divide-zinc-800 ${hasFees ? "grid-cols-3 divide-x" : "grid-cols-2 divide-x"}`}>
+          {/* This month */}
+          <div className="px-5 py-4">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-600 mb-3">
+              This Month
+            </p>
+            {heroGroup ? (
+              <>
+                <p className="text-xs text-zinc-500 mb-1">{heroGroup.month}</p>
+                <p className="text-2xl font-semibold text-white tabular-nums">
+                  {thisMonthCompleted}
+                  <span className="text-sm font-normal text-zinc-500">
+                    /{thisMonthRows.length}
+                  </span>
+                </p>
+                <p className="text-xs text-zinc-500 mt-0.5">tasks done</p>
+                {thisMonthBlocked > 0 && (
+                  <p className="text-xs text-amber-400 mt-2">
+                    {thisMonthBlocked} blocked
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-xs text-zinc-600 italic">No data</p>
+            )}
+          </div>
+
+          {/* Status breakdown */}
+          <div className="px-5 py-4">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-600 mb-3">
+              All Tasks
+            </p>
+            <div className="space-y-1.5">
+              {statusCounts.map((s) => (
+                <div key={s.label} className="flex items-center justify-between gap-4">
+                  <span className={`text-xs ${s.color}`}>{s.label}</span>
+                  <span className="text-xs font-medium text-zinc-300 tabular-nums">{s.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Fees by category */}
+          {hasFees && (
+            <div className="px-5 py-4">
+              <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-600 mb-3">
+                Fees by Category
+              </p>
+              <div className="space-y-1.5">
+                {feesByCategory.map(([cat, total]) => (
+                  <div key={cat} className="flex items-center justify-between gap-4">
+                    <span className="text-xs text-zinc-400 truncate">{cat}</span>
+                    <span className="text-xs font-medium text-zinc-300 tabular-nums shrink-0">
+                      {formatFee(total)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <FiltersBar
@@ -225,20 +323,6 @@ export default function ProjectsView({
         </div>
       )}
 
-      <div className="flex items-center justify-end text-xs text-zinc-500 pt-2">
-        {isAdmin && (
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded"
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`}
-            />
-            {syncing ? "Syncing…" : "Sync Now"}
-          </button>
-        )}
-      </div>
     </div>
   );
 }
