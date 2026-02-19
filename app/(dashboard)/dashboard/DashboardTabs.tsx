@@ -70,12 +70,6 @@ export default function DashboardTabs({
     { key: "definitions" as Tab, label: "Definitions & Notes" },
   ];
 
-  const hasInsights =
-    snapshotInsights &&
-    (snapshotInsights.takeaways ||
-      snapshotInsights.anomalies ||
-      snapshotInsights.opportunities);
-
   return (
     <div className="flex flex-col h-full">
       {/* Tab bar */}
