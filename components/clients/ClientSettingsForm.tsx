@@ -72,6 +72,7 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
   const [headersError, setHeadersError] = useState<string | null>(null)
   const [gscDetecting, setGscDetecting] = useState(false)
   const [gscSites, setGscSites] = useState<string[]>([])
+  const [gscFromGA4Domain, setGscFromGA4Domain] = useState(false)
   const [gscDetectError, setGscDetectError] = useState<string | null>(null)
   const [analyticsRefreshing, setAnalyticsRefreshing] = useState(false)
   const [analyticsError, setAnalyticsError] = useState<string | null>(null)
@@ -106,11 +107,13 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
     setGscDetecting(true)
     setGscDetectError(null)
     setGscSites([])
+    setGscFromGA4Domain(false)
     const result = await detectGSCSiteUrl(ga4PropertyId)
     if (result.error) {
       setGscDetectError(result.error)
     } else {
       setGscSites(result.sites)
+      setGscFromGA4Domain(result.fromGA4Domain ?? false)
       if (result.matched) setGscSiteUrl(result.matched)
     }
     setGscDetecting(false)
@@ -402,7 +405,11 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
           )}
           {gscSites.length > 0 && (
             <div className="mt-2">
-              <p className="text-zinc-500 text-xs mb-1.5">Accessible GSC sites — click to select:</p>
+              <p className="text-zinc-500 text-xs mb-1.5">
+                {gscFromGA4Domain
+                  ? 'Suggested URLs from GA4 domain — pick the one that matches your Search Console property:'
+                  : 'Accessible Search Console sites — click to select:'}
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {gscSites.map((site) => (
                   <button

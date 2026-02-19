@@ -117,11 +117,10 @@ function siteMatchesDomain(site: string, domain: string): boolean {
 
 export async function detectGSCSiteUrl(
   propertyId: string
-): Promise<{ sites: string[]; matched?: string; error?: string }> {
+): Promise<{ sites: string[]; matched?: string; fromGA4Domain?: boolean; error?: string }> {
   try {
     await requireAdmin()
 
-    // Fetch GSC sites and GA4 web stream in parallel
     const credentials = getCredentials()
     const auth = new google.auth.GoogleAuth({
       credentials,
@@ -133,6 +132,7 @@ export async function detectGSCSiteUrl(
 
     const analyticsadmin = google.analyticsadmin({ version: 'v1beta', auth })
 
+    // Fetch GSC sites and GA4 web stream in parallel
     const [sitesResult, streamsResult] = await Promise.allSettled([
       listGSCSites(),
       analyticsadmin.properties.dataStreams.list({
@@ -140,28 +140,39 @@ export async function detectGSCSiteUrl(
       }),
     ])
 
-    const sites = sitesResult.status === 'fulfilled' ? sitesResult.value : []
-
-    let matched: string | undefined
+    // Determine GA4 web stream domain
+    let ga4Domain = ''
     if (streamsResult.status === 'fulfilled') {
       const streams = streamsResult.value.data.dataStreams ?? []
       const webStream = streams.find((s) => s.type === 'WEB_DATA_STREAM')
       const defaultUri = webStream?.webStreamData?.defaultUri ?? ''
-      if (defaultUri) {
-        const domain = extractDomain(defaultUri)
-        matched = sites.find((s) => siteMatchesDomain(s, domain))
-      }
+      if (defaultUri) ga4Domain = extractDomain(defaultUri)
     }
 
-    if (sites.length === 0) {
-      return {
-        sites: [],
-        error:
-          'No Search Console sites found. Ensure the service account has been added as a user in Search Console.',
-      }
+    // Best case: service account has GSC access — return real sites + auto-match
+    if (sitesResult.status === 'fulfilled' && sitesResult.value.length > 0) {
+      const sites = sitesResult.value
+      const matched = ga4Domain
+        ? sites.find((s) => siteMatchesDomain(s, ga4Domain))
+        : undefined
+      return { sites, matched }
     }
 
-    return { sites, matched }
+    // Fallback: generate URL candidates from GA4 domain so user doesn't type manually
+    if (ga4Domain) {
+      const candidates = [
+        `https://${ga4Domain}/`,
+        `https://www.${ga4Domain}/`,
+        `sc-domain:${ga4Domain}`,
+      ]
+      return { sites: candidates, matched: candidates[0], fromGA4Domain: true }
+    }
+
+    return {
+      sites: [],
+      error:
+        'Could not determine the site URL. Ensure the GA4 property has a web data stream configured.',
+    }
   } catch (err) {
     return {
       sites: [],
