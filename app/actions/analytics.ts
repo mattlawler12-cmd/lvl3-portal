@@ -81,10 +81,10 @@ export async function generateAnalyticsInsights(
     const data = await fetchAnalyticsData(clientId)
 
     if (!data.ga4 && !data.gsc) {
-      return {
-        error:
-          'No analytics data available. Configure GA4 Property ID and/or GSC Site URL in client settings, and ensure the service account has been granted access.',
-      }
+      const msg = data.error
+        ? `Analytics fetch failed: ${data.error}`
+        : 'No analytics data available. Configure GA4 Property ID and/or GSC Site URL in client settings, and ensure the service account has been granted access.'
+      return { error: msg }
     }
 
     const parts: string[] = []
