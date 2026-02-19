@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { getSelectedClientId, getClientById } from "@/lib/client-resolution";
+import { resolveSelectedClientId, getClientById } from "@/lib/client-resolution";
 import { getSheetData } from "@/app/actions/projects";
 import ProjectsView from "@/components/projects/projects-view";
 import { FileSpreadsheet } from "lucide-react";
@@ -14,8 +14,7 @@ export default async function ProjectsPage() {
     ai_summary: string | null;
   };
 
-  const selectedClientId =
-    user.role === "client" ? user.client_id : await getSelectedClientId();
+  const selectedClientId = await resolveSelectedClientId(user);
 
   const selectedClient = selectedClientId
     ? await getClientById<ClientRow>(

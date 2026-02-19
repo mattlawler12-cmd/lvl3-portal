@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { getSelectedClientId, getClientById } from "@/lib/client-resolution";
+import { resolveSelectedClientId, getClientById } from "@/lib/client-resolution";
 import { BarChart2 } from "lucide-react";
 import DashboardTabs from "./DashboardTabs";
 
@@ -12,8 +12,7 @@ export default async function DashboardPage() {
     looker_embed_url: string | null;
   };
 
-  const selectedClientId =
-    user.role === "client" ? user.client_id : await getSelectedClientId();
+  const selectedClientId = await resolveSelectedClientId(user);
 
   const selectedClient = selectedClientId
     ? await getClientById<ClientRow>(

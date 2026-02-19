@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/auth";
-import { getSelectedClientId, getClientById } from "@/lib/client-resolution";
+import { resolveSelectedClientId, getClientById } from "@/lib/client-resolution";
 import { createServiceClient } from "@/lib/supabase/server";
+import { getUnviewedDeliverables, getOpenCommentRows, buildOpenThreads } from "@/lib/queries";
 import NavCards from "@/components/home/nav-cards";
 import NarrativeCard from "@/components/ui/NarrativeCard";
 import AttentionQueueCard from "@/components/home/AttentionQueueCard";
@@ -14,12 +15,6 @@ type HomeClient = {
   ai_summary_updated_at: string | null;
 };
 
-type UnviewedDeliverable = {
-  id: string;
-  title: string;
-  viewed_at: string | null;
-};
-
 type OpenThread = {
   deliverableId: string;
   deliverableTitle: string;
@@ -29,8 +24,7 @@ type OpenThread = {
 export default async function HomePage() {
   const { user } = await requireAuth();
 
-  const selectedClientId =
-    user.role === "client" ? user.client_id : await getSelectedClientId();
+  const selectedClientId = await resolveSelectedClientId(user);
 
   const selectedClient = selectedClientId
     ? await getClientById<HomeClient>(
@@ -42,7 +36,7 @@ export default async function HomePage() {
   const isAdmin = user.role === "admin";
   const showSelector = user.role !== "client";
 
-  let unviewedDeliverables: UnviewedDeliverable[] = [];
+  let unviewedDeliverables: import("@/lib/queries").UnviewedDeliverable[] = [];
   let openThreadsData: OpenThread[] = [];
   let recentPosts: {
     id: string;
@@ -55,18 +49,8 @@ export default async function HomePage() {
   if (selectedClient) {
     const service = await createServiceClient();
 
-    const [unviewedResult, threadsResult, postsResult] = await Promise.all([
-      service
-        .from("deliverables")
-        .select("id, title, viewed_at")
-        .eq("client_id", selectedClient.id)
-        .is("viewed_at", null)
-        .order("created_at", { ascending: false }),
-      service
-        .from("comments")
-        .select("deliverable_id, deliverables!inner(id, title, client_id)")
-        .eq("resolved", false)
-        .eq("deliverables.client_id", selectedClient.id),
+    const [commentRows, postsResult] = await Promise.all([
+      getOpenCommentRows(selectedClient.id),
       service
         .from("posts")
         .select("id, title, body, category, created_at")
@@ -77,27 +61,13 @@ export default async function HomePage() {
         .limit(2),
     ]);
 
-    unviewedDeliverables = (unviewedResult.data ?? []) as UnviewedDeliverable[];
+    unviewedDeliverables = await getUnviewedDeliverables(selectedClient.id);
 
-    const threadMap = new Map<string, { title: string; count: number }>();
-    for (const row of (threadsResult.data ?? []) as unknown as Array<{
-      deliverable_id: string;
-      deliverables: { id: string; title: string } | null;
-    }>) {
-      const d = row.deliverables;
-      if (!d) continue;
-      const existing = threadMap.get(d.id);
-      if (existing) {
-        existing.count++;
-      } else {
-        threadMap.set(d.id, { title: d.title, count: 1 });
-      }
-    }
-    openThreadsData = Array.from(threadMap.entries()).map(
-      ([deliverableId, { title, count }]) => ({
+    openThreadsData = buildOpenThreads(commentRows).map(
+      ({ deliverableId, title, threadCount }) => ({
         deliverableId,
         deliverableTitle: title,
-        count,
+        count: threadCount,
       })
     );
 

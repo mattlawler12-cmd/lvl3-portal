@@ -27,6 +27,18 @@ export async function getClientById<T extends { id: string; name: string }>(
 }
 
 /**
+ * Resolve the active client ID for any role.
+ * Client-role users always get their assigned client_id.
+ * Admin/member users get the cookie-selected client.
+ */
+export async function resolveSelectedClientId(user: {
+  role: string
+  client_id: string | null
+}): Promise<string | null> {
+  return user.role === 'client' ? user.client_id : await getSelectedClientId()
+}
+
+/**
  * Fetch the list of clients visible to the current user.
  * Used by the layout to populate the sidebar dropdown.
  */

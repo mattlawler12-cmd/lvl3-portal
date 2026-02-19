@@ -1,11 +1,17 @@
 import { redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import LayoutShell from "@/components/nav/LayoutShell";
 import {
   getClientListForUser,
   getSelectedClientId,
   getClientById,
 } from "@/lib/client-resolution";
+import {
+  getUnviewedDeliverables,
+  getOpenCommentRows,
+  buildOpenThreads,
+} from "@/lib/queries";
+import { createServiceClient } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({
   children,
@@ -73,55 +79,25 @@ export default async function DashboardLayout({
   if (selectedClientId) {
     const service = await createServiceClient();
 
-    const [unviewedResult, postsResult, servicesResult, threadsResult] =
-      await Promise.all([
-        service
-          .from("deliverables")
-          .select("id, title, viewed_at")
-          .eq("client_id", selectedClientId)
-          .is("viewed_at", null),
-        service
-          .from("posts")
-          .select("id", { count: "exact", head: true })
-          .or(
-            `target_client_id.eq.${selectedClientId},target_client_id.is.null`
-          ),
-        service
-          .from("services")
-          .select("id", { count: "exact", head: true }),
-        service
-          .from("comments")
-          .select("deliverable_id, deliverables!inner(id, title, client_id)")
-          .eq("resolved", false)
-          .eq("deliverables.client_id", selectedClientId),
-      ]);
+    const [postsResult, servicesResult] = await Promise.all([
+      service
+        .from("posts")
+        .select("id", { count: "exact", head: true })
+        .or(
+          `target_client_id.eq.${selectedClientId},target_client_id.is.null`
+        ),
+      service
+        .from("services")
+        .select("id", { count: "exact", head: true }),
+    ]);
 
-    unviewedDeliverables = (unviewedResult.data ?? []) as typeof unviewedDeliverables;
+    unviewedDeliverables = await getUnviewedDeliverables(selectedClientId);
     unreadCount = unviewedDeliverables.length;
     postsBadgeCount = postsResult.count ?? 0;
     servicesBadgeCount = servicesResult.count ?? 0;
 
-    const threadMap = new Map<string, { title: string; count: number }>();
-    for (const row of (threadsResult.data ?? []) as unknown as Array<{
-      deliverable_id: string;
-      deliverables: { id: string; title: string } | null;
-    }>) {
-      const d = row.deliverables;
-      if (!d) continue;
-      const existing = threadMap.get(d.id);
-      if (existing) {
-        existing.count++;
-      } else {
-        threadMap.set(d.id, { title: d.title, count: 1 });
-      }
-    }
-    openThreadDeliverables = Array.from(threadMap.entries()).map(
-      ([deliverableId, info]) => ({
-        deliverableId,
-        title: info.title,
-        threadCount: info.count,
-      })
-    );
+    const commentRows = await getOpenCommentRows(selectedClientId);
+    openThreadDeliverables = buildOpenThreads(commentRows);
 
     const deliverableIdsWithThreads = new Set(
       openThreadDeliverables.map((d) => d.deliverableId)

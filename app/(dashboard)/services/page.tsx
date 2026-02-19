@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getSelectedClientId } from "@/lib/client-resolution";
+import { resolveSelectedClientId } from "@/lib/client-resolution";
 import { Sparkles, ExternalLink } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
 
@@ -15,8 +15,7 @@ type Service = {
 export default async function ServicesPage() {
   const { user } = await requireAuth();
 
-  const selectedClientId =
-    user.role === "client" ? user.client_id : await getSelectedClientId();
+  const selectedClientId = await resolveSelectedClientId(user);
 
   const service = await createServiceClient();
   const { data } = await service

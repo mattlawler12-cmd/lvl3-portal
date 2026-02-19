@@ -1,5 +1,5 @@
 import { requireAuth } from "@/lib/auth";
-import { getSelectedClientId } from "@/lib/client-resolution";
+import { resolveSelectedClientId } from "@/lib/client-resolution";
 import { createServiceClient } from "@/lib/supabase/server";
 import { Lightbulb } from "lucide-react";
 
@@ -35,8 +35,7 @@ function CategoryTag({ category }: { category: string | null }) {
 export default async function InsightsPage() {
   const { user } = await requireAuth();
 
-  const selectedClientId =
-    user.role === "client" ? user.client_id : await getSelectedClientId();
+  const selectedClientId = await resolveSelectedClientId(user);
 
   let posts: Post[] = [];
 
