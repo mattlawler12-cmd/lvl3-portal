@@ -88,27 +88,25 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
     if (!sheetIdOrUrl) return
     setHeadersLoading(true)
     setHeadersError(null)
-    try {
-      const h = await getSheetHeadersAction(sheetIdOrUrl, headerRow)
-      setHeaders(h)
-    } catch (err) {
-      setHeadersError(err instanceof Error ? err.message : 'Failed to load headers')
-    } finally {
-      setHeadersLoading(false)
+    const result = await getSheetHeadersAction(sheetIdOrUrl, headerRow)
+    if (result.error) {
+      setHeadersError(result.error)
+    } else if (result.headers) {
+      setHeaders(result.headers)
     }
+    setHeadersLoading(false)
   }
 
   async function handleRefreshAnalytics() {
     setAnalyticsRefreshing(true)
     setAnalyticsError(null)
-    try {
-      await generateAnalyticsInsights(client.id)
+    const result = await generateAnalyticsInsights(client.id)
+    if (result.error) {
+      setAnalyticsError(result.error)
+    } else {
       router.refresh()
-    } catch (err) {
-      setAnalyticsError(err instanceof Error ? err.message : 'Failed to refresh analytics')
-    } finally {
-      setAnalyticsRefreshing(false)
     }
+    setAnalyticsRefreshing(false)
   }
 
   function handleSubmit(e: React.FormEvent) {

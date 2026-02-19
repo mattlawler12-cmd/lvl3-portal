@@ -13,14 +13,13 @@ export default function RefreshAnalyticsButton({ clientId }: { clientId: string 
   async function handleRefresh() {
     setRefreshing(true)
     setError(null)
-    try {
-      await generateAnalyticsInsights(clientId)
+    const result = await generateAnalyticsInsights(clientId)
+    if (result.error) {
+      setError(result.error)
+    } else {
       router.refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to refresh')
-    } finally {
-      setRefreshing(false)
     }
+    setRefreshing(false)
   }
 
   return (
