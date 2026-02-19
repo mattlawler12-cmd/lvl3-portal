@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -10,15 +10,10 @@ export default function LoginPage() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [isLocalhost, setIsLocalhost] = useState(false)
   const [usePassword, setUsePassword] = useState(false)
 
   const supabase = createClient()
   const router = useRouter()
-
-  useEffect(() => {
-    setIsLocalhost(window.location.hostname === 'localhost')
-  }, [])
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
@@ -80,10 +75,7 @@ export default function LoginPage() {
           </div>
         ) : usePassword ? (
           <form onSubmit={handlePasswordLogin} className="space-y-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded px-2 py-0.5">
-                Dev mode
-              </span>
+            <div className="flex items-center justify-end mb-1">
               <button
                 type="button"
                 onClick={() => { setUsePassword(false); setError(null) }}
@@ -168,15 +160,13 @@ export default function LoginPage() {
               {loading ? 'Sending…' : 'Send magic link'}
             </button>
 
-            {isLocalhost && (
-              <button
-                type="button"
-                onClick={() => { setUsePassword(true); setError(null) }}
-                className="w-full text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1"
-              >
-                Dev: sign in with password
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => { setUsePassword(true); setError(null) }}
+              className="w-full text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1"
+            >
+              Sign in with password instead
+            </button>
           </form>
         )}
       </div>
