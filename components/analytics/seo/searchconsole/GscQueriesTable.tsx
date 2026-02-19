@@ -1,5 +1,4 @@
 import MetricTable, { ColumnDef } from '@/components/analytics/shared/MetricTable'
-import DeltaChip from '@/components/ui/DeltaChip'
 import type { QueryRow } from '@/lib/google-search-console'
 
 type Row = QueryRow & Record<string, unknown>
