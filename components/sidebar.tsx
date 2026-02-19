@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Home,
   FolderKanban,
@@ -10,142 +10,182 @@ import {
   Lightbulb,
   Sparkles,
   ShieldCheck,
-  LogOut,
   Users,
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { setSelectedClient } from '@/app/actions/client-selection'
+  ChevronLeft,
+  ChevronRight,
+  Search,
+} from "lucide-react";
 
 type NavItem = {
-  label: string
-  href: string
-  icon: React.ElementType
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Home', href: '/', icon: Home },
-  { label: 'Projects', href: '/projects', icon: FolderKanban },
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Deliverables', href: '/deliverables', icon: PackageOpen },
-  { label: 'Insights', href: '/insights', icon: Lightbulb },
-  { label: 'Services', href: '/services', icon: Sparkles },
-]
-
-const CLIENTS_NAV_ITEM: NavItem = {
-  label: 'Clients',
-  href: '/clients',
-  icon: Users,
-}
-
-const ADMIN_NAV_ITEM: NavItem = {
-  label: 'Admin',
-  href: '/admin',
-  icon: ShieldCheck,
-}
+  label: string;
+  href: string;
+  icon: React.ElementType;
+  badge?: number;
+};
 
 interface SidebarProps {
-  userEmail: string
-  isAdmin: boolean
-  clientList: { id: string; name: string }[]
-  selectedClientId: string | null
-  showClientSelector: boolean
+  isAdmin: boolean;
+  collapsed: boolean;
+  onToggle: () => void;
+  deliverableBadgeCount: number;
+  postsBadgeCount: number;
+  servicesBadgeCount: number;
+  onSearchOpen: () => void;
 }
 
 export default function Sidebar({
-  userEmail,
   isAdmin,
-  clientList,
-  selectedClientId,
-  showClientSelector,
+  collapsed,
+  onToggle,
+  deliverableBadgeCount,
+  postsBadgeCount,
+  servicesBadgeCount,
+  onSearchOpen,
 }: SidebarProps) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
+  const pathname = usePathname();
 
-  const navItems = isAdmin ? [...NAV_ITEMS, CLIENTS_NAV_ITEM, ADMIN_NAV_ITEM] : NAV_ITEMS
-
-  async function handleSignOut() {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
-
-  async function handleClientChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const id = e.target.value || null
-    await setSelectedClient(id)
-    router.refresh()
-  }
+  const navItems: NavItem[] = [
+    { label: "Home", href: "/", icon: Home },
+    { label: "Projects", href: "/projects", icon: FolderKanban },
+    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+    {
+      label: "Deliverables",
+      href: "/deliverables",
+      icon: PackageOpen,
+      badge: deliverableBadgeCount || undefined,
+    },
+    {
+      label: "Insights",
+      href: "/insights",
+      icon: Lightbulb,
+      badge: postsBadgeCount || undefined,
+    },
+    {
+      label: "Services",
+      href: "/services",
+      icon: Sparkles,
+      badge: servicesBadgeCount || undefined,
+    },
+    ...(isAdmin
+      ? [
+          { label: "Clients", href: "/clients", icon: Users },
+          { label: "Admin", href: "/admin", icon: ShieldCheck },
+        ]
+      : []),
+  ];
 
   function isActive(href: string) {
-    if (href === '/') return pathname === '/'
-    return pathname.startsWith(href)
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
   }
 
   return (
-    <aside className="flex flex-col w-64 min-h-screen bg-zinc-950 border-r border-zinc-800">
-      {/* Logo */}
-      <div className="px-6 py-6 border-b border-zinc-800">
-        <span className="text-white text-2xl font-bold tracking-tight">
-          LVL3
-        </span>
-        <span className="ml-2 text-zinc-500 text-xs font-medium uppercase tracking-widest">
-          Portal
-        </span>
-      </div>
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className={`hidden md:flex flex-col fixed top-14 left-0 bottom-0 bg-zinc-950 border-r border-zinc-800 z-20 transition-all duration-200 overflow-hidden ${
+          collapsed ? "w-14" : "w-56"
+        }`}
+      >
+        <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
+          {navItems.map(({ label, href, icon: Icon, badge }) => {
+            const active = isActive(href);
+            return (
+              <div key={href} className="relative">
+                <Link
+                  href={href}
+                  title={collapsed ? label : undefined}
+                  className={`flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-inset ${
+                    active
+                      ? "bg-white text-black"
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+                  } ${collapsed ? "justify-center" : ""}`}
+                >
+                  <Icon
+                    size={16}
+                    strokeWidth={active ? 2.5 : 1.8}
+                    className="shrink-0"
+                  />
+                  {!collapsed && (
+                    <>
+                      <span className="flex-1 truncate">{label}</span>
+                      {badge && badge > 0 && (
+                        <span className="bg-zinc-700 text-zinc-300 text-xs rounded-full px-1.5 py-0.5 leading-none shrink-0">
+                          {badge > 99 ? "99+" : badge}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </Link>
+                {collapsed && badge && badge > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full pointer-events-none" />
+                )}
+              </div>
+            );
+          })}
+        </nav>
 
-      {/* Client selector */}
-      {showClientSelector && (
-        <div className="px-4 py-3 border-b border-zinc-800">
-          <label className="block text-zinc-500 text-xs font-medium mb-1.5">
-            Client
-          </label>
-          <select
-            value={selectedClientId ?? ''}
-            onChange={handleClientChange}
-            className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select a client</option>
-            {clientList.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ label, href, icon: Icon }) => {
-          const active = isActive(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active
-                  ? 'bg-white text-black'
-                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-              }`}
+        <div className="px-2 py-3 border-t border-zinc-800 space-y-0.5">
+          {collapsed && (
+            <button
+              onClick={onSearchOpen}
+              title="Search (⌘K)"
+              className="flex items-center justify-center w-full px-2.5 py-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+              aria-label="Open search"
             >
-              <Icon size={16} strokeWidth={active ? 2.5 : 1.8} />
-              {label}
-            </Link>
-          )
-        })}
-      </nav>
+              <Search size={16} />
+            </button>
+          )}
+          <button
+            onClick={onToggle}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="flex items-center justify-center w-full px-2.5 py-2 rounded-lg text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <ChevronRight size={15} />
+            ) : (
+              <span className="flex items-center gap-2 text-xs whitespace-nowrap">
+                <ChevronLeft size={15} />
+                <span>Collapse</span>
+              </span>
+            )}
+          </button>
+        </div>
+      </aside>
 
-      {/* User footer */}
-      <div className="px-4 py-4 border-t border-zinc-800 space-y-2">
-        <p className="text-zinc-500 text-xs truncate px-1">{userEmail}</p>
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-zinc-950 border-t border-zinc-800 z-20 flex items-center justify-around px-4">
+        <Link
+          href="/"
+          className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
+            pathname === "/" ? "text-white" : "text-zinc-500"
+          }`}
         >
-          <LogOut size={15} />
-          Sign out
+          <Home size={20} />
+          <span className="text-[10px]">Home</span>
+        </Link>
+        <Link
+          href="/deliverables"
+          className={`relative flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
+            pathname.startsWith("/deliverables") ? "text-white" : "text-zinc-500"
+          }`}
+        >
+          <PackageOpen size={20} />
+          {deliverableBadgeCount > 0 && (
+            <span className="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full" />
+          )}
+          <span className="text-[10px]">Deliverables</span>
+        </Link>
+        <button
+          onClick={onSearchOpen}
+          className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg text-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+          aria-label="Search"
+        >
+          <Search size={20} />
+          <span className="text-[10px]">Search</span>
         </button>
-      </div>
-    </aside>
-  )
+      </nav>
+    </>
+  );
 }

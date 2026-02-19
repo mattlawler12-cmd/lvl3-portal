@@ -1,19 +1,23 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { Plus } from 'lucide-react'
-import type { DeliverableWithClient, CommentWithUser } from '@/app/actions/deliverables'
-import { markViewed, fetchComments, getSignedUrl } from '@/app/actions/deliverables'
-import DeliverableCard from './deliverable-card'
-import DeliverableSlideOver from './deliverable-slide-over'
-import AddDeliverableModal from './add-deliverable-modal'
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Grid, List, Search } from "lucide-react";
+import type { CommentWithUser } from "@/app/actions/deliverables";
+import type { DeliverableWithCounts } from "@/app/(dashboard)/deliverables/page";
+import { markViewed, fetchComments, getSignedUrl } from "@/app/actions/deliverables";
+import DeliverableCard from "./deliverable-card";
+import DeliverableSlideOver from "./deliverable-slide-over";
+import AddDeliverableModal from "./add-deliverable-modal";
+
+type FilterType = "all" | "new" | "needs-review" | "open-threads" | "resolved";
+type SortType = "needs-attention" | "newest" | "oldest";
 
 interface Props {
-  initialDeliverables: DeliverableWithClient[]
-  clients: { id: string; name: string }[]
-  isAdmin: boolean
-  currentUserId: string
+  initialDeliverables: DeliverableWithCounts[];
+  clients: { id: string; name: string }[];
+  isAdmin: boolean;
+  currentUserId: string;
 }
 
 export default function DeliverablesClient({
@@ -22,85 +26,139 @@ export default function DeliverablesClient({
   isAdmin,
   currentUserId,
 }: Props) {
-  const router = useRouter()
-  const [deliverables, setDeliverables] = useState(initialDeliverables)
-  const [selected, setSelected] = useState<DeliverableWithClient | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [comments, setComments] = useState<CommentWithUser[]>([])
-  const [commentsLoading, setCommentsLoading] = useState(false)
-  const [signedUrl, setSignedUrl] = useState<string | null>(null)
-  const [signedUrlLoading, setSignedUrlLoading] = useState(false)
+  const router = useRouter();
+  const [deliverables, setDeliverables] = useState(initialDeliverables);
+  const [selected, setSelected] = useState<DeliverableWithCounts | null>(null);
+  const [triggerEl, setTriggerEl] = useState<HTMLElement | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [comments, setComments] = useState<CommentWithUser[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [signedUrl, setSignedUrl] = useState<string | null>(null);
+  const [signedUrlLoading, setSignedUrlLoading] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [sortBy, setSortBy] = useState<SortType>("needs-attention");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Sync local state when server data refreshes (e.g. after adding a deliverable)
   useEffect(() => {
-    setDeliverables(initialDeliverables)
-    setSelected(prev => {
-      if (!prev) return null
-      return initialDeliverables.find(d => d.id === prev.id) ?? prev
-    })
-  }, [initialDeliverables])
+    setDeliverables(initialDeliverables);
+    setSelected((prev) => {
+      if (!prev) return null;
+      return initialDeliverables.find((d) => d.id === prev.id) ?? prev;
+    });
+  }, [initialDeliverables]);
 
   const refreshComments = useCallback(async () => {
-    if (!selected) return
+    if (!selected) return;
     try {
-      const data = await fetchComments(selected.id)
-      setComments(data)
+      const data = await fetchComments(selected.id);
+      setComments(data);
     } catch (err) {
-      console.error('Failed to refresh comments:', err)
+      console.error("Failed to refresh comments:", err);
     }
-  }, [selected])
+  }, [selected]);
 
-  async function handleSelect(deliverable: DeliverableWithClient) {
-    setSelected(deliverable)
-    setComments([])
-    setSignedUrl(null)
+  const filteredAndSorted = useMemo(() => {
+    let result = [...deliverables];
 
-    // Optimistically clear "New" badge
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((d) => d.title.toLowerCase().includes(q));
+    }
+
+    if (activeFilter === "new") {
+      result = result.filter((d) => !d.viewed_at);
+    } else if (activeFilter === "needs-review" || activeFilter === "open-threads") {
+      result = result.filter((d) => d.unresolvedCount > 0);
+    } else if (activeFilter === "resolved") {
+      result = result.filter((d) => !!d.viewed_at && d.unresolvedCount === 0);
+    }
+
+    if (sortBy === "needs-attention") {
+      result.sort((a, b) => {
+        const aScore = (!a.viewed_at ? 2 : 0) + (a.unresolvedCount > 0 ? 1 : 0);
+        const bScore = (!b.viewed_at ? 2 : 0) + (b.unresolvedCount > 0 ? 1 : 0);
+        if (bScore !== aScore) return bScore - aScore;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+    } else if (sortBy === "newest") {
+      result.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    } else {
+      result.sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+    }
+
+    return result;
+  }, [deliverables, activeFilter, sortBy, searchQuery]);
+
+  async function handleSelect(
+    deliverable: DeliverableWithCounts,
+    trigger?: HTMLElement
+  ) {
+    setSelected(deliverable);
+    setTriggerEl(trigger ?? null);
+    setComments([]);
+    setSignedUrl(null);
+
     if (!deliverable.viewed_at) {
-      setDeliverables(prev =>
-        prev.map(d =>
-          d.id === deliverable.id ? { ...d, viewed_at: new Date().toISOString() } : d
+      setDeliverables((prev) =>
+        prev.map((d) =>
+          d.id === deliverable.id
+            ? { ...d, viewed_at: new Date().toISOString() }
+            : d
         )
-      )
-      markViewed(deliverable.id).catch(console.error)
+      );
+      markViewed(deliverable.id).catch(console.error);
     }
 
-    // Load comments
-    setCommentsLoading(true)
+    setCommentsLoading(true);
     fetchComments(deliverable.id)
       .then(setComments)
-      .catch(err => console.error('Failed to fetch comments:', err))
-      .finally(() => setCommentsLoading(false))
+      .catch((err) => console.error("Failed to fetch comments:", err))
+      .finally(() => setCommentsLoading(false));
 
-    // Load signed URL for PDFs
-    if (deliverable.file_type === 'pdf' && deliverable.file_url) {
-      setSignedUrlLoading(true)
+    if (deliverable.file_type === "pdf" && deliverable.file_url) {
+      setSignedUrlLoading(true);
       getSignedUrl(deliverable.file_url)
         .then(setSignedUrl)
-        .catch(err => console.error('Failed to get signed URL:', err))
-        .finally(() => setSignedUrlLoading(false))
+        .catch((err) => console.error("Failed to get signed URL:", err))
+        .finally(() => setSignedUrlLoading(false));
     }
   }
 
-  function handleModalClose() {
-    setIsModalOpen(false)
-    router.refresh()
+  function handleClose() {
+    setSelected(null);
+    triggerEl?.focus();
+    setTriggerEl(null);
   }
 
+  const FILTERS: { key: FilterType; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "new", label: "New" },
+    { key: "needs-review", label: "Needs review" },
+    { key: "open-threads", label: "Open threads" },
+    { key: "resolved", label: "Resolved" },
+  ];
+
   return (
-    <div className="p-8">
+    <div className="p-6 pb-20 md:pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 max-w-7xl mx-auto">
         <div>
-          <h1 className="text-2xl font-bold text-white">Deliverables</h1>
+          <h1 className="text-xl font-semibold text-white">Deliverables</h1>
           <p className="mt-1 text-zinc-400 text-sm">
-            {isAdmin ? 'Manage and share files with clients' : 'Your files and documents'}
+            {isAdmin ? "Manage and share files with clients" : "Your files and documents"}
           </p>
         </div>
         {isAdmin && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-zinc-100 transition-colors"
+            className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-zinc-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
           >
             <Plus size={16} />
             Add Deliverable
@@ -108,29 +166,182 @@ export default function DeliverablesClient({
         )}
       </div>
 
-      {/* Grid */}
-      {deliverables.length === 0 ? (
-        <div className="text-center py-24 text-zinc-600">
-          <p className="text-sm">No deliverables yet.</p>
-          {isAdmin && (
-            <p className="text-xs mt-1">Click &ldquo;Add Deliverable&rdquo; to get started.</p>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {deliverables.map(d => (
-            <DeliverableCard
-              key={d.id}
-              deliverable={d}
-              showClientName={isAdmin}
-              isSelected={selected?.id === d.id}
-              onClick={handleSelect}
-            />
+      {/* Controls */}
+      <div className="max-w-7xl mx-auto mb-4 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setActiveFilter(f.key)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+                activeFilter === f.key
+                  ? "bg-white text-black border-white"
+                  : "bg-zinc-800/50 text-zinc-400 border-zinc-700/50 hover:text-zinc-200 hover:border-zinc-600"
+              }`}
+            >
+              {f.label}
+            </button>
           ))}
+          <div className="flex-1" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortType)}
+            className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+          >
+            <option value="needs-attention">Needs attention first</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+          <div className="flex rounded-lg overflow-hidden border border-zinc-700">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-1.5 transition-colors ${
+                viewMode === "grid"
+                  ? "bg-zinc-700 text-white"
+                  : "bg-zinc-800/50 text-zinc-400 hover:text-zinc-200"
+              }`}
+              aria-label="Grid view"
+              aria-pressed={viewMode === "grid"}
+            >
+              <Grid size={14} />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-1.5 transition-colors ${
+                viewMode === "list"
+                  ? "bg-zinc-700 text-white"
+                  : "bg-zinc-800/50 text-zinc-400 hover:text-zinc-200"
+              }`}
+              aria-label="List view"
+              aria-pressed={viewMode === "list"}
+            >
+              <List size={14} />
+            </button>
+          </div>
         </div>
-      )}
+        <div className="relative">
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+          />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search deliverables…"
+            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+          />
+        </div>
+      </div>
 
-      {/* Slide-over */}
+      {/* Content */}
+      <div className="max-w-7xl mx-auto">
+        {filteredAndSorted.length === 0 ? (
+          <div className="text-center py-24 text-zinc-600">
+            {deliverables.length === 0 ? (
+              <>
+                <p className="text-sm">No deliverables yet.</p>
+                {isAdmin && (
+                  <p className="text-xs mt-1">
+                    Click &ldquo;Add Deliverable&rdquo; to get started.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm">
+                No deliverables match these filters.
+              </p>
+            )}
+          </div>
+        ) : viewMode === "grid" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredAndSorted.map((d) => (
+              <DeliverableCard
+                key={d.id}
+                deliverable={d}
+                showClientName={isAdmin}
+                isSelected={selected?.id === d.id}
+                onClick={handleSelect}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="border border-zinc-800 rounded-xl overflow-hidden overflow-x-auto">
+            <table className="w-full min-w-[600px]">
+              <thead>
+                <tr className="border-b border-zinc-800">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                    Title
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                    Type
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                    Status
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                    Threads
+                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                    Posted
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSorted.map((d) => (
+                  <tr
+                    key={d.id}
+                    onClick={(e) =>
+                      handleSelect(d, e.currentTarget as HTMLElement)
+                    }
+                    className="border-b border-zinc-800 last:border-0 hover:bg-zinc-800/30 cursor-pointer transition-colors"
+                  >
+                    <td className="px-4 py-3 text-sm text-white font-medium">
+                      {d.title}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-zinc-400 uppercase">
+                      {d.file_type}
+                    </td>
+                    <td className="px-4 py-3">
+                      {!d.viewed_at ? (
+                        <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                          New
+                        </span>
+                      ) : d.unresolvedCount > 0 ? (
+                        <span className="text-xs bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full">
+                          Open threads
+                        </span>
+                      ) : (
+                        <span className="text-xs text-zinc-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      {d.unresolvedCount > 0 ? (
+                        <span className="text-amber-400">
+                          {d.unresolvedCount} open
+                        </span>
+                      ) : d.totalCommentCount > 0 ? (
+                        <span className="text-zinc-400">
+                          {d.totalCommentCount} total
+                        </span>
+                      ) : (
+                        <span className="text-zinc-600">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-zinc-500">
+                      {new Date(d.created_at).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {selected && (
         <DeliverableSlideOver
           deliverable={selected}
@@ -140,15 +351,20 @@ export default function DeliverablesClient({
           commentsLoading={commentsLoading}
           isAdmin={isAdmin}
           currentUserId={currentUserId}
-          onClose={() => setSelected(null)}
+          onClose={handleClose}
           onCommentsChanged={refreshComments}
         />
       )}
 
-      {/* Add modal */}
       {isModalOpen && (
-        <AddDeliverableModal clients={clients} onClose={handleModalClose} />
+        <AddDeliverableModal
+          clients={clients}
+          onClose={() => {
+            setIsModalOpen(false);
+            router.refresh();
+          }}
+        />
       )}
     </div>
-  )
+  );
 }

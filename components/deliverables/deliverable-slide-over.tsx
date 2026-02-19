@@ -1,38 +1,41 @@
-'use client'
+"use client";
 
-import { X, ExternalLink } from 'lucide-react'
-import type { DeliverableWithClient, CommentWithUser } from '@/app/actions/deliverables'
-import CommentThread from './comment-thread'
+import { useEffect, useRef } from "react";
+import { X, ExternalLink, Link as LinkIcon, MessageSquare } from "lucide-react";
+import type { CommentWithUser } from "@/app/actions/deliverables";
+import type { DeliverableWithCounts } from "@/app/(dashboard)/deliverables/page";
+import CommentThread from "./comment-thread";
 
 const FILE_TYPE_LABELS: Record<string, string> = {
-  pdf: 'PDF',
-  slides: 'Google Slides',
-  sheets: 'Google Sheets',
-  link: 'External Link',
-}
+  pdf: "PDF",
+  slides: "Google Slides",
+  sheets: "Google Sheets",
+  link: "External Link",
+};
 
 function getEmbedUrl(url: string, fileType: string): string {
-  if (fileType === 'slides') {
-    // Handle /edit, /pub, /present → /embed
-    return url.replace(/\/(edit|pub|present|view)([?#].*)?$/, '/embed')
+  if (fileType === "slides") {
+    return url.replace(/\/(edit|pub|present|view)([?#].*)?$/, "/embed");
   }
-  if (fileType === 'sheets') {
-    // Handle /edit → /pub?output=html for embeddable view
-    return url.replace(/\/edit([?#].*)?$/, '/pub?output=html')
+  if (fileType === "sheets") {
+    return url.replace(/\/edit([?#].*)?$/, "/pub?output=html");
   }
-  return url
+  return url;
 }
 
+const FOCUSABLE =
+  'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
 interface Props {
-  deliverable: DeliverableWithClient
-  signedUrl: string | null
-  signedUrlLoading: boolean
-  comments: CommentWithUser[]
-  commentsLoading: boolean
-  isAdmin: boolean
-  currentUserId: string
-  onClose: () => void
-  onCommentsChanged: () => void
+  deliverable: DeliverableWithCounts;
+  signedUrl: string | null;
+  signedUrlLoading: boolean;
+  comments: CommentWithUser[];
+  commentsLoading: boolean;
+  isAdmin: boolean;
+  currentUserId: string;
+  onClose: () => void;
+  onCommentsChanged: () => void;
 }
 
 export default function DeliverableSlideOver({
@@ -46,51 +49,138 @@ export default function DeliverableSlideOver({
   onClose,
   onCommentsChanged,
 }: Props) {
-  const isPdf = deliverable.file_type === 'pdf'
-  const hasUrl = !!deliverable.file_url
-  const embedUrl = !isPdf && hasUrl
-    ? getEmbedUrl(deliverable.file_url!, deliverable.file_type)
-    : null
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = `slide-over-title-${deliverable.id}`;
+  const isPdf = deliverable.file_type === "pdf";
+  const hasUrl = !!deliverable.file_url;
+  const embedUrl =
+    !isPdf && hasUrl
+      ? getEmbedUrl(deliverable.file_url!, deliverable.file_type)
+      : null;
+  const unresolvedCount = deliverable.unresolvedCount ?? 0;
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    const focusables = panel.querySelectorAll<HTMLElement>(FOCUSABLE);
+    focusables[0]?.focus();
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+      const els = panel!.querySelectorAll<HTMLElement>(FOCUSABLE);
+      if (!els.length) return;
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  function handleCopyLink() {
+    const url = `${window.location.origin}/deliverables#${deliverable.id}`;
+    navigator.clipboard.writeText(url).catch(console.error);
+  }
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/50 z-40"
         onClick={onClose}
         aria-hidden="true"
       />
-
-      {/* Panel */}
-      <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 z-50 flex flex-col">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="fixed inset-y-0 right-0 w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 z-50 flex flex-col animate-slide-in-right"
+      >
         {/* Header */}
         <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-zinc-800 shrink-0">
           <div className="min-w-0">
             <p className="text-xs text-zinc-500 mb-0.5 uppercase tracking-wider">
               {FILE_TYPE_LABELS[deliverable.file_type]}
             </p>
-            <h2 className="text-white font-semibold text-lg leading-tight truncate">
+            <h2
+              id={titleId}
+              className="text-white font-semibold text-lg leading-tight"
+            >
               {deliverable.title}
             </h2>
             {deliverable.clients && (
-              <p className="text-zinc-400 text-sm mt-0.5">{deliverable.clients.name}</p>
+              <p className="text-zinc-400 text-sm mt-0.5">
+                {deliverable.clients.name}
+              </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="shrink-0 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
             aria-label="Close"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Scrollable content */}
+        {/* Actions bar */}
+        <div className="flex items-center gap-2 px-6 py-3 border-b border-zinc-800 bg-zinc-900/40 shrink-0 flex-wrap">
+          <button
+            onClick={handleCopyLink}
+            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+          >
+            <LinkIcon size={12} />
+            Copy link
+          </button>
+          {deliverable.file_url && !isPdf && (
+            <a
+              href={deliverable.file_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            >
+              <ExternalLink size={12} />
+              Open source
+            </a>
+          )}
+          <div className="flex-1" />
+          {unresolvedCount > 0 && (
+            <span className="flex items-center gap-1.5 text-xs text-amber-400">
+              <MessageSquare size={12} />
+              {unresolvedCount} open{" "}
+              {unresolvedCount === 1 ? "thread" : "threads"}
+            </span>
+          )}
+        </div>
+
+        {/* Summary block */}
+        <div className="px-6 py-4 border-b border-zinc-800 bg-zinc-900/50 shrink-0">
+          <p className="text-sm text-zinc-300 leading-relaxed">
+            Review this deliverable and leave feedback in the comments below.
+          </p>
+        </div>
+
+        {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
-          {/* File preview */}
           <div className="border-b border-zinc-800 bg-zinc-900">
             {isPdf ? (
-              <div className="h-[500px] flex items-center justify-center">
+              <div className="h-[420px] flex items-center justify-center">
                 {signedUrlLoading ? (
                   <p className="text-zinc-500 text-sm">Loading PDF…</p>
                 ) : signedUrl ? (
@@ -104,27 +194,13 @@ export default function DeliverableSlideOver({
                 )}
               </div>
             ) : hasUrl ? (
-              <div className="h-[500px] relative flex flex-col">
+              <div className="h-[420px]">
                 <iframe
                   src={embedUrl!}
-                  className="flex-1 w-full"
+                  className="w-full h-full"
                   title={deliverable.title}
                   allow="autoplay"
                 />
-                <div className="absolute bottom-3 right-3">
-                  <a
-                    href={deliverable.file_url!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 bg-zinc-800/90 backdrop-blur hover:bg-zinc-700 border border-zinc-600 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
-                  >
-                    <ExternalLink size={12} />
-                    Open in{' '}
-                    {deliverable.file_type === 'slides' || deliverable.file_type === 'sheets'
-                      ? 'Google'
-                      : 'new tab'}
-                  </a>
-                </div>
               </div>
             ) : (
               <div className="h-32 flex items-center justify-center">
@@ -133,7 +209,6 @@ export default function DeliverableSlideOver({
             )}
           </div>
 
-          {/* Comments */}
           <div className="p-6">
             <CommentThread
               deliverableId={deliverable.id}
@@ -147,5 +222,5 @@ export default function DeliverableSlideOver({
         </div>
       </div>
     </>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from "next/link";
 import {
   FolderKanban,
   LayoutDashboard,
@@ -6,49 +6,41 @@ import {
   Lightbulb,
   Sparkles,
   ArrowRight,
-} from 'lucide-react'
+} from "lucide-react";
 
 const NAV_CARDS = [
-  {
-    href: '/projects',
-    icon: FolderKanban,
-    title: 'Projects',
-    description: 'Track monthly SEO tasks and progress',
-  },
-  {
-    href: '/dashboard',
-    icon: LayoutDashboard,
-    title: 'Dashboard',
-    description: 'View your Looker analytics',
-  },
-  {
-    href: '/deliverables',
-    icon: PackageOpen,
-    title: 'Deliverables',
-    description: 'Reports, documents, and feedback',
-  },
-  {
-    href: '/insights',
-    icon: Lightbulb,
-    title: 'Insights',
-    description: 'SEO insights and recommendations',
-  },
-  {
-    href: '/services',
-    icon: Sparkles,
-    title: 'Services',
-    description: 'Our service offerings',
-  },
-]
+  { href: "/projects", icon: FolderKanban, title: "Projects", description: "Track monthly SEO tasks" },
+  { href: "/dashboard", icon: LayoutDashboard, title: "Dashboard", description: "View your analytics" },
+  { href: "/deliverables", icon: PackageOpen, title: "Deliverables", description: "Reports and documents" },
+  { href: "/insights", icon: Lightbulb, title: "Insights", description: "SEO insights and updates" },
+  { href: "/services", icon: Sparkles, title: "Services", description: "Our service offerings" },
+];
 
-export default function NavCards() {
+export default function NavCards({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        {NAV_CARDS.map(({ href, icon: Icon, title }) => (
+          <Link
+            key={href}
+            href={href}
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+          >
+            <Icon size={16} className="text-zinc-400" strokeWidth={1.8} />
+            <p className="text-xs text-zinc-400">{title}</p>
+          </Link>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {NAV_CARDS.map(({ href, icon: Icon, title, description }) => (
         <Link
           key={href}
           href={href}
-          className="group flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60"
+          className="group flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
         >
           <div className="flex items-center justify-between">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800 text-zinc-400 transition-colors group-hover:bg-zinc-700 group-hover:text-white">
@@ -66,5 +58,5 @@ export default function NavCards() {
         </Link>
       ))}
     </div>
-  )
+  );
 }

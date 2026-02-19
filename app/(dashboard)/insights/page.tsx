@@ -1,8 +1,142 @@
-export default function InsightsPage() {
+import { requireAuth } from "@/lib/auth";
+import { getSelectedClientId } from "@/lib/client-resolution";
+import { createServiceClient } from "@/lib/supabase/server";
+import { Lightbulb } from "lucide-react";
+
+type Post = {
+  id: string;
+  title: string;
+  body: string;
+  category: string | null;
+  created_at: string;
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  SEO: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  CRO: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  Analytics: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+  "AI Search": "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+};
+
+function CategoryTag({ category }: { category: string | null }) {
+  if (!category) return null;
+  const cls =
+    CATEGORY_COLORS[category] ??
+    "bg-zinc-700/50 text-zinc-400 border-zinc-600/50";
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold text-white">Insights</h1>
-      <p className="mt-1 text-zinc-400 text-sm">Posts and updates from your team will appear here.</p>
+    <span
+      className={`text-xs font-medium px-2 py-0.5 rounded-full border ${cls}`}
+    >
+      {category}
+    </span>
+  );
+}
+
+export default async function InsightsPage() {
+  const { user } = await requireAuth();
+
+  const selectedClientId =
+    user.role === "client" ? user.client_id : await getSelectedClientId();
+
+  let posts: Post[] = [];
+
+  if (selectedClientId) {
+    const service = await createServiceClient();
+    const { data } = await service
+      .from("posts")
+      .select("id, title, body, category, created_at")
+      .or(
+        `target_client_id.eq.${selectedClientId},target_client_id.is.null`
+      )
+      .order("created_at", { ascending: false });
+    posts = (data ?? []) as Post[];
+  } else {
+    // Show global posts even when no client selected
+    const service = await createServiceClient();
+    const { data } = await service
+      .from("posts")
+      .select("id, title, body, category, created_at")
+      .is("target_client_id", null)
+      .order("created_at", { ascending: false });
+    posts = (data ?? []) as Post[];
+  }
+
+  const featured = posts[0] ?? null;
+  const rest = posts.slice(1);
+
+  return (
+    <div className="max-w-7xl mx-auto p-6 space-y-6 pb-8">
+      <div>
+        <h1 className="text-xl font-semibold text-white">Insights</h1>
+        <p className="mt-1 text-sm text-zinc-400">
+          {posts.length > 0
+            ? `${posts.length} ${posts.length === 1 ? "post" : "posts"}`
+            : "Posts and updates from your team"}
+        </p>
+      </div>
+
+      {posts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Lightbulb className="w-10 h-10 text-zinc-600 mb-3" />
+          <p className="text-zinc-400">
+            No insights published yet. Check back soon.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Featured post */}
+          {featured && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <h2 className="text-lg font-semibold text-white">
+                  {featured.title}
+                </h2>
+                <CategoryTag category={featured.category} />
+              </div>
+              <p className="text-sm text-zinc-300 leading-relaxed mb-4">
+                {featured.body.slice(0, 400)}
+                {featured.body.length > 400 && "…"}
+              </p>
+              <p className="text-xs text-zinc-600">
+                {new Date(featured.created_at).toLocaleDateString("en-US", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </p>
+            </div>
+          )}
+
+          {/* Post list */}
+          {rest.length > 0 && (
+            <div className="space-y-3">
+              {rest.map((post) => (
+                <div
+                  key={post.id}
+                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-1.5">
+                    <h3 className="text-sm font-semibold text-white">
+                      {post.title}
+                    </h3>
+                    <CategoryTag category={post.category} />
+                  </div>
+                  <p className="text-sm text-zinc-400 line-clamp-2">
+                    {post.body}
+                  </p>
+                  <p className="text-xs text-zinc-600 mt-2">
+                    {new Date(post.created_at).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
-  )
+  );
 }
