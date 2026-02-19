@@ -4,11 +4,11 @@ import { google } from 'googleapis'
 import { requireAdmin } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
 import { parseSheetId, fetchSheetHeaders } from '@/lib/google-sheets'
-import { fetchGA4Metrics, GA4Metrics } from '@/lib/google-analytics'
-import { fetchGSCMetrics, GSCMetrics, listGSCSites } from '@/lib/google-search-console'
+import { fetchGA4Metrics, GA4Metrics, fetchGA4Report, GA4Report, ChannelRow, MonthlySessionPoint, SourceMediumRow, LandingPageRow } from '@/lib/google-analytics'
+import { fetchGSCMetrics, GSCMetrics, listGSCSites, fetchGSCReport, GSCReport, GSCMonthlyPoint, QueryRow, UrlRow } from '@/lib/google-search-console'
 import Anthropic from '@anthropic-ai/sdk'
 
-export type { GA4Metrics, GSCMetrics }
+export type { GA4Metrics, GSCMetrics, GA4Report, GSCReport, ChannelRow, MonthlySessionPoint, SourceMediumRow, LandingPageRow, GSCMonthlyPoint, QueryRow, UrlRow }
 
 export type SnapshotInsights = {
   takeaways: string
@@ -71,6 +71,37 @@ export async function fetchAnalyticsData(clientId: string): Promise<AnalyticsDat
     client.gsc_site_url
       ? fetchGSCMetrics(client.gsc_site_url)
       : Promise.resolve(null),
+  ])
+
+  const ga4 = ga4Result.status === 'fulfilled' ? ga4Result.value : null
+  const gsc = gscResult.status === 'fulfilled' ? gscResult.value : null
+  const firstError =
+    ga4Result.status === 'rejected'
+      ? String(ga4Result.reason)
+      : gscResult.status === 'rejected'
+      ? String(gscResult.reason)
+      : undefined
+
+  return { ga4, gsc, error: firstError }
+}
+
+// ── Dashboard report ─────────────────────────────────────────────────────────
+
+export type DashboardReport = { ga4: GA4Report | null; gsc: GSCReport | null; error?: string }
+
+export async function fetchDashboardReport(clientId: string): Promise<DashboardReport> {
+  const service = await createServiceClient()
+  const { data: client } = await service
+    .from('clients')
+    .select('ga4_property_id, gsc_site_url')
+    .eq('id', clientId)
+    .single()
+
+  if (!client) return { ga4: null, gsc: null, error: 'Client not found' }
+
+  const [ga4Result, gscResult] = await Promise.allSettled([
+    client.ga4_property_id ? fetchGA4Report(client.ga4_property_id) : Promise.resolve(null),
+    client.gsc_site_url ? fetchGSCReport(client.gsc_site_url) : Promise.resolve(null),
   ])
 
   const ga4 = ga4Result.status === 'fulfilled' ? ga4Result.value : null

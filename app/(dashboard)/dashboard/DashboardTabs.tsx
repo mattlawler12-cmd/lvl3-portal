@@ -4,7 +4,9 @@ import { useState } from "react";
 import LookerEmbed from "@/components/dashboard/looker-embed";
 import AnalyticsKpiStrip from "@/components/analytics/AnalyticsKpiStrip";
 import RefreshAnalyticsButton from "@/components/home/RefreshAnalyticsButton";
-import type { AnalyticsData, SnapshotInsights } from "@/app/actions/analytics";
+import WebsiteTab from "@/components/analytics/website/WebsiteTab";
+import SeoTab from "@/components/analytics/seo/SeoTab";
+import type { AnalyticsData, SnapshotInsights, DashboardReport } from "@/app/actions/analytics";
 
 interface Props {
   lookerUrl: string | null;
@@ -14,9 +16,10 @@ interface Props {
   snapshotInsights: SnapshotInsights | null;
   snapshotUpdatedAt: string | null;
   clientId: string;
+  dashboardReport: DashboardReport;
 }
 
-type Tab = "snapshot" | "full" | "definitions";
+type Tab = "snapshot" | "website" | "seo" | "full" | "definitions";
 
 function SnapshotSection({
   title,
@@ -45,6 +48,7 @@ export default function DashboardTabs({
   snapshotInsights,
   snapshotUpdatedAt,
   clientId,
+  dashboardReport,
 }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("snapshot");
   const [iframeEverActive, setIframeEverActive] = useState(false);
@@ -66,6 +70,8 @@ export default function DashboardTabs({
 
   const TABS: { key: Tab; label: string }[] = [
     { key: "snapshot" as Tab, label: "Snapshot" },
+    ...(hasAnalytics ? [{ key: "website" as Tab, label: "Website" }] : []),
+    ...(hasAnalytics ? [{ key: "seo" as Tab, label: "SEO" }] : []),
     ...(hasLooker ? [{ key: "full" as Tab, label: "Full Dashboard" }] : []),
     { key: "definitions" as Tab, label: "Definitions & Notes" },
   ];
@@ -178,6 +184,16 @@ export default function DashboardTabs({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Website tab */}
+        {activeTab === "website" && (
+          <WebsiteTab ga4={dashboardReport.ga4} />
+        )}
+
+        {/* SEO tab */}
+        {activeTab === "seo" && (
+          <SeoTab ga4={dashboardReport.ga4} gsc={dashboardReport.gsc} />
         )}
 
         {/* Full Dashboard tab */}

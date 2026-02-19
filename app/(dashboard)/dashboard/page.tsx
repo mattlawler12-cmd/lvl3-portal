@@ -1,6 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { resolveSelectedClientId, getClientById } from "@/lib/client-resolution";
-import { fetchAnalyticsData, type AnalyticsData } from "@/app/actions/analytics";
+import { fetchAnalyticsData, fetchDashboardReport, type AnalyticsData, type DashboardReport } from "@/app/actions/analytics";
 import { BarChart2 } from "lucide-react";
 import DashboardTabs from "./DashboardTabs";
 
@@ -56,6 +56,13 @@ export default async function DashboardPage() {
     // Non-fatal — dashboard still renders without analytics
   }
 
+  let dashboardReport: DashboardReport = { ga4: null, gsc: null };
+  try {
+    dashboardReport = await fetchDashboardReport(selectedClient.id);
+  } catch {
+    // Non-fatal
+  }
+
   const hasAnalytics = analyticsData.ga4 !== null || analyticsData.gsc !== null;
 
   if (!lookerUrl && !hasAnalytics) {
@@ -87,6 +94,7 @@ export default async function DashboardPage() {
           snapshotInsights={selectedClient.snapshot_insights ?? null}
           snapshotUpdatedAt={selectedClient.analytics_summary_updated_at ?? null}
           clientId={selectedClient.id}
+          dashboardReport={dashboardReport}
         />
       </div>
     </div>
