@@ -1,7 +1,9 @@
 import { requireAuth } from "@/lib/auth";
-import { resolveSelectedClientId } from "@/lib/client-resolution";
+import { resolveSelectedClientId, getClientById } from "@/lib/client-resolution";
 import { createServiceClient } from "@/lib/supabase/server";
 import { Lightbulb } from "lucide-react";
+import NarrativeCard from "@/components/ui/NarrativeCard";
+import RefreshAnalyticsButton from "@/components/home/RefreshAnalyticsButton";
 
 type Post = {
   id: string;
@@ -9,6 +11,13 @@ type Post = {
   body: string;
   category: string | null;
   created_at: string;
+};
+
+type InsightsClient = {
+  id: string;
+  name: string;
+  analytics_summary: string | null;
+  analytics_summary_updated_at: string | null;
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -36,6 +45,15 @@ export default async function InsightsPage() {
   const { user } = await requireAuth();
 
   const selectedClientId = await resolveSelectedClientId(user);
+  const isAdmin = user.role === "admin";
+
+  const selectedClient =
+    selectedClientId
+      ? await getClientById<InsightsClient>(
+          selectedClientId,
+          "id, name, analytics_summary, analytics_summary_updated_at"
+        )
+      : null;
 
   let posts: Post[] = [];
 
@@ -63,6 +81,10 @@ export default async function InsightsPage() {
   const featured = posts[0] ?? null;
   const rest = posts.slice(1);
 
+  const analyticsSummary = selectedClient?.analytics_summary ?? null;
+  const analyticsSummaryUpdatedAt =
+    selectedClient?.analytics_summary_updated_at ?? null;
+
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6 pb-8">
       <div>
@@ -73,6 +95,44 @@ export default async function InsightsPage() {
             : "Posts and updates from your team"}
         </p>
       </div>
+
+      {/* Analytics Insights section */}
+      {(analyticsSummary || isAdmin) && selectedClient && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+              Analytics Insights
+            </p>
+            {isAdmin && (
+              <RefreshAnalyticsButton clientId={selectedClient.id} />
+            )}
+          </div>
+          {analyticsSummary ? (
+            <NarrativeCard
+              title="Analytics overview"
+              body={analyticsSummary}
+              maxChars={400}
+              footer={
+                analyticsSummaryUpdatedAt ? (
+                  <p className="text-xs text-zinc-600">
+                    Last updated{" "}
+                    {new Date(analyticsSummaryUpdatedAt).toLocaleDateString(
+                      "en-US",
+                      { month: "long", day: "numeric", year: "numeric" }
+                    )}
+                  </p>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
+              <p className="text-sm text-zinc-500 italic">
+                No analytics insights yet. Configure GA4/GSC in client settings and click &quot;Refresh analytics&quot;.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

@@ -2,16 +2,24 @@
 
 import { useState } from "react";
 import LookerEmbed from "@/components/dashboard/looker-embed";
+import AnalyticsKpiStrip from "@/components/analytics/AnalyticsKpiStrip";
+import type { AnalyticsData } from "@/app/actions/analytics";
 
 interface Props {
-  lookerUrl: string;
+  lookerUrl: string | null;
   clientName: string;
   isAdmin: boolean;
+  analyticsData: AnalyticsData;
 }
 
 type Tab = "snapshot" | "full" | "definitions";
 
-export default function DashboardTabs({ lookerUrl, clientName, isAdmin }: Props) {
+export default function DashboardTabs({
+  lookerUrl,
+  clientName,
+  isAdmin,
+  analyticsData,
+}: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("snapshot");
   const [iframeEverActive, setIframeEverActive] = useState(false);
   const [iframeTimedOut, setIframeTimedOut] = useState(false);
@@ -26,10 +34,14 @@ export default function DashboardTabs({ lookerUrl, clientName, isAdmin }: Props)
     }
   }
 
+  const hasLooker = !!lookerUrl;
+  const hasAnalytics =
+    analyticsData.ga4 !== null || analyticsData.gsc !== null;
+
   const TABS: { key: Tab; label: string }[] = [
-    { key: "snapshot", label: "Snapshot" },
-    { key: "full", label: "Full Dashboard" },
-    { key: "definitions", label: "Definitions & Notes" },
+    { key: "snapshot" as Tab, label: "Snapshot" },
+    ...(hasLooker ? [{ key: "full" as Tab, label: "Full Dashboard" }] : []),
+    { key: "definitions" as Tab, label: "Definitions & Notes" },
   ];
 
   return (
@@ -56,16 +68,23 @@ export default function DashboardTabs({ lookerUrl, clientName, isAdmin }: Props)
         {/* Snapshot tab */}
         {activeTab === "snapshot" && (
           <div className="p-6 max-w-4xl space-y-6">
-            {/* KPI placeholder */}
+            {/* KPI strip */}
             <div>
               <p className="text-xs font-medium uppercase tracking-widest text-zinc-500 mb-3">
                 Key Metrics
               </p>
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
-                <p className="text-sm text-zinc-500 italic">
-                  KPI snapshot cards will appear here once configured.
-                </p>
-              </div>
+              {hasAnalytics ? (
+                <AnalyticsKpiStrip
+                  ga4={analyticsData.ga4}
+                  gsc={analyticsData.gsc}
+                />
+              ) : (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
+                  <p className="text-sm text-zinc-500 italic">
+                    KPI snapshot cards will appear here once configured.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Context panel */}
@@ -111,7 +130,7 @@ export default function DashboardTabs({ lookerUrl, clientName, isAdmin }: Props)
         )}
 
         {/* Full Dashboard tab */}
-        {activeTab === "full" && (
+        {activeTab === "full" && hasLooker && (
           <div className="h-full flex flex-col">
             {iframeTimedOut && !iframeEverActive && (
               <div className="px-6 py-3 bg-zinc-900/50 border-b border-zinc-800 text-sm text-zinc-400">
@@ -126,7 +145,7 @@ export default function DashboardTabs({ lookerUrl, clientName, isAdmin }: Props)
             )}
             <div className="flex-1">
               <LookerEmbed
-                url={lookerUrl}
+                url={lookerUrl!}
                 clientName={clientName}
                 isActive={iframeEverActive}
               />

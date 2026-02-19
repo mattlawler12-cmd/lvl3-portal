@@ -12,6 +12,8 @@ export default async function ProjectsPage() {
     name: string;
     google_sheet_id: string | null;
     ai_summary: string | null;
+    sheet_header_row: number | null;
+    sheet_column_map: import("@/lib/google-sheets").ColumnMap | null;
   };
 
   const selectedClientId = await resolveSelectedClientId(user);
@@ -19,7 +21,7 @@ export default async function ProjectsPage() {
   const selectedClient = selectedClientId
     ? await getClientById<ClientRow>(
         selectedClientId,
-        "id, name, google_sheet_id, ai_summary"
+        "id, name, google_sheet_id, ai_summary, sheet_header_row, sheet_column_map"
       )
     : null;
 
@@ -35,7 +37,9 @@ export default async function ProjectsPage() {
 
   if (sheetId) {
     try {
-      sheetData = await getSheetData(sheetId);
+      const headerRow = selectedClient?.sheet_header_row ?? 1;
+      const columnMap = selectedClient?.sheet_column_map ?? null;
+      sheetData = await getSheetData(sheetId, headerRow, columnMap);
     } catch (err) {
       sheetError = err instanceof Error ? err.message : String(err);
       console.error("[projects] sheet fetch error:", err);

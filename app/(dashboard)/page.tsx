@@ -2,17 +2,22 @@ import { requireAuth } from "@/lib/auth";
 import { resolveSelectedClientId, getClientById } from "@/lib/client-resolution";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getUnviewedDeliverables, getOpenCommentRows, buildOpenThreads } from "@/lib/queries";
+import { fetchAnalyticsData, type AnalyticsData } from "@/app/actions/analytics";
 import NavCards from "@/components/home/nav-cards";
 import NarrativeCard from "@/components/ui/NarrativeCard";
 import AttentionQueueCard from "@/components/home/AttentionQueueCard";
 import OpenLoopsCard from "@/components/home/OpenLoopsCard";
 import RefreshSummaryButton from "@/components/home/RefreshSummaryButton";
+import RefreshAnalyticsButton from "@/components/home/RefreshAnalyticsButton";
+import AnalyticsKpiStrip from "@/components/analytics/AnalyticsKpiStrip";
 
 type HomeClient = {
   id: string;
   name: string;
   ai_summary: string | null;
   ai_summary_updated_at: string | null;
+  analytics_summary: string | null;
+  analytics_summary_updated_at: string | null;
 };
 
 type OpenThread = {
@@ -29,7 +34,7 @@ export default async function HomePage() {
   const selectedClient = selectedClientId
     ? await getClientById<HomeClient>(
         selectedClientId,
-        "id, name, ai_summary, ai_summary_updated_at"
+        "id, name, ai_summary, ai_summary_updated_at, analytics_summary, analytics_summary_updated_at"
       )
     : null;
 
@@ -45,6 +50,7 @@ export default async function HomePage() {
     category: string | null;
     created_at: string;
   }[] = [];
+  let analyticsData: AnalyticsData = { ga4: null, gsc: null };
 
   if (selectedClient) {
     const service = await createServiceClient();
@@ -72,9 +78,16 @@ export default async function HomePage() {
     );
 
     recentPosts = (postsResult.data ?? []) as typeof recentPosts;
+
+    try {
+      analyticsData = await fetchAnalyticsData(selectedClient.id);
+    } catch {
+      // Non-fatal
+    }
   }
 
   const totalOpenThreads = openThreadsData.reduce((s, d) => s + d.count, 0);
+  const hasAnalytics = analyticsData.ga4 !== null || analyticsData.gsc !== null;
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-8 pb-8">
@@ -100,16 +113,24 @@ export default async function HomePage() {
 
       {selectedClient && (
         <>
-          {/* KPI strip placeholder */}
+          {/* Analytics KPI strip (compact) */}
           <section>
             <p className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-500">
               Key Metrics
             </p>
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
-              <p className="text-sm text-zinc-500 italic">
-                KPI cards will appear here once configured by your admin.
-              </p>
-            </div>
+            {hasAnalytics ? (
+              <AnalyticsKpiStrip
+                ga4={analyticsData.ga4}
+                gsc={analyticsData.gsc}
+                compact
+              />
+            ) : (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
+                <p className="text-sm text-zinc-500 italic">
+                  KPI cards will appear here once configured by your admin.
+                </p>
+              </div>
+            )}
           </section>
 
           {/* Attention + Open loops */}
@@ -172,6 +193,47 @@ export default async function HomePage() {
               </div>
             )}
           </section>
+
+          {/* Analytics summary */}
+          {(selectedClient.analytics_summary || isAdmin) && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+                  Analytics Insights
+                </p>
+                {isAdmin && (
+                  <RefreshAnalyticsButton clientId={selectedClient.id} />
+                )}
+              </div>
+              {selectedClient.analytics_summary ? (
+                <NarrativeCard
+                  title="Analytics overview"
+                  body={selectedClient.analytics_summary}
+                  maxChars={280}
+                  footer={
+                    selectedClient.analytics_summary_updated_at ? (
+                      <p className="text-xs text-zinc-600">
+                        Last updated{" "}
+                        {new Date(
+                          selectedClient.analytics_summary_updated_at
+                        ).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </p>
+                    ) : undefined
+                  }
+                />
+              ) : (
+                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
+                  <p className="text-sm text-zinc-500 italic">
+                    No analytics insights yet. Configure GA4/GSC in client settings and click &quot;Refresh analytics&quot;.
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Recent insights */}
           {recentPosts.length > 0 && (

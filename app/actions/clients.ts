@@ -5,6 +5,7 @@ import {
   createClient as createSupabaseClient,
   createServiceClient,
 } from '@/lib/supabase/server'
+import { parseSheetId } from '@/lib/google-sheets'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -78,12 +79,28 @@ export async function updateClient(clientId: string, formData: FormData) {
   const name = (formData.get('name') as string).trim()
   const slug = (formData.get('slug') as string).trim()
   const logo_url = (formData.get('logo_url') as string | null)?.trim() || null
-  const google_sheet_id = (formData.get('google_sheet_id') as string | null)?.trim() || null
+  const rawSheetId = (formData.get('google_sheet_id') as string | null)?.trim() || null
+  const google_sheet_id = rawSheetId ? parseSheetId(rawSheetId) : null
   const looker_embed_url = (formData.get('looker_embed_url') as string | null)?.trim() || null
+  const sheet_header_row = parseInt((formData.get('sheet_header_row') as string | null) ?? '1') || 1
+  const columnMapStr = (formData.get('sheet_column_map') as string | null)?.trim() || null
+  const sheet_column_map = columnMapStr ? JSON.parse(columnMapStr) : null
+  const ga4_property_id = (formData.get('ga4_property_id') as string | null)?.trim() || null
+  const gsc_site_url = (formData.get('gsc_site_url') as string | null)?.trim() || null
 
   const { error } = await service
     .from('clients')
-    .update({ name, slug, logo_url, google_sheet_id, looker_embed_url })
+    .update({
+      name,
+      slug,
+      logo_url,
+      google_sheet_id,
+      looker_embed_url,
+      sheet_header_row,
+      sheet_column_map,
+      ga4_property_id,
+      gsc_site_url,
+    })
     .eq('id', clientId)
 
   if (error) throw new Error(error.message)

@@ -1,5 +1,6 @@
 import { requireAuth } from "@/lib/auth";
 import { resolveSelectedClientId, getClientById } from "@/lib/client-resolution";
+import { fetchAnalyticsData, type AnalyticsData } from "@/app/actions/analytics";
 import { BarChart2 } from "lucide-react";
 import DashboardTabs from "./DashboardTabs";
 
@@ -45,7 +46,17 @@ export default async function DashboardPage() {
     );
   }
 
-  if (!lookerUrl) {
+  // Fetch analytics data (returns null fields if not configured)
+  let analyticsData: AnalyticsData = { ga4: null, gsc: null };
+  try {
+    analyticsData = await fetchAnalyticsData(selectedClient.id);
+  } catch {
+    // Non-fatal — dashboard still renders without analytics
+  }
+
+  const hasAnalytics = analyticsData.ga4 !== null || analyticsData.gsc !== null;
+
+  if (!lookerUrl && !hasAnalytics) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center p-8">
         <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-8 max-w-md">
@@ -70,6 +81,7 @@ export default async function DashboardPage() {
           lookerUrl={lookerUrl}
           clientName={selectedClient.name}
           isAdmin={isAdmin}
+          analyticsData={analyticsData}
         />
       </div>
     </div>

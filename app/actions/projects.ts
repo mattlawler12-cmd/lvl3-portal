@@ -2,7 +2,7 @@
 
 import { unstable_cache } from 'next/cache'
 import { revalidateTag, revalidatePath } from 'next/cache'
-import { fetchSheetRows, SheetRow } from '@/lib/google-sheets'
+import { fetchSheetRows, SheetRow, ColumnMap } from '@/lib/google-sheets'
 import {
   createClient as createSupabaseClient,
   createServiceClient,
@@ -16,16 +16,21 @@ export type SheetData = {
   fetchedAt: string
 }
 
-export async function getSheetData(sheetId: string): Promise<SheetData> {
+export async function getSheetData(
+  sheetId: string,
+  headerRow: number = 1,
+  columnMap: ColumnMap | null = null
+): Promise<SheetData> {
+  const mapKey = columnMap ? JSON.stringify(columnMap) : 'null'
   const cached = unstable_cache(
     async () => {
-      const rows = await fetchSheetRows(sheetId)
+      const rows = await fetchSheetRows(sheetId, headerRow, columnMap)
       return {
         rows,
         fetchedAt: new Date().toISOString(),
       }
     },
-    ['sheet', sheetId],
+    ['sheet', sheetId, String(headerRow), mapKey],
     {
       revalidate: 300,
       tags: [`sheet-${sheetId}`],

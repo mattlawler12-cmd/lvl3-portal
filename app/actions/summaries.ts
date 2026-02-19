@@ -16,13 +16,16 @@ export async function generateClientSummary(clientId: string): Promise<void> {
 
   const { data: client } = await service
     .from('clients')
-    .select('name, google_sheet_id')
+    .select('name, google_sheet_id, sheet_header_row, sheet_column_map')
     .eq('id', clientId)
     .single()
 
   if (!client?.google_sheet_id) return
 
-  const sheetData = await getSheetData(client.google_sheet_id)
+  const headerRow = (client.sheet_header_row as number | null) ?? 1
+  const columnMap = (client.sheet_column_map as import('@/lib/google-sheets').ColumnMap | null) ?? null
+
+  const sheetData = await getSheetData(client.google_sheet_id, headerRow, columnMap)
   const currentMonthRows = sheetData.rows.filter((row) => isCurrentMonth(row.month))
 
   if (currentMonthRows.length === 0) return
