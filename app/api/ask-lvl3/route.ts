@@ -157,7 +157,14 @@ async function executeTool(
 
     return `Unknown tool: ${name}`
   } catch (err) {
-    return `Tool error: ${err instanceof Error ? err.message : String(err)}`
+    // Extract the specific Google API error reason if available
+    type GaxiosErr = { response?: { data?: { error?: { message?: string; errors?: Array<{ reason?: string }> } } } }
+    const googleMsg = (err as GaxiosErr)?.response?.data?.error?.message
+    const googleReason = (err as GaxiosErr)?.response?.data?.error?.errors?.[0]?.reason
+    const baseMsg = err instanceof Error ? err.message : String(err)
+    const detail = googleMsg ?? baseMsg
+    console.error('[ask-lvl3 tool error]', name, { input, detail, reason: googleReason })
+    return `Tool error (${name}): ${detail}${googleReason ? ` (${googleReason})` : ''}`
   }
 }
 
