@@ -11,27 +11,27 @@ export default function DeltaChip({
 }: DeltaChipProps) {
   if (direction === "up") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+      <span className="inline-flex items-center gap-1 text-xs text-accent-400">
         <span aria-hidden="true">↑</span>
         <span>Up {percent}</span>
-        {absolute && <span className="text-zinc-500">({absolute})</span>}
+        {absolute && <span className="text-surface-500">({absolute})</span>}
       </span>
     );
   }
   if (direction === "down") {
     return (
-      <span className="inline-flex items-center gap-1 text-xs text-red-400">
+      <span className="inline-flex items-center gap-1 text-xs text-rose-400">
         <span aria-hidden="true">↓</span>
         <span>Down {percent}</span>
-        {absolute && <span className="text-zinc-500">({absolute})</span>}
+        {absolute && <span className="text-surface-500">({absolute})</span>}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-xs text-zinc-400">
+    <span className="inline-flex items-center gap-1 text-xs text-surface-400">
       <span aria-hidden="true">→</span>
       <span>Flat</span>
-      {absolute && <span className="text-zinc-500">({absolute})</span>}
+      {absolute && <span className="text-surface-500">({absolute})</span>}
     </span>
   );
 }

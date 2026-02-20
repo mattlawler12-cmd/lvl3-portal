@@ -13,8 +13,8 @@ export default function WebsiteTab({ ga4 }: Props) {
   if (!ga4) {
     return (
       <div className="p-6">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-8 text-center">
-          <p className="text-sm text-zinc-500 italic">No GA4 data available. Configure a GA4 Property ID in client settings.</p>
+        <div className="rounded-xl border border-surface-700 bg-surface-900/50 px-5 py-8 text-center">
+          <p className="text-sm text-surface-500 italic">No GA4 data available. Configure a GA4 Property ID in client settings.</p>
         </div>
       </div>
     )

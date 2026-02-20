@@ -49,8 +49,8 @@ export default async function ProjectsPage() {
   if (!selectedClient && showSelector) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center p-8">
-        <FileSpreadsheet className="w-10 h-10 text-zinc-600 mb-3" />
-        <p className="text-zinc-400">
+        <FileSpreadsheet className="w-10 h-10 text-surface-500 mb-3" />
+        <p className="text-surface-400">
           Select a client from the workspace selector to view their project
           tracker.
         </p>
@@ -61,8 +61,8 @@ export default async function ProjectsPage() {
   if (!selectedClient) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center p-8">
-        <FileSpreadsheet className="w-10 h-10 text-zinc-600 mb-3" />
-        <p className="text-zinc-400">No client assigned to your account.</p>
+        <FileSpreadsheet className="w-10 h-10 text-surface-500 mb-3" />
+        <p className="text-surface-400">No client assigned to your account.</p>
       </div>
     );
   }
@@ -71,16 +71,16 @@ export default async function ProjectsPage() {
     return (
       <div className="p-6">
         <div className="mb-6">
-          <h1 className="text-xl font-semibold text-white">Projects</h1>
-          <p className="mt-1 text-zinc-400 text-sm">{selectedClient.name}</p>
+          <h1 className="text-xl font-semibold text-surface-100">Projects</h1>
+          <p className="mt-1 text-surface-400 text-sm">{selectedClient.name}</p>
         </div>
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <FileSpreadsheet className="w-10 h-10 text-zinc-600 mb-3" />
-          <p className="text-zinc-400">
+          <FileSpreadsheet className="w-10 h-10 text-surface-500 mb-3" />
+          <p className="text-surface-400">
             No Google Sheet has been connected for this client yet.
           </p>
           {isAdmin && (
-            <p className="text-zinc-500 text-sm mt-1">
+            <p className="text-surface-500 text-sm mt-1">
               Set the Google Sheet ID in{" "}
               <a
                 href={`/clients/${selectedClient.id}/settings`}
@@ -99,9 +99,9 @@ export default async function ProjectsPage() {
   if (!sheetData) {
     return (
       <div className="p-6 max-w-xl">
-        <p className="text-zinc-400 mb-2">Failed to load sheet data.</p>
+        <p className="text-surface-400 mb-2">Failed to load sheet data.</p>
         {sheetError && (
-          <pre className="text-xs text-red-400 bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-left whitespace-pre-wrap break-all w-full">
+          <pre className="text-xs text-red-400 bg-surface-900 border border-surface-700 rounded-lg px-4 py-3 text-left whitespace-pre-wrap break-all w-full">
             {sheetError}
           </pre>
         )}
@@ -112,8 +112,8 @@ export default async function ProjectsPage() {
   if (sheetData.rows.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center p-8">
-        <FileSpreadsheet className="w-10 h-10 text-zinc-600 mb-3" />
-        <p className="text-zinc-400">The connected sheet has no task rows yet.</p>
+        <FileSpreadsheet className="w-10 h-10 text-surface-500 mb-3" />
+        <p className="text-surface-400">The connected sheet has no task rows yet.</p>
       </div>
     );
   }
@@ -122,8 +122,8 @@ export default async function ProjectsPage() {
     <div className="p-6 space-y-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-white">Projects</h1>
-          <p className="mt-1 text-zinc-400 text-sm">{selectedClient.name}</p>
+          <h1 className="text-xl font-semibold text-surface-100">Projects</h1>
+          <p className="mt-1 text-surface-400 text-sm">{selectedClient.name}</p>
         </div>
       </div>
       <ProjectsView

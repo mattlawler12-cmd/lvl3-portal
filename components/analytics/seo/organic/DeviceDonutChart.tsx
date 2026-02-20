@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
-const COLORS = ['#52525b', '#71717a', '#3f3f46']
+const COLORS = ['#fb923c', '#2dd4bf', '#60a5fa']
 
 interface Props {
   mobile: number
@@ -20,8 +20,8 @@ export default function DeviceDonutChart({ mobile, desktop, tablet }: Props) {
   if (data.length === 0) return null
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-      <p className="text-sm font-semibold text-white mb-4">Device Breakdown (Organic)</p>
+    <div className="bg-surface-900 border border-surface-700 rounded-xl p-5">
+      <p className="text-sm font-semibold text-surface-100 mb-4">Device Breakdown (Organic)</p>
       <ResponsiveContainer width="100%" height={240}>
         <PieChart>
           <Pie
@@ -39,13 +39,13 @@ export default function DeviceDonutChart({ mobile, desktop, tablet }: Props) {
           </Pie>
           <Tooltip
             formatter={(v: number | undefined) => [(v ?? 0).toLocaleString(), 'Sessions']}
-            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
-            itemStyle={{ color: '#a1a1aa' }}
+            contentStyle={{ background: '#18181b', border: '1px solid #1e2433', borderRadius: 8 }}
+            itemStyle={{ color: '#9ba3b5' }}
           />
           <Legend
             iconType="circle"
             iconSize={8}
-            formatter={(value) => <span style={{ color: '#a1a1aa', fontSize: 12 }}>{value}</span>}
+            formatter={(value) => <span style={{ color: '#9ba3b5', fontSize: 12 }}>{value}</span>}
           />
         </PieChart>
       </ResponsiveContainer>

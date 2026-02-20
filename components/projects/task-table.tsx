@@ -5,7 +5,7 @@ import type { SheetRow } from '@/app/actions/projects'
 import { getStatusStyle, formatFee } from './project-helpers'
 
 function NoteCell({ note }: { note: string | null }) {
-  if (!note) return <span className="text-zinc-600">—</span>
+  if (!note) return <span className="text-surface-500">—</span>
   if (note.startsWith('http')) {
     return (
       <a href={note} target="_blank" rel="noopener noreferrer"
@@ -14,7 +14,7 @@ function NoteCell({ note }: { note: string | null }) {
       </a>
     )
   }
-  return <span className="text-zinc-400">{note}</span>
+  return <span className="text-surface-400">{note}</span>
 }
 
 export default function TaskTable({
@@ -40,17 +40,17 @@ export default function TaskTable({
   return (
     <table className="w-full text-sm">
       <thead>
-        <tr className="border-b border-zinc-800">
+        <tr className="border-b border-surface-700">
           {cols.map((c) => (
             <th
               key={c.key}
-              className={`text-left px-4 py-2 text-zinc-500 font-medium ${onSort && c.key !== 'note' ? 'cursor-pointer hover:text-zinc-300 select-none' : ''}`}
+              className={`text-left px-4 py-2 text-surface-500 font-medium ${onSort && c.key !== 'note' ? 'cursor-pointer hover:text-surface-200 select-none' : ''}`}
               onClick={() => onSort && c.key !== 'note' && onSort(c.key)}
             >
               <span className="inline-flex items-center gap-1">
                 {c.label}
                 {sortConfig?.col === c.key && (
-                  <span className="text-zinc-400">{sortConfig.dir === 'asc' ? '↑' : '↓'}</span>
+                  <span className="text-surface-400">{sortConfig.dir === 'asc' ? '↑' : '↓'}</span>
                 )}
               </span>
             </th>
@@ -60,22 +60,22 @@ export default function TaskTable({
       <tbody>
         {rows.length === 0 ? (
           <tr>
-            <td colSpan={cols.length} className="px-4 py-8 text-center text-zinc-600 text-xs">
+            <td colSpan={cols.length} className="px-4 py-8 text-center text-surface-500 text-xs">
               No tasks match the current filters.
             </td>
           </tr>
         ) : (
           rows.map((row, i) => (
-            <tr key={i} className="border-b border-zinc-800/50 last:border-0 hover:bg-zinc-800/30 transition-colors">
-              {showMonth && <td className="px-4 py-3 text-zinc-500 text-xs">{row.month}</td>}
-              <td className="px-4 py-3 text-zinc-400">{row.category || '—'}</td>
-              <td className="px-4 py-3 text-white">{row.task}</td>
+            <tr key={i} className="border-b border-surface-800/50 last:border-0 hover:bg-surface-800/30 transition-colors">
+              {showMonth && <td className="px-4 py-3 text-surface-500 text-xs">{row.month}</td>}
+              <td className="px-4 py-3 text-surface-400">{row.category || '—'}</td>
+              <td className="px-4 py-3 text-surface-100">{row.task}</td>
               <td className="px-4 py-3">
                 <span className={`inline-block text-xs px-2 py-0.5 rounded-full ${getStatusStyle(row.status)}`}>
                   {row.status || 'Unknown'}
                 </span>
               </td>
-              <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">{formatFee(row.fee)}</td>
+              <td className="px-4 py-3 text-surface-400 whitespace-nowrap">{formatFee(row.fee)}</td>
               <td className="px-4 py-3"><NoteCell note={row.note} /></td>
             </tr>
           ))

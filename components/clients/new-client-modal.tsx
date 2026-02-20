@@ -71,17 +71,17 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-zinc-900 border border-zinc-800 rounded-xl w-full max-w-md p-6 shadow-2xl">
+      <div className="relative bg-surface-900 border border-surface-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-white font-semibold text-lg">New client</h2>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">
+          <h2 className="text-surface-100 font-semibold text-lg">New client</h2>
+          <button onClick={onClose} className="text-surface-500 hover:text-surface-100 transition-colors">
             <X size={18} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">
               Name <span className="text-red-400">*</span>
             </label>
             <input
@@ -91,13 +91,13 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
               value={name}
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="Acme Corp"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/20 text-sm"
+              className="w-full bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-surface-100/20 text-sm"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-              Slug <span className="text-zinc-500 text-xs font-normal">(auto-generated)</span>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">
+              Slug <span className="text-surface-500 text-xs font-normal">(auto-generated)</span>
             </label>
             <input
               type="text"
@@ -108,13 +108,13 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
                 setSlug(e.target.value)
               }}
               placeholder="acme-corp"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/20 text-sm font-mono"
+              className="w-full bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-surface-100/20 text-sm font-mono"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-              Website <span className="text-zinc-500 text-xs font-normal">(optional)</span>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">
+              Website <span className="text-surface-500 text-xs font-normal">(optional)</span>
             </label>
             <div className="flex gap-2">
               <input
@@ -122,13 +122,13 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
                 placeholder="acme.com"
-                className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/20 text-sm"
+                className="flex-1 bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-surface-100/20 text-sm"
               />
               <button
                 type="button"
                 onClick={handleFetchLogo}
                 disabled={!website || logoFetching}
-                className="shrink-0 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg px-3 py-2 text-sm hover:bg-zinc-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                className="shrink-0 bg-surface-800 border border-surface-600 text-surface-300 rounded-lg px-3 py-2 text-sm hover:bg-surface-700 hover:text-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
                 <RefreshCw size={12} className={logoFetching ? 'animate-spin' : ''} />
                 Fetch Logo
@@ -137,8 +137,8 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-              Logo URL <span className="text-zinc-500 text-xs font-normal">(optional)</span>
+            <label className="block text-sm font-medium text-surface-300 mb-1.5">
+              Logo URL <span className="text-surface-500 text-xs font-normal">(optional)</span>
             </label>
             <div className="flex gap-2 items-center">
               <input
@@ -146,7 +146,7 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
                 value={logoUrl}
                 onChange={(e) => setLogoUrl(e.target.value)}
                 placeholder="https://..."
-                className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/20 text-sm"
+                className="flex-1 bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-surface-100/20 text-sm"
               />
               {logoUrl && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -166,14 +166,14 @@ export default function NewClientModal({ onClose }: NewClientModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-zinc-800 text-zinc-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-zinc-700 transition-colors"
+              className="flex-1 bg-surface-800 text-surface-300 rounded-lg px-4 py-2 text-sm font-medium hover:bg-surface-700 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || !name.trim() || !slug.trim()}
-              className="flex-1 bg-white text-black rounded-lg px-4 py-2 text-sm font-semibold hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-brand-400 text-surface-950 rounded-lg px-4 py-2 text-sm font-semibold hover:bg-brand-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Creating…' : 'Create client'}
             </button>

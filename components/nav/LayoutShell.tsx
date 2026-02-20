@@ -74,7 +74,7 @@ export default function LayoutShell({
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-900">
+    <div className="min-h-screen bg-surface-950">
       <TopBar
         userEmail={userEmail}
         userRole={userRole}

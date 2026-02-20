@@ -67,13 +67,13 @@ export default function AddDeliverableModal({ clients, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl">
+      <div className="w-full max-w-md bg-surface-900 border border-surface-700 rounded-2xl shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-          <h2 className="text-white font-semibold">Add Deliverable</h2>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-700">
+          <h2 className="text-surface-100 font-semibold">Add Deliverable</h2>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            className="p-1.5 rounded-lg text-surface-400 hover:text-surface-100 hover:bg-surface-800 transition-colors"
           >
             <X size={16} />
           </button>
@@ -82,11 +82,11 @@ export default function AddDeliverableModal({ clients, onClose }: Props) {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Client */}
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Client</label>
+            <label className="block text-xs font-medium text-surface-400 mb-1.5">Client</label>
             <select
               value={clientId}
               onChange={e => setClientId(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-zinc-500"
+              className="w-full bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-sm text-surface-100 focus:outline-none focus:ring-1 focus:ring-surface-500"
             >
               {clients.length === 0 && <option value="">No clients found</option>}
               {clients.map(c => (
@@ -97,19 +97,19 @@ export default function AddDeliverableModal({ clients, onClose }: Props) {
 
           {/* Title */}
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Title</label>
+            <label className="block text-xs font-medium text-surface-400 mb-1.5">Title</label>
             <input
               type="text"
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="e.g. Q1 Performance Report"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+              className="w-full bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-sm text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-1 focus:ring-surface-500"
             />
           </div>
 
           {/* File type selector */}
           <div>
-            <label className="block text-xs font-medium text-zinc-400 mb-1.5">Type</label>
+            <label className="block text-xs font-medium text-surface-400 mb-1.5">Type</label>
             <div className="grid grid-cols-2 gap-2">
               {FILE_TYPES.map(ft => (
                 <button
@@ -118,8 +118,8 @@ export default function AddDeliverableModal({ clients, onClose }: Props) {
                   onClick={() => handleFileTypeChange(ft.value)}
                   className={`px-3 py-2 rounded-lg text-sm text-left transition-colors border ${
                     fileType === ft.value
-                      ? 'bg-white text-black border-white font-medium'
-                      : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:border-zinc-500'
+                      ? 'bg-brand-400/10 text-brand-400 border-brand-400/30 font-medium'
+                      : 'bg-surface-800 text-surface-300 border-surface-600 hover:border-surface-500'
                   }`}
                 >
                   {ft.label}
@@ -131,17 +131,17 @@ export default function AddDeliverableModal({ clients, onClose }: Props) {
           {/* File or URL input */}
           {currentConfig.requiresFile ? (
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">PDF File</label>
+              <label className="block text-xs font-medium text-surface-400 mb-1.5">PDF File</label>
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-zinc-700 rounded-lg p-6 text-center cursor-pointer hover:border-zinc-500 transition-colors"
+                className="border-2 border-dashed border-surface-600 rounded-lg p-6 text-center cursor-pointer hover:border-surface-500 transition-colors"
               >
                 {file ? (
-                  <p className="text-sm text-white font-medium">{file.name}</p>
+                  <p className="text-sm text-surface-100 font-medium">{file.name}</p>
                 ) : (
                   <div className="space-y-1.5">
-                    <Upload size={20} className="mx-auto text-zinc-500" />
-                    <p className="text-sm text-zinc-400">Click to select a PDF</p>
+                    <Upload size={20} className="mx-auto text-surface-500" />
+                    <p className="text-sm text-surface-400">Click to select a PDF</p>
                   </div>
                 )}
               </div>
@@ -155,32 +155,32 @@ export default function AddDeliverableModal({ clients, onClose }: Props) {
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-medium text-zinc-400 mb-1.5">URL</label>
+              <label className="block text-xs font-medium text-surface-400 mb-1.5">URL</label>
               <input
                 type="url"
                 value={url}
                 onChange={e => setUrl(e.target.value)}
                 placeholder={currentConfig.placeholder ?? 'https://'}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500"
+                className="w-full bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-sm text-surface-100 placeholder-surface-500 focus:outline-none focus:ring-1 focus:ring-surface-500"
               />
             </div>
           )}
 
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-rose-400 text-sm">{error}</p>}
 
           {/* Actions */}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 text-sm hover:bg-zinc-800 transition-colors"
+              className="flex-1 px-4 py-2 rounded-lg border border-surface-600 text-surface-300 text-sm hover:bg-surface-800 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading || clients.length === 0}
-              className="flex-1 px-4 py-2 rounded-lg bg-white text-black text-sm font-semibold hover:bg-zinc-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 px-4 py-2 rounded-lg bg-brand-400 hover:bg-brand-500 text-surface-950 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? 'Uploading…' : 'Add Deliverable'}
             </button>

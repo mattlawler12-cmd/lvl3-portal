@@ -14,36 +14,36 @@ interface Props {
 
 export default function MonthlySessionsChart({ data }: Props) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-      <p className="text-sm font-semibold text-white mb-4">Monthly Sessions Trend</p>
+    <div className="bg-surface-900 border border-surface-700 rounded-xl p-5">
+      <p className="text-sm font-semibold text-surface-100 mb-4">Monthly Sessions Trend</p>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={data} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="#27272a" strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid stroke="#1e2433" strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fill: '#a1a1aa', fontSize: 11 }}
+            tick={{ fill: '#9ba3b5', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             tickFormatter={fmtNum}
-            tick={{ fill: '#a1a1aa', fontSize: 11 }}
+            tick={{ fill: '#9ba3b5', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={40}
           />
           <Tooltip
             formatter={(v: number | undefined) => [(v ?? 0).toLocaleString(), 'Sessions']}
-            contentStyle={{ background: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+            contentStyle={{ background: '#18181b', border: '1px solid #1e2433', borderRadius: 8 }}
             labelStyle={{ color: '#e4e4e7' }}
-            itemStyle={{ color: '#a1a1aa' }}
+            itemStyle={{ color: '#9ba3b5' }}
           />
           <Line
             type="monotone"
             dataKey="sessions"
-            stroke="#71717a"
+            stroke="#fb923c"
             strokeWidth={2}
-            dot={{ fill: '#71717a', r: 3 }}
+            dot={{ fill: '#fb923c', r: 3 }}
             activeDot={{ r: 5 }}
           />
         </LineChart>

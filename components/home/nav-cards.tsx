@@ -24,10 +24,10 @@ export default function NavCards({ compact = false }: { compact?: boolean }) {
           <Link
             key={href}
             href={href}
-            className="flex flex-col items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-surface-700 bg-surface-900/50 p-3 transition-colors hover:border-surface-600 hover:bg-surface-850/50 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
           >
-            <Icon size={16} className="text-zinc-400" strokeWidth={1.8} />
-            <p className="text-xs text-zinc-400">{title}</p>
+            <Icon size={16} className="text-surface-300" strokeWidth={1.8} />
+            <p className="text-xs text-surface-300">{title}</p>
           </Link>
         ))}
       </div>
@@ -40,20 +40,20 @@ export default function NavCards({ compact = false }: { compact?: boolean }) {
         <Link
           key={href}
           href={href}
-          className="group flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-colors hover:border-zinc-700 hover:bg-zinc-800/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+          className="group flex flex-col gap-3 rounded-xl border border-surface-700 bg-surface-900 p-4 transition-colors hover:border-surface-600 hover:bg-surface-850 hover:shadow-[0_0_20px_rgba(251,146,60,0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
         >
           <div className="flex items-center justify-between">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800 text-zinc-400 transition-colors group-hover:bg-zinc-700 group-hover:text-white">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-800 text-surface-300 transition-colors group-hover:bg-surface-700 group-hover:text-surface-100">
               <Icon size={18} strokeWidth={1.8} />
             </div>
             <ArrowRight
               size={14}
-              className="text-zinc-600 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-400"
+              className="text-surface-500 transition-all group-hover:translate-x-0.5 group-hover:text-surface-300"
             />
           </div>
           <div>
-            <p className="text-sm font-medium text-white">{title}</p>
-            <p className="mt-0.5 text-xs text-zinc-500 leading-relaxed">{description}</p>
+            <p className="text-sm font-medium text-surface-100">{title}</p>
+            <p className="mt-0.5 text-xs text-surface-400 leading-relaxed">{description}</p>
           </div>
         </Link>
       ))}

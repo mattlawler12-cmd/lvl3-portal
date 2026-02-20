@@ -101,7 +101,7 @@ export default function DeliverableSlideOver({
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 z-40"
+        className="fixed inset-0 bg-black/60 z-40"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -110,29 +110,29 @@ export default function DeliverableSlideOver({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="fixed inset-y-0 right-0 w-full max-w-2xl bg-zinc-950 border-l border-zinc-800 z-50 flex flex-col animate-slide-in-right"
+        className="fixed inset-y-0 right-0 w-full max-w-2xl bg-surface-900 border-l border-surface-700 z-50 flex flex-col animate-slide-in-right"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-zinc-800 shrink-0">
+        <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-surface-700 shrink-0">
           <div className="min-w-0">
-            <p className="text-xs text-zinc-500 mb-0.5 uppercase tracking-wider">
+            <p className="text-xs text-surface-400 mb-0.5 uppercase tracking-wider">
               {FILE_TYPE_LABELS[deliverable.file_type]}
             </p>
             <h2
               id={titleId}
-              className="text-white font-semibold text-lg leading-tight"
+              className="text-surface-100 font-semibold text-lg leading-tight"
             >
               {deliverable.title}
             </h2>
             {deliverable.clients && (
-              <p className="text-zinc-400 text-sm mt-0.5">
+              <p className="text-surface-300 text-sm mt-0.5">
                 {deliverable.clients.name}
               </p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="shrink-0 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            className="shrink-0 p-1.5 rounded-lg text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
             aria-label="Close"
           >
             <X size={18} />
@@ -140,10 +140,10 @@ export default function DeliverableSlideOver({
         </div>
 
         {/* Actions bar */}
-        <div className="flex items-center gap-2 px-6 py-3 border-b border-zinc-800 bg-zinc-900/40 shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 px-6 py-3 border-b border-surface-700 bg-surface-900/40 shrink-0 flex-wrap">
           <button
             onClick={handleCopyLink}
-            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            className="flex items-center gap-1.5 text-xs text-surface-300 hover:text-surface-100 bg-surface-800 border border-surface-600 px-3 py-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
           >
             <LinkIcon size={12} />
             Copy link
@@ -153,7 +153,7 @@ export default function DeliverableSlideOver({
               href={deliverable.file_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+              className="flex items-center gap-1.5 text-xs text-surface-300 hover:text-surface-100 bg-surface-800 border border-surface-600 px-3 py-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
             >
               <ExternalLink size={12} />
               Open source
@@ -170,19 +170,19 @@ export default function DeliverableSlideOver({
         </div>
 
         {/* Summary block */}
-        <div className="px-6 py-4 border-b border-zinc-800 bg-zinc-900/50 shrink-0">
-          <p className="text-sm text-zinc-300 leading-relaxed">
+        <div className="px-6 py-4 border-b border-surface-700 bg-surface-900/50 shrink-0">
+          <p className="text-sm text-surface-200 leading-relaxed">
             Review this deliverable and leave feedback in the comments below.
           </p>
         </div>
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto">
-          <div className="border-b border-zinc-800 bg-zinc-900">
+          <div className="border-b border-surface-700 bg-surface-900">
             {isPdf ? (
               <div className="h-[420px] flex items-center justify-center">
                 {signedUrlLoading ? (
-                  <p className="text-zinc-500 text-sm">Loading PDF…</p>
+                  <p className="text-surface-400 text-sm">Loading PDF…</p>
                 ) : signedUrl ? (
                   <iframe
                     src={signedUrl}
@@ -190,7 +190,7 @@ export default function DeliverableSlideOver({
                     title={deliverable.title}
                   />
                 ) : (
-                  <p className="text-zinc-500 text-sm">Unable to load PDF.</p>
+                  <p className="text-surface-400 text-sm">Unable to load PDF.</p>
                 )}
               </div>
             ) : hasUrl ? (
@@ -204,7 +204,7 @@ export default function DeliverableSlideOver({
               </div>
             ) : (
               <div className="h-32 flex items-center justify-center">
-                <p className="text-zinc-500 text-sm">No file attached.</p>
+                <p className="text-surface-400 text-sm">No file attached.</p>
               </div>
             )}
           </div>

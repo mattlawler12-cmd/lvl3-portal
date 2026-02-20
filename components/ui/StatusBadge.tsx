@@ -23,7 +23,7 @@ const STATUS_CONFIG: Record<
     label: "New",
     icon: Sparkles,
     className:
-      "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+      "bg-brand-400/10 text-brand-400 border-brand-400/20",
   },
   "needs-review": {
     label: "Needs review",
@@ -38,17 +38,17 @@ const STATUS_CONFIG: Record<
   blocked: {
     label: "Blocked",
     icon: AlertCircle,
-    className: "bg-red-500/15 text-red-400 border-red-500/20",
+    className: "bg-rose-500/10 text-rose-400 border-rose-500/20",
   },
   resolved: {
     label: "Resolved",
     icon: CheckCircle,
-    className: "bg-zinc-700/50 text-zinc-400 border-zinc-600/50",
+    className: "bg-surface-700/50 text-surface-400 border-surface-600",
   },
   opportunity: {
     label: "Opportunity",
     icon: Zap,
-    className: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+    className: "bg-accent-400/10 text-accent-400 border-accent-400/20",
   },
 };
 

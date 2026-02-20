@@ -11,12 +11,14 @@ import {
   generateAnalyticsInsights,
   detectGSCSiteUrl,
 } from '@/app/actions/analytics'
+import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 
 interface ClientData {
   id: string
   name: string
   slug: string
   logo_url: string | null
+  hero_image_url: string | null
   google_sheet_id: string | null
   looker_embed_url: string | null
   sheet_header_row: number | null
@@ -49,6 +51,8 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
   const [name, setName] = useState(client.name)
   const [slug, setSlug] = useState(client.slug)
   const [logoUrl, setLogoUrl] = useState(client.logo_url ?? '')
+  const [heroImageUrl, setHeroImageUrl] = useState(client.hero_image_url ?? '')
+  const [heroUploading, setHeroUploading] = useState(false)
   const [website, setWebsite] = useState('')
 
   // Google Sheet
@@ -86,6 +90,25 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
       if (url) setLogoUrl(url)
     } finally {
       setLogoFetching(false)
+    }
+  }
+
+  async function handleHeroUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setHeroUploading(true)
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const path = `client-assets/${client.id}/hero.${ext}`
+      const supabase = createSupabaseClient()
+      const { error: uploadError } = await supabase.storage
+        .from('public')
+        .upload(path, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data } = supabase.storage.from('public').getPublicUrl(path)
+      setHeroImageUrl(data.publicUrl)
+    } finally {
+      setHeroUploading(false)
     }
   }
 
@@ -140,6 +163,7 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
         fd.set('name', name)
         fd.set('slug', slug)
         fd.set('logo_url', logoUrl)
+        fd.set('hero_image_url', heroImageUrl)
         fd.set('google_sheet_id', sheetIdOrUrl)
         fd.set('looker_embed_url', lookerUrl)
         fd.set('sheet_header_row', String(headerRow))
@@ -160,46 +184,69 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* ── Basic Info ─────────────────────────────────────────────── */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-        <h2 className="text-white font-semibold text-sm uppercase tracking-wide">Basic Info</h2>
+      <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 space-y-4">
+        <h2 className="text-surface-100 font-semibold text-sm uppercase tracking-wide">Basic Info</h2>
+
+        {/* Hero Image Upload */}
+        <div>
+          <label className="block text-surface-400 text-sm mb-1.5">Hero Image</label>
+          {heroImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={heroImageUrl}
+              alt="Hero preview"
+              className="w-full h-32 object-cover rounded-lg mb-2 bg-surface-800"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+            />
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleHeroUpload}
+            disabled={heroUploading}
+            className="block w-full text-sm text-surface-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-surface-800 file:text-surface-300 hover:file:bg-surface-700 disabled:opacity-50"
+          />
+          {heroUploading && <p className="text-xs text-surface-500 mt-1">Uploading…</p>}
+          <input type="hidden" name="hero_image_url" value={heroImageUrl} />
+        </div>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-1.5">Name</label>
+          <label className="block text-surface-400 text-sm mb-1.5">Name</label>
           <input
             type="text"
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-1.5">Slug</label>
+          <label className="block text-surface-400 text-sm mb-1.5">Slug</label>
           <input
             type="text"
             required
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
           />
         </div>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-1.5">Website</label>
+          <label className="block text-surface-400 text-sm mb-1.5">Website</label>
           <div className="flex gap-2">
             <input
               type="text"
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
               placeholder="acme.com"
-              className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-600"
+              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
             />
             <button
               type="button"
               onClick={handleFetchLogo}
               disabled={!website || logoFetching}
-              className="shrink-0 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg px-3 py-2 text-sm hover:bg-zinc-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              className="shrink-0 bg-surface-800 border border-surface-600 text-surface-300 rounded-lg px-3 py-2 text-sm hover:bg-surface-700 hover:text-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               <RefreshCw size={12} className={logoFetching ? 'animate-spin' : ''} />
               Fetch Logo
@@ -208,14 +255,14 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
         </div>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-1.5">Logo URL</label>
+          <label className="block text-surface-400 text-sm mb-1.5">Logo URL</label>
           <div className="flex gap-2 items-center">
             <input
               type="url"
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
               placeholder="https://..."
-              className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-600"
+              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
             />
             {logoUrl && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -233,38 +280,38 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
       </div>
 
       {/* ── Google Sheet ───────────────────────────────────────────── */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-        <h2 className="text-white font-semibold text-sm uppercase tracking-wide">Google Sheet</h2>
+      <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 space-y-4">
+        <h2 className="text-surface-100 font-semibold text-sm uppercase tracking-wide">Google Sheet</h2>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-1.5">Sheet URL or ID</label>
+          <label className="block text-surface-400 text-sm mb-1.5">Sheet URL or ID</label>
           <input
             type="text"
             value={sheetIdOrUrl}
             onChange={(e) => setSheetIdOrUrl(e.target.value)}
             placeholder="https://docs.google.com/spreadsheets/d/SHEET_ID/edit"
-            className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-600"
+            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
           />
-          <p className="text-zinc-600 text-xs mt-1.5">
+          <p className="text-surface-500 text-xs mt-1.5">
             Paste the full URL or just the Sheet ID — both work.
           </p>
         </div>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-1.5">Header Row</label>
+          <label className="block text-surface-400 text-sm mb-1.5">Header Row</label>
           <div className="flex gap-2 items-center">
             <input
               type="number"
               min={1}
               value={headerRow}
               onChange={(e) => setHeaderRow(parseInt(e.target.value) || 1)}
-              className="w-24 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-24 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button
               type="button"
               onClick={handleLoadHeaders}
               disabled={!sheetIdOrUrl || headersLoading}
-              className="bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg px-3 py-2 text-sm hover:bg-zinc-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              className="bg-surface-800 border border-surface-600 text-surface-300 rounded-lg px-3 py-2 text-sm hover:bg-surface-700 hover:text-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               <RefreshCw size={12} className={headersLoading ? 'animate-spin' : ''} />
               Load Headers
@@ -275,23 +322,23 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
 
         {headers.length > 0 && (
           <div>
-            <p className="text-zinc-400 text-sm mb-2">Detected columns:</p>
+            <p className="text-surface-400 text-sm mb-2">Detected columns:</p>
             <div className="flex flex-wrap gap-1.5 mb-4">
               {headers.map((h) => (
                 <span
                   key={h}
-                  className="text-xs bg-zinc-800 border border-zinc-700 text-zinc-300 px-2 py-0.5 rounded-full"
+                  className="text-xs bg-surface-800 border border-surface-600 text-surface-300 px-2 py-0.5 rounded-full"
                 >
                   {h}
                 </span>
               ))}
             </div>
 
-            <p className="text-zinc-400 text-sm mb-3">Map columns to fields:</p>
+            <p className="text-surface-400 text-sm mb-3">Map columns to fields:</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {COLUMN_FIELDS.map(({ key, label }) => (
                 <div key={key}>
-                  <label className="block text-zinc-500 text-xs mb-1">{label}</label>
+                  <label className="block text-surface-500 text-xs mb-1">{label}</label>
                   <select
                     value={columnMap[key as ColumnField] ?? ''}
                     onChange={(e) =>
@@ -305,7 +352,7 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
                         return next
                       })
                     }
-                    className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">— not mapped —</option>
                     {headers.map((h) => (
@@ -322,7 +369,7 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
 
         {headers.length === 0 && client.sheet_column_map && Object.keys(client.sheet_column_map).length > 0 && (
           <div>
-            <p className="text-zinc-500 text-xs">
+            <p className="text-surface-500 text-xs">
               Current mapping saved. Click &ldquo;Load Headers&rdquo; to edit column mapping.
             </p>
           </div>
@@ -330,74 +377,74 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
       </div>
 
       {/* ── Looker Studio ──────────────────────────────────────────── */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-        <h2 className="text-white font-semibold text-sm uppercase tracking-wide">Looker Studio</h2>
+      <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 space-y-4">
+        <h2 className="text-surface-100 font-semibold text-sm uppercase tracking-wide">Looker Studio</h2>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-1.5">Embed URL</label>
+          <label className="block text-surface-400 text-sm mb-1.5">Embed URL</label>
           <input
             type="url"
             value={lookerUrl}
             onChange={(e) => setLookerUrl(e.target.value)}
             placeholder="https://lookerstudio.google.com/embed/reporting/..."
-            className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-600"
+            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
           />
         </div>
       </div>
 
       {/* ── Analytics ──────────────────────────────────────────────── */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 space-y-4">
-        <h2 className="text-white font-semibold text-sm uppercase tracking-wide">Analytics</h2>
+      <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 space-y-4">
+        <h2 className="text-surface-100 font-semibold text-sm uppercase tracking-wide">Analytics</h2>
 
         {serviceAccountEmail && (
-          <div className="flex gap-2.5 bg-zinc-800/60 border border-zinc-700 rounded-lg p-3">
+          <div className="flex gap-2.5 bg-surface-800/60 border border-surface-600 rounded-lg p-3">
             <Info size={15} className="text-blue-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-zinc-400 leading-relaxed">
+            <p className="text-xs text-surface-400 leading-relaxed">
               Add{' '}
-              <code className="font-mono text-zinc-200 bg-zinc-700 px-1 py-0.5 rounded text-[11px] break-all">
+              <code className="font-mono text-surface-200 bg-surface-700 px-1 py-0.5 rounded text-[11px] break-all">
                 {serviceAccountEmail}
               </code>{' '}
-              as a <strong className="text-zinc-300">Viewer</strong> in GA4 (Admin → Property → Property Access Management) and as a{' '}
-              <strong className="text-zinc-300">User</strong> in Search Console (Settings → Users and Permissions).
+              as a <strong className="text-surface-300">Viewer</strong> in GA4 (Admin → Property → Property Access Management) and as a{' '}
+              <strong className="text-surface-300">User</strong> in Search Console (Settings → Users and Permissions).
             </p>
           </div>
         )}
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-1.5">GA4 Property ID</label>
+          <label className="block text-surface-400 text-sm mb-1.5">GA4 Property ID</label>
           <input
             type="text"
             value={ga4PropertyId}
             onChange={(e) => setGa4PropertyId(e.target.value)}
             placeholder="123456789"
-            className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-600 font-mono"
+            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500 font-mono"
           />
-          <p className="text-zinc-600 text-xs mt-1.5">
+          <p className="text-surface-500 text-xs mt-1.5">
             Found in GA4: Admin → Property → Property details
           </p>
         </div>
 
         <div>
-          <label className="block text-zinc-400 text-sm mb-1.5">Search Console Site URL</label>
+          <label className="block text-surface-400 text-sm mb-1.5">Search Console Site URL</label>
           <div className="flex gap-2">
             <input
               type="text"
               value={gscSiteUrl}
               onChange={(e) => setGscSiteUrl(e.target.value)}
               placeholder="https://example.com/"
-              className="flex-1 bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-zinc-600"
+              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
             />
             <button
               type="button"
               onClick={handleDetectGSC}
               disabled={!ga4PropertyId || gscDetecting}
-              className="shrink-0 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg px-3 py-2 text-sm hover:bg-zinc-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              className="shrink-0 bg-surface-800 border border-surface-600 text-surface-300 rounded-lg px-3 py-2 text-sm hover:bg-surface-700 hover:text-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               <RefreshCw size={12} className={gscDetecting ? 'animate-spin' : ''} />
               Detect from GA4
             </button>
           </div>
-          <p className="text-zinc-600 text-xs mt-1.5">
+          <p className="text-surface-500 text-xs mt-1.5">
             Must match exactly what&apos;s registered in Search Console (including trailing slash). Enter GA4 Property ID first, then click &ldquo;Detect from GA4&rdquo;.
           </p>
           {gscDetectError && (
@@ -405,7 +452,7 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
           )}
           {gscSites.length > 0 && (
             <div className="mt-2">
-              <p className="text-zinc-500 text-xs mb-1.5">
+              <p className="text-surface-500 text-xs mb-1.5">
                 {gscFromGA4Domain
                   ? 'Suggested URLs from GA4 domain — pick the one that matches your Search Console property:'
                   : 'Accessible Search Console sites — click to select:'}
@@ -418,8 +465,8 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
                     onClick={() => setGscSiteUrl(site)}
                     className={`text-xs px-2 py-1 rounded-full border transition-colors ${
                       gscSiteUrl === site
-                        ? 'bg-blue-600 border-blue-500 text-white'
-                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500'
+                        ? 'bg-blue-600 border-blue-500 text-surface-100'
+                        : 'bg-surface-800 border-surface-600 text-surface-300 hover:border-surface-500'
                     }`}
                   >
                     {site}
@@ -435,7 +482,7 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
             type="button"
             onClick={handleRefreshAnalytics}
             disabled={analyticsRefreshing || (!ga4PropertyId && !gscSiteUrl)}
-            className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-lg px-4 py-2 text-sm hover:bg-zinc-700 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 bg-surface-800 border border-surface-600 text-surface-300 rounded-lg px-4 py-2 text-sm hover:bg-surface-700 hover:text-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <RefreshCw size={13} className={analyticsRefreshing ? 'animate-spin' : ''} />
             {analyticsRefreshing ? 'Refreshing…' : 'Refresh Analytics Insights'}
@@ -452,13 +499,13 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
         <button
           type="submit"
           disabled={isPending}
-          className="bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-blue-600 hover:bg-blue-500 text-surface-100 text-sm font-medium px-5 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isPending ? 'Saving…' : 'Save Changes'}
         </button>
         <Link
           href={`/clients/${client.id}`}
-          className="text-zinc-400 hover:text-white text-sm transition-colors"
+          className="text-surface-400 hover:text-surface-100 text-sm transition-colors"
         >
           Cancel
         </Link>

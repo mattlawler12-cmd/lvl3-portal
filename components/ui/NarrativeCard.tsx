@@ -23,15 +23,15 @@ export default function NarrativeCard({
       : body;
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-      <p className="text-sm font-semibold text-white mb-2">{title}</p>
-      <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+    <div className="bg-surface-900 border border-surface-700 rounded-xl p-5">
+      <p className="text-sm font-semibold text-surface-100 mb-2">{title}</p>
+      <p className="text-sm text-surface-200 leading-relaxed whitespace-pre-wrap">
         {displayBody}
       </p>
       {shouldTruncate && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="mt-2 text-xs text-zinc-500 hover:text-zinc-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 rounded"
+          className="mt-2 text-xs text-surface-400 hover:text-surface-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400 rounded"
         >
           {expanded ? "Show less" : "Read more"}
         </button>

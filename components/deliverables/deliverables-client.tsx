@@ -150,15 +150,15 @@ export default function DeliverablesClient({
       {/* Header */}
       <div className="flex items-center justify-between mb-6 max-w-7xl mx-auto">
         <div>
-          <h1 className="text-xl font-semibold text-white">Deliverables</h1>
-          <p className="mt-1 text-zinc-400 text-sm">
+          <h1 className="text-xl font-semibold text-surface-100">Deliverables</h1>
+          <p className="mt-1 text-surface-300 text-sm">
             {isAdmin ? "Manage and share files with clients" : "Your files and documents"}
           </p>
         </div>
         {isAdmin && (
           <button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg text-sm font-semibold hover:bg-zinc-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            className="flex items-center gap-2 bg-brand-400 hover:bg-brand-500 text-surface-950 px-4 py-2 rounded-lg text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
           >
             <Plus size={16} />
             Add Deliverable
@@ -173,10 +173,10 @@ export default function DeliverablesClient({
             <button
               key={f.key}
               onClick={() => setActiveFilter(f.key)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400 ${
                 activeFilter === f.key
-                  ? "bg-white text-black border-white"
-                  : "bg-zinc-800/50 text-zinc-400 border-zinc-700/50 hover:text-zinc-200 hover:border-zinc-600"
+                  ? "bg-brand-400 text-surface-950 border-brand-400 font-medium"
+                  : "bg-surface-800/50 text-surface-300 border-surface-600/50 hover:text-surface-200 hover:border-surface-500"
               }`}
             >
               {f.label}
@@ -186,19 +186,19 @@ export default function DeliverablesClient({
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortType)}
-            className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+            className="bg-surface-800 border border-surface-600 text-surface-200 text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-surface-500"
           >
             <option value="needs-attention">Needs attention first</option>
             <option value="newest">Newest</option>
             <option value="oldest">Oldest</option>
           </select>
-          <div className="flex rounded-lg overflow-hidden border border-zinc-700">
+          <div className="flex rounded-lg overflow-hidden border border-surface-600">
             <button
               onClick={() => setViewMode("grid")}
               className={`p-1.5 transition-colors ${
                 viewMode === "grid"
-                  ? "bg-zinc-700 text-white"
-                  : "bg-zinc-800/50 text-zinc-400 hover:text-zinc-200"
+                  ? "bg-surface-700 text-surface-100"
+                  : "bg-surface-800/50 text-surface-400 hover:text-surface-200"
               }`}
               aria-label="Grid view"
               aria-pressed={viewMode === "grid"}
@@ -209,8 +209,8 @@ export default function DeliverablesClient({
               onClick={() => setViewMode("list")}
               className={`p-1.5 transition-colors ${
                 viewMode === "list"
-                  ? "bg-zinc-700 text-white"
-                  : "bg-zinc-800/50 text-zinc-400 hover:text-zinc-200"
+                  ? "bg-surface-700 text-surface-100"
+                  : "bg-surface-800/50 text-surface-400 hover:text-surface-200"
               }`}
               aria-label="List view"
               aria-pressed={viewMode === "list"}
@@ -222,13 +222,13 @@ export default function DeliverablesClient({
         <div className="relative">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 pointer-events-none"
           />
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search deliverables…"
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+            className="w-full bg-surface-800 border border-surface-600 rounded-lg pl-9 pr-4 py-2 text-sm text-surface-100 placeholder-surface-400 focus:outline-none focus:ring-1 focus:ring-surface-500"
           />
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function DeliverablesClient({
       {/* Content */}
       <div className="max-w-7xl mx-auto">
         {filteredAndSorted.length === 0 ? (
-          <div className="text-center py-24 text-zinc-600">
+          <div className="text-center py-24 text-surface-500">
             {deliverables.length === 0 ? (
               <>
                 <p className="text-sm">No deliverables yet.</p>
@@ -265,23 +265,23 @@ export default function DeliverablesClient({
             ))}
           </div>
         ) : (
-          <div className="border border-zinc-800 rounded-xl overflow-hidden overflow-x-auto">
+          <div className="border border-surface-700 rounded-xl overflow-hidden overflow-x-auto">
             <table className="w-full min-w-[600px]">
               <thead>
-                <tr className="border-b border-zinc-800">
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                <tr className="border-b border-surface-700">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-surface-400 uppercase tracking-wide">
                     Title
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-surface-400 uppercase tracking-wide">
                     Type
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-surface-400 uppercase tracking-wide">
                     Status
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-surface-400 uppercase tracking-wide">
                     Threads
                   </th>
-                  <th className="text-left px-4 py-3 text-xs font-medium text-zinc-500 uppercase tracking-wide">
+                  <th className="text-left px-4 py-3 text-xs font-medium text-surface-400 uppercase tracking-wide">
                     Posted
                   </th>
                 </tr>
@@ -293,17 +293,17 @@ export default function DeliverablesClient({
                     onClick={(e) =>
                       handleSelect(d, e.currentTarget as HTMLElement)
                     }
-                    className="border-b border-zinc-800 last:border-0 hover:bg-zinc-800/30 cursor-pointer transition-colors"
+                    className="border-b border-surface-700 last:border-0 hover:bg-surface-800/30 cursor-pointer transition-colors"
                   >
-                    <td className="px-4 py-3 text-sm text-white font-medium">
+                    <td className="px-4 py-3 text-sm text-surface-100 font-medium">
                       {d.title}
                     </td>
-                    <td className="px-4 py-3 text-xs text-zinc-400 uppercase">
+                    <td className="px-4 py-3 text-xs text-surface-300 uppercase">
                       {d.file_type}
                     </td>
                     <td className="px-4 py-3">
                       {!d.viewed_at ? (
-                        <span className="text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        <span className="text-xs bg-brand-400/10 text-brand-400 border border-brand-400/20 px-2 py-0.5 rounded-full">
                           New
                         </span>
                       ) : d.unresolvedCount > 0 ? (
@@ -311,7 +311,7 @@ export default function DeliverablesClient({
                           Open threads
                         </span>
                       ) : (
-                        <span className="text-xs text-zinc-600">—</span>
+                        <span className="text-xs text-surface-500">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-xs">
@@ -320,14 +320,14 @@ export default function DeliverablesClient({
                           {d.unresolvedCount} open
                         </span>
                       ) : d.totalCommentCount > 0 ? (
-                        <span className="text-zinc-400">
+                        <span className="text-surface-300">
                           {d.totalCommentCount} total
                         </span>
                       ) : (
-                        <span className="text-zinc-600">—</span>
+                        <span className="text-surface-500">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-zinc-500">
+                    <td className="px-4 py-3 text-xs text-surface-400">
                       {new Date(d.created_at).toLocaleDateString("en-US", {
                         month: "short",
                         day: "numeric",

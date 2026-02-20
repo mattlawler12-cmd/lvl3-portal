@@ -31,8 +31,8 @@ export default async function DashboardPage() {
   if (!selectedClient && showSelector) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center p-8">
-        <BarChart2 className="w-10 h-10 text-zinc-600 mb-3" />
-        <p className="text-zinc-400">
+        <BarChart2 className="w-10 h-10 text-surface-500 mb-3" />
+        <p className="text-surface-400">
           Select a client from the workspace selector to view their dashboard.
         </p>
       </div>
@@ -42,8 +42,8 @@ export default async function DashboardPage() {
   if (!selectedClient) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center p-8">
-        <BarChart2 className="w-10 h-10 text-zinc-600 mb-3" />
-        <p className="text-zinc-400">No client assigned to your account.</p>
+        <BarChart2 className="w-10 h-10 text-surface-500 mb-3" />
+        <p className="text-surface-400">No client assigned to your account.</p>
       </div>
     );
   }
@@ -68,10 +68,10 @@ export default async function DashboardPage() {
   if (!lookerUrl && !hasAnalytics) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center p-8">
-        <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-8 max-w-md">
-          <BarChart2 className="w-10 h-10 text-zinc-600 mb-3 mx-auto" />
-          <h3 className="text-white font-semibold mb-2">Dashboard Coming Soon</h3>
-          <p className="text-zinc-400 text-sm">
+        <div className="bg-surface-800 border border-surface-700 rounded-xl p-8 max-w-md">
+          <BarChart2 className="w-10 h-10 text-surface-500 mb-3 mx-auto" />
+          <h3 className="text-surface-100 font-semibold mb-2">Dashboard Coming Soon</h3>
+          <p className="text-surface-400 text-sm">
             Your dashboard is being set up — check back soon.
           </p>
         </div>
@@ -81,9 +81,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - 56px)" }}>
-      <div className="px-6 py-4 border-b border-zinc-800 shrink-0">
-        <h1 className="text-xl font-semibold text-white">Dashboard</h1>
-        <p className="mt-1 text-zinc-400 text-sm">{selectedClient.name}</p>
+      <div className="px-6 py-4 border-b border-surface-700 shrink-0">
+        <h1 className="text-xl font-semibold text-surface-100">Dashboard</h1>
+        <p className="mt-1 text-surface-400 text-sm">{selectedClient.name}</p>
       </div>
       <div className="flex-1 overflow-hidden">
         <DashboardTabs

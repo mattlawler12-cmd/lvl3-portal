@@ -31,7 +31,7 @@ export default async function ClientDetailPage({ params }: Props) {
       {/* Back nav */}
       <Link
         href="/clients"
-        className="flex items-center gap-1.5 text-zinc-500 hover:text-white text-sm transition-colors mb-6"
+        className="flex items-center gap-1.5 text-surface-500 hover:text-surface-100 text-sm transition-colors mb-6"
       >
         <ChevronLeft size={15} />
         All clients
@@ -43,22 +43,22 @@ export default async function ClientDetailPage({ params }: Props) {
           <img
             src={client.logo_url}
             alt={client.name}
-            className="w-14 h-14 rounded-xl object-contain bg-zinc-800 flex-shrink-0"
+            className="w-14 h-14 rounded-xl object-contain bg-surface-800 flex-shrink-0"
           />
         ) : (
-          <div className="w-14 h-14 rounded-xl bg-zinc-800 flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xl font-bold">
+          <div className="w-14 h-14 rounded-xl bg-surface-800 flex items-center justify-center flex-shrink-0">
+            <span className="text-surface-100 text-xl font-bold">
               {client.name.charAt(0).toUpperCase()}
             </span>
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="text-white text-2xl font-bold">{client.name}</h1>
-          <p className="text-zinc-500 text-sm font-mono">{client.slug}</p>
+          <h1 className="text-surface-100 text-2xl font-bold">{client.name}</h1>
+          <p className="text-surface-500 text-sm font-mono">{client.slug}</p>
         </div>
         <a
           href={`/clients/${id}/settings`}
-          className="flex items-center gap-1.5 text-zinc-500 hover:text-white text-sm transition-colors border border-zinc-800 rounded-lg px-3 py-1.5"
+          className="flex items-center gap-1.5 text-surface-500 hover:text-surface-100 text-sm transition-colors border border-surface-700 rounded-lg px-3 py-1.5"
         >
           <Settings size={14} />
           Settings
@@ -80,10 +80,10 @@ export default async function ClientDetailPage({ params }: Props) {
         ].map(({ label, value }) => (
           <div
             key={label}
-            className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-4"
+            className="bg-surface-900 border border-surface-700 rounded-xl px-5 py-4"
           >
-            <p className="text-zinc-500 text-xs mb-1">{label}</p>
-            <p className="text-white font-semibold">{value}</p>
+            <p className="text-surface-500 text-xs mb-1">{label}</p>
+            <p className="text-surface-100 font-semibold">{value}</p>
           </div>
         ))}
       </div>

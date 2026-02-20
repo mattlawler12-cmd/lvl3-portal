@@ -55,21 +55,21 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
+    <div className="min-h-screen bg-surface-950 flex items-center justify-center px-4">
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <span className="text-white text-4xl font-bold tracking-tight">
+          <span className="text-surface-100 text-4xl font-bold tracking-tight">
             LVL3
           </span>
-          <p className="mt-2 text-zinc-400 text-sm">Client Portal</p>
+          <p className="mt-2 text-surface-400 text-sm">Client Portal</p>
         </div>
 
         {submitted ? (
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center space-y-2">
-            <p className="text-white font-medium">Check your email</p>
-            <p className="text-zinc-400 text-sm">
-              We sent a magic link to <span className="text-white">{email}</span>.
+          <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 text-center space-y-2">
+            <p className="text-surface-100 font-medium">Check your email</p>
+            <p className="text-surface-400 text-sm">
+              We sent a magic link to <span className="text-surface-100">{email}</span>.
               Click it to sign in.
             </p>
           </div>
@@ -79,14 +79,14 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => { setUsePassword(false); setError(null) }}
-                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
+                className="text-xs text-brand-400 hover:text-surface-200 transition-colors"
               >
                 Use magic link instead
               </button>
             </div>
 
             <div>
-              <label htmlFor="email-pw" className="block text-sm font-medium text-zinc-300 mb-1.5">
+              <label htmlFor="email-pw" className="block text-sm font-medium text-surface-300 mb-1.5">
                 Email address
               </label>
               <input
@@ -97,12 +97,12 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-zinc-500 text-sm"
+                className="w-full bg-surface-900 border border-surface-600 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-surface-600 text-sm"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-zinc-300 mb-1.5">
+              <label htmlFor="password" className="block text-sm font-medium text-surface-300 mb-1.5">
                 Password
               </label>
               <input
@@ -113,7 +113,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-zinc-500 text-sm"
+                className="w-full bg-surface-900 border border-surface-600 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-surface-600 text-sm"
               />
             </div>
 
@@ -122,7 +122,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-white text-black font-semibold rounded-lg px-4 py-2.5 text-sm hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-brand-400 hover:bg-brand-500 text-surface-950 font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Signing in…' : 'Sign in with password'}
             </button>
@@ -132,7 +132,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-zinc-300 mb-1.5"
+                className="block text-sm font-medium text-surface-300 mb-1.5"
               >
                 Email address
               </label>
@@ -144,7 +144,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2.5 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-zinc-500 text-sm"
+                className="w-full bg-surface-900 border border-surface-600 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-surface-600 text-sm"
               />
             </div>
 
@@ -155,7 +155,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-white text-black font-semibold rounded-lg px-4 py-2.5 text-sm hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-brand-400 hover:bg-brand-500 text-surface-950 font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Sending…' : 'Send magic link'}
             </button>
@@ -163,7 +163,7 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => { setUsePassword(true); setError(null) }}
-              className="w-full text-xs text-zinc-500 hover:text-zinc-300 transition-colors py-1"
+              className="w-full text-xs text-brand-400 hover:text-surface-200 transition-colors py-1"
             >
               Sign in with password instead
             </button>

@@ -9,10 +9,10 @@ export function ProgressBar({ value, total }: { value: number; total: number }) 
   const pct = total === 0 ? 0 : Math.round((value / total) * 100)
   return (
     <div className="flex items-center gap-3">
-      <div className="flex-1 bg-zinc-800 rounded-full h-2">
+      <div className="flex-1 bg-surface-800 rounded-full h-2">
         <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs text-zinc-400 whitespace-nowrap">{value}/{total} ({pct}%)</span>
+      <span className="text-xs text-surface-400 whitespace-nowrap">{value}/{total} ({pct}%)</span>
     </div>
   )
 }
@@ -31,19 +31,19 @@ export default function CollapsibleSection({
   const total = allRows.length
 
   return (
-    <div className="border border-zinc-800 rounded-lg overflow-hidden">
+    <div className="border border-surface-700 rounded-lg overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-zinc-800/50 hover:bg-zinc-800 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 bg-surface-800/50 hover:bg-surface-800 transition-colors"
       >
         <div className="flex items-center gap-2">
           {open ? (
-            <ChevronDown className="w-4 h-4 text-zinc-400" />
+            <ChevronDown className="w-4 h-4 text-surface-400" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-zinc-400" />
+            <ChevronRight className="w-4 h-4 text-surface-400" />
           )}
-          <span className="font-medium text-white">{label}</span>
-          <span className="text-xs text-zinc-500">{completed}/{total} completed</span>
+          <span className="font-medium text-surface-100">{label}</span>
+          <span className="text-xs text-surface-500">{completed}/{total} completed</span>
         </div>
         <div className="w-40">
           <ProgressBar value={completed} total={total} />

@@ -34,7 +34,7 @@ export default function FiltersBar({
       <div className="flex flex-wrap items-center gap-2 flex-1">
         <button
           onClick={onClearStatuses}
-          className={`text-xs px-3 py-1 rounded-full border transition-colors ${allActive ? 'bg-zinc-700 text-white border-zinc-500' : 'bg-zinc-800/50 text-zinc-400 border-zinc-700/50 hover:text-zinc-200'}`}
+          className={`text-xs px-3 py-1 rounded-full border transition-colors ${allActive ? 'bg-surface-700 text-surface-100 border-surface-500' : 'bg-surface-800/50 text-surface-400 border-surface-600/50 hover:text-surface-200'}`}
         >
           All
         </button>
@@ -44,7 +44,7 @@ export default function FiltersBar({
             <button
               key={s}
               onClick={() => onToggleStatus(s)}
-              className={`text-xs px-3 py-1 rounded-full border transition-colors ${active ? getStatusStyle(s) + ' opacity-100' : 'bg-zinc-800/50 text-zinc-500 border-zinc-700/50 hover:text-zinc-300'}`}
+              className={`text-xs px-3 py-1 rounded-full border transition-colors ${active ? getStatusStyle(s) + ' opacity-100' : 'bg-surface-800/50 text-surface-500 border-surface-600/50 hover:text-surface-200'}`}
             >
               {s}
             </button>
@@ -56,7 +56,7 @@ export default function FiltersBar({
       <select
         value={activeCategory}
         onChange={(e) => onCategoryChange(e.target.value)}
-        className="bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-zinc-600"
+        className="bg-surface-800 border border-surface-600 text-surface-300 text-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-surface-600"
       >
         <option value="">All Categories</option>
         {categories.map((c) => (
@@ -65,13 +65,13 @@ export default function FiltersBar({
       </select>
 
       {/* View toggle */}
-      <div className="flex rounded-lg overflow-hidden border border-zinc-700">
+      <div className="flex rounded-lg overflow-hidden border border-surface-600">
         {([['month', 'By Month'], ['category', 'By Category'], ['all', 'All Tasks']] as const).map(
           ([mode, label]) => (
             <button
               key={mode}
               onClick={() => onViewModeChange(mode)}
-              className={`px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === mode ? 'bg-zinc-700 text-white' : 'bg-zinc-800/50 text-zinc-400 hover:text-zinc-200'}`}
+              className={`px-3 py-1.5 text-xs font-medium transition-colors ${viewMode === mode ? 'bg-surface-700 text-surface-100' : 'bg-surface-800/50 text-surface-400 hover:text-surface-200'}`}
             >
               {label}
             </button>

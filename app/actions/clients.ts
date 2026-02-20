@@ -87,6 +87,7 @@ export async function updateClient(clientId: string, formData: FormData) {
   const sheet_column_map = columnMapStr ? JSON.parse(columnMapStr) : null
   const ga4_property_id = (formData.get('ga4_property_id') as string | null)?.trim() || null
   const gsc_site_url = (formData.get('gsc_site_url') as string | null)?.trim() || null
+  const hero_image_url = (formData.get('hero_image_url') as string | null)?.trim() || null
 
   const { error } = await service
     .from('clients')
@@ -100,6 +101,7 @@ export async function updateClient(clientId: string, formData: FormData) {
       sheet_column_map,
       ga4_property_id,
       gsc_site_url,
+      hero_image_url,
     })
     .eq('id', clientId)
 

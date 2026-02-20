@@ -38,12 +38,10 @@ export default function CommandPalette({ onClose }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  // Filter results
   useEffect(() => {
     const q = query.toLowerCase().trim();
     if (!q) {
@@ -68,7 +66,6 @@ export default function CommandPalette({ onClose }: Props) {
     [router, onClose]
   );
 
-  // Keyboard navigation
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
@@ -88,7 +85,6 @@ export default function CommandPalette({ onClose }: Props) {
         const selected = results[activeIndex];
         if (selected) handleSelect(selected);
       }
-      // Focus trap
       if (e.key === "Tab") {
         const panel = panelRef.current;
         if (!panel) return;
@@ -113,7 +109,6 @@ export default function CommandPalette({ onClose }: Props) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [results, activeIndex, handleSelect, onClose]);
 
-  // Group results by category
   const grouped: Record<string, Result[]> = {};
   for (const r of results) {
     if (!grouped[r.category]) grouped[r.category] = [];
@@ -136,33 +131,31 @@ export default function CommandPalette({ onClose }: Props) {
         aria-label="Command palette"
         className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg z-50 animate-slide-in-up"
       >
-        <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden">
-          {/* Search input */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800">
-            <Search size={16} className="text-zinc-500 shrink-0" />
+        <div className="bg-surface-900 border border-surface-700 rounded-xl shadow-2xl overflow-hidden">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-surface-700">
+            <Search size={16} className="text-surface-400 shrink-0" />
             <input
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search pages, deliverables, insights…"
-              className="flex-1 bg-transparent text-white placeholder-zinc-500 text-sm focus:outline-none"
+              className="flex-1 bg-transparent text-surface-100 placeholder-surface-400 text-sm focus:outline-none"
               aria-label="Search"
             />
-            <kbd className="text-[10px] text-zinc-600 bg-zinc-800 border border-zinc-700 rounded px-1.5 py-0.5">
+            <kbd className="text-[10px] text-surface-500 bg-surface-800 border border-surface-600 rounded px-1.5 py-0.5">
               esc
             </kbd>
           </div>
 
-          {/* Results */}
           <div className="max-h-80 overflow-y-auto py-2">
             {results.length === 0 ? (
-              <p className="text-sm text-zinc-500 text-center py-8">
+              <p className="text-sm text-surface-400 text-center py-8">
                 No results for &ldquo;{query}&rdquo;
               </p>
             ) : (
               Object.entries(grouped).map(([category, items]) => (
                 <div key={category}>
-                  <p className="px-4 py-1.5 text-[10px] font-medium uppercase tracking-widest text-zinc-600">
+                  <p className="px-4 py-1.5 text-[10px] font-medium uppercase tracking-widest text-surface-500">
                     {category}
                   </p>
                   {items.map((item) => {
@@ -174,27 +167,27 @@ export default function CommandPalette({ onClose }: Props) {
                         onClick={() => handleSelect(item)}
                         className={`flex items-center gap-3 w-full px-4 py-2.5 text-sm transition-colors focus-visible:outline-none ${
                           idx === activeIndex
-                            ? "bg-zinc-800 text-white"
-                            : "text-zinc-300 hover:bg-zinc-800/50"
+                            ? "bg-surface-800 text-surface-100"
+                            : "text-surface-200 hover:bg-surface-800/50"
                         }`}
                       >
                         {Icon && (
                           <Icon
                             size={15}
-                            className="shrink-0 text-zinc-500"
+                            className="shrink-0 text-surface-400"
                           />
                         )}
                         <span className="flex-1 text-left truncate">
                           {item.label}
                         </span>
                         {item.sublabel && (
-                          <span className="text-xs text-zinc-600 shrink-0">
+                          <span className="text-xs text-surface-500 shrink-0">
                             {item.sublabel}
                           </span>
                         )}
                         <ArrowRight
                           size={13}
-                          className="text-zinc-600 shrink-0"
+                          className="text-surface-500 shrink-0"
                         />
                       </button>
                     );
@@ -204,18 +197,17 @@ export default function CommandPalette({ onClose }: Props) {
             )}
           </div>
 
-          {/* Footer */}
-          <div className="border-t border-zinc-800 px-4 py-2 flex items-center gap-4 text-[10px] text-zinc-600">
+          <div className="border-t border-surface-700 px-4 py-2 flex items-center gap-4 text-[10px] text-surface-500">
             <span>
-              <kbd className="bg-zinc-800 border border-zinc-700 rounded px-1 py-0.5">↑↓</kbd>{" "}
+              <kbd className="bg-surface-800 border border-surface-600 rounded px-1 py-0.5">↑↓</kbd>{" "}
               navigate
             </span>
             <span>
-              <kbd className="bg-zinc-800 border border-zinc-700 rounded px-1 py-0.5">↵</kbd>{" "}
+              <kbd className="bg-surface-800 border border-surface-600 rounded px-1 py-0.5">↵</kbd>{" "}
               select
             </span>
             <span>
-              <kbd className="bg-zinc-800 border border-zinc-700 rounded px-1 py-0.5">esc</kbd>{" "}
+              <kbd className="bg-surface-800 border border-surface-600 rounded px-1 py-0.5">esc</kbd>{" "}
               close
             </span>
           </div>

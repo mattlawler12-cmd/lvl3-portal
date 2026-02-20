@@ -31,9 +31,9 @@ function SnapshotSection({
   isEmpty: boolean;
 }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-      <p className="text-sm font-semibold text-white mb-2">{title}</p>
-      <p className={`text-sm leading-relaxed ${isEmpty ? "text-zinc-500 italic" : "text-zinc-300"}`}>
+    <div className="bg-surface-900 border border-surface-700 rounded-xl p-5">
+      <p className="text-sm font-semibold text-surface-100 mb-2">{title}</p>
+      <p className={`text-sm leading-relaxed ${isEmpty ? "text-surface-500 italic" : "text-surface-300"}`}>
         {content}
       </p>
     </div>
@@ -79,15 +79,15 @@ export default function DashboardTabs({
   return (
     <div className="flex flex-col h-full">
       {/* Tab bar */}
-      <div className="flex items-center gap-0 border-b border-zinc-800 px-6 shrink-0">
+      <div className="flex items-center gap-0 border-b border-surface-700 px-6 shrink-0">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => handleTabChange(tab.key)}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-900 ${
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-900 ${
               activeTab === tab.key
-                ? "border-white text-white"
-                : "border-transparent text-zinc-400 hover:text-zinc-200"
+                ? "border-brand-400 text-brand-400"
+                : "border-transparent text-surface-400 hover:text-surface-200"
             }`}
           >
             {tab.label}
@@ -102,7 +102,7 @@ export default function DashboardTabs({
           <div className="p-6 max-w-4xl space-y-6">
             {/* KPI strip */}
             <div>
-              <p className="text-xs font-medium uppercase tracking-widest text-zinc-500 mb-3">
+              <p className="text-xs font-medium uppercase tracking-widest text-surface-500 mb-3">
                 Key Metrics
               </p>
               {hasAnalytics ? (
@@ -111,8 +111,8 @@ export default function DashboardTabs({
                   gsc={analyticsData.gsc}
                 />
               ) : (
-                <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
-                  <p className="text-sm text-zinc-500 italic">
+                <div className="rounded-xl border border-surface-700 bg-surface-900/50 px-5 py-4">
+                  <p className="text-sm text-surface-500 italic">
                     KPI snapshot cards will appear here once configured.
                   </p>
                 </div>
@@ -122,12 +122,12 @@ export default function DashboardTabs({
             {/* Context panel */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+                <p className="text-xs font-medium uppercase tracking-widest text-surface-500">
                   Context
                 </p>
                 <div className="flex items-center gap-3">
                   {snapshotUpdatedAt && (
-                    <p className="text-xs text-zinc-600">
+                    <p className="text-xs text-surface-500">
                       Updated{" "}
                       {new Date(snapshotUpdatedAt).toLocaleDateString("en-US", {
                         month: "short",
@@ -166,18 +166,18 @@ export default function DashboardTabs({
                   }
                   isEmpty={!snapshotInsights?.opportunities}
                 />
-                <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                <div className="bg-surface-900 border border-surface-700 rounded-xl p-5">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-semibold text-white mb-2">
+                    <p className="text-sm font-semibold text-surface-100 mb-2">
                       What we changed
                     </p>
                     {isAdmin && (
-                      <button className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors shrink-0">
+                      <button className="text-xs text-surface-500 hover:text-surface-400 transition-colors shrink-0">
                         Admin: Edit
                       </button>
                     )}
                   </div>
-                  <p className="text-sm text-zinc-500 italic">
+                  <p className="text-sm text-surface-500 italic">
                     Recent agency activity notes will appear here.
                   </p>
                 </div>
@@ -200,11 +200,11 @@ export default function DashboardTabs({
         {activeTab === "full" && hasLooker && (
           <div className="h-full flex flex-col">
             {iframeTimedOut && !iframeEverActive && (
-              <div className="px-6 py-3 bg-zinc-900/50 border-b border-zinc-800 text-sm text-zinc-400">
+              <div className="px-6 py-3 bg-surface-900/50 border-b border-surface-700 text-sm text-surface-400">
                 Loading full dashboard. KPI snapshot is ready.{" "}
                 <button
                   onClick={() => handleTabChange("snapshot")}
-                  className="text-zinc-300 underline underline-offset-2 hover:text-white transition-colors"
+                  className="text-surface-300 underline underline-offset-2 hover:text-surface-100 transition-colors"
                 >
                   Back to Snapshot
                 </button>
@@ -223,18 +223,18 @@ export default function DashboardTabs({
         {/* Definitions tab */}
         {activeTab === "definitions" && (
           <div className="p-6 max-w-2xl">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div className="bg-surface-900 border border-surface-700 rounded-xl p-5">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-semibold text-white mb-2">
+                <p className="text-sm font-semibold text-surface-100 mb-2">
                   Metric Definitions & Methodology
                 </p>
                 {isAdmin && (
-                  <button className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors shrink-0">
+                  <button className="text-xs text-surface-500 hover:text-surface-400 transition-colors shrink-0">
                     Admin: Edit
                   </button>
                 )}
               </div>
-              <p className="text-sm text-zinc-500 italic">
+              <p className="text-sm text-surface-500 italic">
                 Metric definitions and methodology notes will appear here.
               </p>
             </div>

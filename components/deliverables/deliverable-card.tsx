@@ -33,10 +33,10 @@ export default function DeliverableCard({
   return (
     <button
       onClick={(e) => onClick(deliverable, e.currentTarget)}
-      className={`w-full text-left p-4 rounded-xl border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 ${
+      className={`w-full text-left p-4 rounded-xl border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400 hover:shadow-[0_0_20px_rgba(251,146,60,0.04)] ${
         isSelected
-          ? "border-white/30 bg-zinc-800"
-          : "border-zinc-800 bg-zinc-900 hover:border-zinc-600 hover:bg-zinc-800/50"
+          ? "border-brand-400/30 bg-surface-800"
+          : "border-surface-700 bg-surface-850 hover:border-surface-600 hover:bg-surface-800"
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-3">
@@ -53,15 +53,15 @@ export default function DeliverableCard({
         </div>
       </div>
 
-      <p className="text-white font-medium text-sm leading-snug mb-1 line-clamp-2">
+      <p className="text-surface-100 font-medium text-sm leading-snug mb-1 line-clamp-2">
         {deliverable.title}
       </p>
 
       {showClientName && deliverable.clients && (
-        <p className="text-zinc-500 text-xs mb-1">{deliverable.clients.name}</p>
+        <p className="text-surface-400 text-xs mb-1">{deliverable.clients.name}</p>
       )}
 
-      <p className="text-zinc-600 text-xs">
+      <p className="text-surface-500 text-xs">
         {new Date(deliverable.created_at).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",

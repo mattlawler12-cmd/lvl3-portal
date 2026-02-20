@@ -13,15 +13,15 @@ export default function LookerEmbed({ url, clientName, isActive = true }: Props)
     <>
       {/* Desktop */}
       <div className="hidden md:flex flex-col w-full h-full">
-        <div className="flex items-center justify-between px-4 py-2 bg-zinc-900/50 border-b border-zinc-800 shrink-0">
-          <p className="text-xs text-zinc-500">
+        <div className="flex items-center justify-between px-4 py-2 bg-surface-900/50 border-b border-surface-700 shrink-0">
+          <p className="text-xs text-surface-400">
             <AlertCircle size={11} className="inline mr-1 -mt-0.5" />
             Data may be cached within a 12-hour freshness window.{" "}
             <a
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-zinc-400 hover:text-white underline underline-offset-2 transition-colors"
+              className="text-surface-300 hover:text-surface-100 underline underline-offset-2 transition-colors"
             >
               Open in Looker Studio
             </a>{" "}
@@ -31,7 +31,7 @@ export default function LookerEmbed({ url, clientName, isActive = true }: Props)
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-white bg-zinc-800 border border-zinc-700 px-3 py-1.5 rounded-lg transition-colors shrink-0 ml-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400"
+            className="flex items-center gap-1.5 text-xs text-surface-300 hover:text-surface-100 bg-surface-800 border border-surface-600 px-3 py-1.5 rounded-lg transition-colors shrink-0 ml-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
           >
             Open in Looker Studio
             <ExternalLink className="w-3.5 h-3.5" />
@@ -46,12 +46,12 @@ export default function LookerEmbed({ url, clientName, isActive = true }: Props)
               title={clientName ? `${clientName} Dashboard` : "Dashboard"}
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+            <div className="absolute inset-0 flex items-center justify-center bg-surface-900">
               <div className="text-center">
-                <div className="w-12 h-12 bg-zinc-800 rounded-xl flex items-center justify-center mx-auto mb-3 animate-pulse">
-                  <ExternalLink className="w-5 h-5 text-zinc-600" />
+                <div className="w-12 h-12 bg-surface-800 rounded-xl flex items-center justify-center mx-auto mb-3 animate-pulse">
+                  <ExternalLink className="w-5 h-5 text-surface-500" />
                 </div>
-                <p className="text-zinc-500 text-sm">Loading dashboard…</p>
+                <p className="text-surface-400 text-sm">Loading dashboard…</p>
               </div>
             </div>
           )}
@@ -60,14 +60,14 @@ export default function LookerEmbed({ url, clientName, isActive = true }: Props)
 
       {/* Mobile */}
       <div className="md:hidden p-8">
-        <div className="bg-zinc-800 border border-zinc-700 rounded-xl p-6 max-w-sm mx-auto text-center">
+        <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 max-w-sm mx-auto text-center">
           <div className="w-12 h-12 bg-blue-900/40 border border-blue-700/50 rounded-xl flex items-center justify-center mx-auto mb-4">
             <ExternalLink className="w-6 h-6 text-blue-400" />
           </div>
-          <h3 className="text-white font-semibold mb-1">
+          <h3 className="text-surface-100 font-semibold mb-1">
             {clientName ? `${clientName} Dashboard` : "Analytics Dashboard"}
           </h3>
-          <p className="text-zinc-400 text-sm mb-5">
+          <p className="text-surface-300 text-sm mb-5">
             This dashboard is best viewed on a desktop. You can also open it
             directly in Looker Studio.
           </p>
@@ -75,7 +75,7 @@ export default function LookerEmbed({ url, clientName, isActive = true }: Props)
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 bg-brand-400 hover:bg-brand-500 text-surface-950 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
           >
             Open Dashboard
             <ExternalLink className="w-4 h-4" />

@@ -30,7 +30,7 @@ export default async function ClientSettingsPage({ params }: Props) {
   const { data: client } = await service
     .from('clients')
     .select(
-      'id, name, slug, logo_url, google_sheet_id, looker_embed_url, sheet_header_row, sheet_column_map, ga4_property_id, gsc_site_url'
+      'id, name, slug, logo_url, hero_image_url, google_sheet_id, looker_embed_url, sheet_header_row, sheet_column_map, ga4_property_id, gsc_site_url'
     )
     .eq('id', id)
     .single()
@@ -43,14 +43,14 @@ export default async function ClientSettingsPage({ params }: Props) {
     <div className="p-8 max-w-2xl">
       <Link
         href={`/clients/${id}`}
-        className="flex items-center gap-1.5 text-zinc-500 hover:text-white text-sm transition-colors mb-6"
+        className="flex items-center gap-1.5 text-surface-400 hover:text-surface-100 text-sm transition-colors mb-6"
       >
         <ChevronLeft size={15} />
         {client.name}
       </Link>
 
-      <h1 className="text-white text-2xl font-bold mb-1">Client Settings</h1>
-      <p className="text-zinc-500 text-sm mb-8">
+      <h1 className="text-surface-100 text-2xl font-bold mb-1">Client Settings</h1>
+      <p className="text-surface-400 text-sm mb-8">
         Update details and integrations for {client.name}.
       </p>
 
@@ -60,6 +60,7 @@ export default async function ClientSettingsPage({ params }: Props) {
           name: client.name,
           slug: client.slug,
           logo_url: client.logo_url ?? null,
+          hero_image_url: (client.hero_image_url as string | null) ?? null,
           google_sheet_id: client.google_sheet_id ?? null,
           looker_embed_url: client.looker_embed_url ?? null,
           sheet_header_row: (client.sheet_header_row as number | null) ?? null,

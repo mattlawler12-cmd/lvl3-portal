@@ -31,7 +31,7 @@ function CategoryTag({ category }: { category: string | null }) {
   if (!category) return null;
   const cls =
     CATEGORY_COLORS[category] ??
-    "bg-zinc-700/50 text-zinc-400 border-zinc-600/50";
+    "bg-surface-700/50 text-surface-400 border-surface-600/50";
   return (
     <span
       className={`text-xs font-medium px-2 py-0.5 rounded-full border ${cls}`}
@@ -88,8 +88,8 @@ export default async function InsightsPage() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6 pb-8">
       <div>
-        <h1 className="text-xl font-semibold text-white">Insights</h1>
-        <p className="mt-1 text-sm text-zinc-400">
+        <h1 className="text-xl font-semibold text-surface-100">Insights</h1>
+        <p className="mt-1 text-sm text-surface-400">
           {posts.length > 0
             ? `${posts.length} ${posts.length === 1 ? "post" : "posts"}`
             : "Posts and updates from your team"}
@@ -100,7 +100,7 @@ export default async function InsightsPage() {
       {(analyticsSummary || isAdmin) && selectedClient && (
         <section>
           <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-medium uppercase tracking-widest text-zinc-500">
+            <p className="text-xs font-medium uppercase tracking-widest text-surface-500">
               Analytics Insights
             </p>
             {isAdmin && (
@@ -114,7 +114,7 @@ export default async function InsightsPage() {
               maxChars={400}
               footer={
                 analyticsSummaryUpdatedAt ? (
-                  <p className="text-xs text-zinc-600">
+                  <p className="text-xs text-surface-500">
                     Last updated{" "}
                     {new Date(analyticsSummaryUpdatedAt).toLocaleDateString(
                       "en-US",
@@ -125,8 +125,8 @@ export default async function InsightsPage() {
               }
             />
           ) : (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-5 py-4">
-              <p className="text-sm text-zinc-500 italic">
+            <div className="rounded-xl border border-surface-700 bg-surface-900/50 px-5 py-4">
+              <p className="text-sm text-surface-500 italic">
                 No analytics insights yet. Configure GA4/GSC in client settings and click &quot;Refresh analytics&quot;.
               </p>
             </div>
@@ -136,8 +136,8 @@ export default async function InsightsPage() {
 
       {posts.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <Lightbulb className="w-10 h-10 text-zinc-600 mb-3" />
-          <p className="text-zinc-400">
+          <Lightbulb className="w-10 h-10 text-surface-500 mb-3" />
+          <p className="text-surface-400">
             No insights published yet. Check back soon.
           </p>
         </div>
@@ -145,18 +145,18 @@ export default async function InsightsPage() {
         <>
           {/* Featured post */}
           {featured && (
-            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+            <div className="bg-surface-900 border border-surface-700 rounded-xl p-6">
               <div className="flex items-start justify-between gap-3 mb-3">
-                <h2 className="text-lg font-semibold text-white">
+                <h2 className="text-lg font-semibold text-surface-100">
                   {featured.title}
                 </h2>
                 <CategoryTag category={featured.category} />
               </div>
-              <p className="text-sm text-zinc-300 leading-relaxed mb-4">
+              <p className="text-sm text-surface-300 leading-relaxed mb-4">
                 {featured.body.slice(0, 400)}
                 {featured.body.length > 400 && "…"}
               </p>
-              <p className="text-xs text-zinc-600">
+              <p className="text-xs text-surface-500">
                 {new Date(featured.created_at).toLocaleDateString("en-US", {
                   month: "long",
                   day: "numeric",
@@ -172,18 +172,18 @@ export default async function InsightsPage() {
               {rest.map((post) => (
                 <div
                   key={post.id}
-                  className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-700 transition-colors"
+                  className="bg-surface-900 border border-surface-700 rounded-xl p-5 hover:border-surface-600 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3 mb-1.5">
-                    <h3 className="text-sm font-semibold text-white">
+                    <h3 className="text-sm font-semibold text-surface-100">
                       {post.title}
                     </h3>
                     <CategoryTag category={post.category} />
                   </div>
-                  <p className="text-sm text-zinc-400 line-clamp-2">
+                  <p className="text-sm text-surface-400 line-clamp-2">
                     {post.body}
                   </p>
-                  <p className="text-xs text-zinc-600 mt-2">
+                  <p className="text-xs text-surface-500 mt-2">
                     {new Date(post.created_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
