@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, FolderKanban, LayoutDashboard, PackageOpen,
   Lightbulb, Sparkles, ShieldCheck, Users,
-  ChevronLeft, ChevronRight, Search,
+  ChevronLeft, ChevronRight, Search, Wrench, MessageCircle,
 } from "lucide-react";
 
 type NavItem = {
@@ -45,6 +45,8 @@ export default function Sidebar({
     { label: "Deliverables", href: "/deliverables", icon: PackageOpen, badge: deliverableBadgeCount || undefined },
     { label: "Insights",     href: "/insights",     icon: Lightbulb,   badge: postsBadgeCount || undefined },
     { label: "Services",     href: "/services",     icon: Sparkles,    badge: servicesBadgeCount || undefined },
+    { label: 'Tools',    href: '/tools',    icon: Wrench },
+    { label: 'Ask LVL3', href: '/ask-lvl3', icon: MessageCircle },
     ...(isAdmin ? [
       { label: "Clients", href: "/clients", icon: Users },
       { label: "Admin",   href: "/admin",   icon: ShieldCheck },
