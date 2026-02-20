@@ -1,5 +1,4 @@
 import { google } from 'googleapis'
-import { getAdminOAuthClient } from '@/lib/google-auth'
 
 export type SheetRow = {
   month: string
@@ -25,6 +24,19 @@ export function parseSheetId(urlOrId: string): string {
 }
 
 
+function getCredentials() {
+  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY env var is not set')
+  raw = raw.trim().replace(/^['"]|['"]$/g, '')
+  try {
+    return JSON.parse(raw)
+  } catch (e) {
+    throw new Error(
+      `GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON. Error: ${e instanceof Error ? e.message : String(e)}`
+    )
+  }
+}
+
 function parseFee(raw: string): number | null {
   if (!raw || raw.trim() === '') return null
   const cleaned = raw.replace(/[$,]/g, '').trim()
@@ -33,7 +45,11 @@ function parseFee(raw: string): number | null {
 }
 
 async function getAuthAndSheets() {
-  const auth = await getAdminOAuthClient()
+  const credentials = getCredentials()
+  const auth = new google.auth.GoogleAuth({
+    credentials,
+    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+  })
   const sheets = google.sheets({ version: 'v4', auth })
   return sheets
 }

@@ -1,6 +1,5 @@
 'use server'
 
-import { unstable_cache } from 'next/cache'
 import { revalidateTag, revalidatePath } from 'next/cache'
 import { fetchSheetRows, SheetRow, ColumnMap } from '@/lib/google-sheets'
 import {
@@ -21,23 +20,11 @@ export async function getSheetData(
   headerRow: number = 1,
   columnMap: ColumnMap | null = null
 ): Promise<SheetData> {
-  const mapKey = columnMap ? JSON.stringify(columnMap) : 'null'
-  const cached = unstable_cache(
-    async () => {
-      const rows = await fetchSheetRows(sheetId, headerRow, columnMap)
-      return {
-        rows,
-        fetchedAt: new Date().toISOString(),
-      }
-    },
-    ['sheet', sheetId, String(headerRow), mapKey],
-    {
-      revalidate: 300,
-      tags: [`sheet-${sheetId}`],
-    }
-  )
-
-  return cached()
+  const rows = await fetchSheetRows(sheetId, headerRow, columnMap)
+  return {
+    rows,
+    fetchedAt: new Date().toISOString(),
+  }
 }
 
 export async function syncSheet(clientId: string): Promise<void> {
