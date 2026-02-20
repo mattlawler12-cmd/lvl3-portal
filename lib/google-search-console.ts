@@ -105,7 +105,18 @@ export type GSCReport = {
   topUrls: UrlRow[]
 }
 
+function normalizeSiteUrl(raw: string): string {
+  const url = raw.trim()
+  if (url.startsWith('sc-domain:') || url.startsWith('http://') || url.startsWith('https://')) {
+    // Already has a protocol — just ensure trailing slash for URL-type properties
+    return url.startsWith('sc-domain:') ? url : url.endsWith('/') ? url : url + '/'
+  }
+  // Bare domain like "tappselectric.com" — assume https with trailing slash
+  return `https://${url}/`
+}
+
 export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
+  const normalizedUrl = normalizeSiteUrl(siteUrl)
   const credentials = getCredentials()
   const auth = new google.auth.GoogleAuth({
     credentials,
@@ -130,28 +141,28 @@ export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
 
   const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.allSettled([
     // 1: current 28-day overall
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate, endDate } }),
+    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate, endDate } }),
     // 2: prior 28-day overall
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: priorStart, endDate: priorEnd } }),
+    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: priorStart, endDate: priorEnd } }),
     // 3: YoY overall
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: yoyStart, endDate: yoyEnd } }),
+    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: yoyStart, endDate: yoyEnd } }),
     // 4: daily data for monthly aggregation
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: monthlyStart, endDate: monthlyEnd, dimensions: ['date'], rowLimit: 200 } }),
+    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: monthlyStart, endDate: monthlyEnd, dimensions: ['date'], rowLimit: 200 } }),
     // 5: top queries current
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate, endDate, dimensions: ['query'], rowLimit: 25 } }),
+    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate, endDate, dimensions: ['query'], rowLimit: 25 } }),
     // 6: top queries prior (for delta)
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: priorStart, endDate: priorEnd, dimensions: ['query'], rowLimit: 100 } }),
+    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: priorStart, endDate: priorEnd, dimensions: ['query'], rowLimit: 100 } }),
     // 7: top pages current
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate, endDate, dimensions: ['page'], rowLimit: 25 } }),
+    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate, endDate, dimensions: ['page'], rowLimit: 25 } }),
     // 8: top pages prior (for delta)
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: priorStart, endDate: priorEnd, dimensions: ['page'], rowLimit: 100 } }),
+    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: priorStart, endDate: priorEnd, dimensions: ['page'], rowLimit: 100 } }),
   ])
 
   // If the primary call failed, throw so the caller gets the actual error
   if (r1.status === 'rejected') {
     const reason = r1.reason as { message?: string; errors?: { message: string }[] } | null
     const msg = reason?.errors?.[0]?.message ?? reason?.message ?? String(r1.reason)
-    throw new Error(`GSC API error (${siteUrl}): ${msg}`)
+    throw new Error(`GSC API error (tried: ${normalizedUrl}): ${msg}`)
   }
 
   // Overall metrics
