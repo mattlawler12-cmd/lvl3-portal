@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { getAdminOAuthClient } from '@/lib/google-auth'
+import { google } from 'googleapis'
 import Anthropic from '@anthropic-ai/sdk'
-import { gscQuery, ga4Query } from '@/lib/ask-tools'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -90,23 +91,37 @@ function today(): string {
   return new Date(Date.now() - 86400000).toISOString().slice(0, 10)
 }
 
+type OAuthClient = Awaited<ReturnType<typeof getAdminOAuthClient>>
+
+// Uses a pre-built OAuth client so cookies() is never called inside the stream
 async function executeTool(
   name: string,
   input: Record<string, unknown>,
-  client: { gsc_site_url: string | null; ga4_property_id: string | null }
+  client: { gsc_site_url: string | null; ga4_property_id: string | null },
+  auth: OAuthClient
 ): Promise<string> {
   try {
     if (name === 'get_gsc_data') {
       if (!client.gsc_site_url) {
         return 'Error: No Search Console site configured for this client.'
       }
-      const rows = await gscQuery({
+      const searchconsole = google.searchconsole({ version: 'v1', auth })
+      const { data } = await searchconsole.searchanalytics.query({
         siteUrl: client.gsc_site_url,
-        startDate: input.startDate as string,
-        endDate: input.endDate as string,
-        dimensions: input.dimensions as string[],
-        rowLimit: (input.rowLimit as number) ?? 100,
+        requestBody: {
+          startDate: input.startDate as string,
+          endDate: input.endDate as string,
+          dimensions: input.dimensions as string[],
+          rowLimit: (input.rowLimit as number) ?? 100,
+        },
       })
+      const rows = (data.rows ?? []).map((row) => ({
+        keys: row.keys ?? [],
+        clicks: row.clicks ?? 0,
+        impressions: row.impressions ?? 0,
+        ctr: Math.round((row.ctr ?? 0) * 10000) / 100,
+        position: Math.round((row.position ?? 0) * 10) / 10,
+      }))
       if (rows.length === 0) return 'No data found for this date range and dimensions.'
       return JSON.stringify(rows)
     }
@@ -115,14 +130,27 @@ async function executeTool(
       if (!client.ga4_property_id) {
         return 'Error: No GA4 property configured for this client.'
       }
-      const rows = await ga4Query({
-        propertyId: client.ga4_property_id,
-        startDate: input.startDate as string,
-        endDate: input.endDate as string,
-        metrics: input.metrics as string[],
-        dimensions: input.dimensions as string[] | undefined,
-        rowLimit: (input.rowLimit as number) ?? 100,
+      const analyticsdata = google.analyticsdata({ version: 'v1beta', auth })
+      const { data } = await analyticsdata.properties.runReport({
+        property: `properties/${client.ga4_property_id}`,
+        requestBody: {
+          dateRanges: [
+            {
+              startDate: input.startDate as string,
+              endDate: input.endDate as string,
+            },
+          ],
+          metrics: (input.metrics as string[]).map((n) => ({ name: n })),
+          dimensions: ((input.dimensions as string[] | undefined) ?? []).map((n) => ({
+            name: n,
+          })),
+          limit: String((input.rowLimit as number) ?? 100),
+        },
       })
+      const rows = (data.rows ?? []).map((row) => ({
+        dimensions: (row.dimensionValues ?? []).map((d) => d.value ?? ''),
+        metrics: (row.metricValues ?? []).map((m) => parseFloat(m.value ?? '0')),
+      }))
       if (rows.length === 0) return 'No data found for this date range and dimensions.'
       return JSON.stringify(rows)
     }
@@ -136,7 +164,10 @@ async function executeTool(
 // ── Route Handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // Auth check before streaming
+  // ── All cookie-dependent calls MUST happen before the ReadableStream ─────────
+  // cookies() from next/headers is unavailable inside ReadableStream callbacks.
+
+  // 1. Auth check
   const supabase = await createClient()
   const {
     data: { user },
@@ -156,6 +187,20 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
   }
 
+  // 2. Pre-fetch OAuth client (calls createServiceClient → cookies internally)
+  let oauthClient: OAuthClient
+  try {
+    oauthClient = await getAdminOAuthClient()
+  } catch (err) {
+    return new Response(
+      JSON.stringify({
+        error: err instanceof Error ? err.message : 'Google account not connected',
+      }),
+      { status: 500 }
+    )
+  }
+
+  // 3. Parse body
   const body = await req.json()
   const {
     clientId,
@@ -163,6 +208,7 @@ export async function POST(req: NextRequest) {
     conversationId: incomingConvId,
   }: { clientId: string; messages: ChatMessage[]; conversationId?: string } = body
 
+  // ── Stream ────────────────────────────────────────────────────────────────────
   const encoder = new TextEncoder()
 
   function emit(controller: ReadableStreamDefaultController, obj: object) {
@@ -172,7 +218,7 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // Fetch client data
+        // Fetch client row — uses pre-created service client (no new cookies() call)
         const { data: client } = await service
           .from('clients')
           .select('name, gsc_site_url, ga4_property_id, analytics_summary, snapshot_insights')
@@ -277,10 +323,13 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
             ) {
               if (!isToolIteration) {
                 isToolIteration = true
-                // Clear any thinking text we streamed before detecting tool_use
+                // Clear any thinking text streamed before detecting tool_use
                 if (partialText) {
                   emit(controller, { type: 'clear_partial' })
-                  assistantText = assistantText.slice(0, assistantText.length - partialText.length)
+                  assistantText = assistantText.slice(
+                    0,
+                    assistantText.length - partialText.length
+                  )
                   partialText = ''
                 }
               }
@@ -326,14 +375,15 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
               emit(controller, { type: 'status', text: statusText })
             }
 
-            // Execute tools in parallel
+            // Execute tools in parallel using the pre-built oauthClient
             const toolResults = await Promise.all(
               toolBlocks.map(async (block) => {
                 if (block.type !== 'tool_use') return null
                 const result = await executeTool(
                   block.name,
                   block.input as Record<string, unknown>,
-                  { gsc_site_url: client.gsc_site_url, ga4_property_id: client.ga4_property_id }
+                  { gsc_site_url: client.gsc_site_url, ga4_property_id: client.ga4_property_id },
+                  oauthClient
                 )
                 return {
                   type: 'tool_result' as const,
@@ -359,11 +409,11 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
           return
         }
 
-        // Hit max iterations — emit fallback answer
+        // Hit max iterations — emit fallback
         const fallback =
           'I ran into repeated errors fetching the data and was unable to complete your request. ' +
-          'This usually means the GSC or GA4 data source is unavailable or the date range returned no results. ' +
-          'Try a simpler question, or check that the client\'s GSC site URL and GA4 property are configured correctly in client settings.'
+          "This usually means the GSC or GA4 data source is unavailable or the date range returned no results. " +
+          "Try a simpler question, or check that the client's GSC site URL and GA4 property are configured correctly in client settings."
         emit(controller, { type: 'text', delta: fallback })
         if (conversationId) {
           await service.from('ask_lvl3_messages').insert({
