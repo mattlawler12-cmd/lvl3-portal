@@ -87,7 +87,12 @@ export async function fetchAnalyticsData(clientId: string): Promise<AnalyticsDat
 
 // ── Dashboard report ─────────────────────────────────────────────────────────
 
-export type DashboardReport = { ga4: GA4Report | null; gsc: GSCReport | null; error?: string }
+export type DashboardReport = {
+  ga4: GA4Report | null
+  gsc: GSCReport | null
+  ga4Error?: string
+  gscError?: string
+}
 
 export async function fetchDashboardReport(clientId: string): Promise<DashboardReport> {
   const service = await createServiceClient()
@@ -97,7 +102,7 @@ export async function fetchDashboardReport(clientId: string): Promise<DashboardR
     .eq('id', clientId)
     .single()
 
-  if (!client) return { ga4: null, gsc: null, error: 'Client not found' }
+  if (!client) return { ga4: null, gsc: null, ga4Error: 'Client not found' }
 
   const [ga4Result, gscResult] = await Promise.allSettled([
     client.ga4_property_id ? fetchGA4Report(client.ga4_property_id) : Promise.resolve(null),
@@ -106,14 +111,22 @@ export async function fetchDashboardReport(clientId: string): Promise<DashboardR
 
   const ga4 = ga4Result.status === 'fulfilled' ? ga4Result.value : null
   const gsc = gscResult.status === 'fulfilled' ? gscResult.value : null
-  const firstError =
-    ga4Result.status === 'rejected'
+
+  const ga4Error =
+    !client.ga4_property_id
+      ? 'GA4 Property ID not configured in client settings'
+      : ga4Result.status === 'rejected'
       ? String(ga4Result.reason)
+      : undefined
+
+  const gscError =
+    !client.gsc_site_url
+      ? 'GSC Site URL not configured in client settings'
       : gscResult.status === 'rejected'
       ? String(gscResult.reason)
       : undefined
 
-  return { ga4, gsc, error: firstError }
+  return { ga4, gsc, ga4Error, gscError }
 }
 
 // ── GSC site detection ────────────────────────────────────────────────────────

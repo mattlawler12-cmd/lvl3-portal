@@ -193,7 +193,12 @@ export default function DashboardTabs({
 
         {/* SEO tab */}
         {activeTab === "seo" && (
-          <SeoTab ga4={dashboardReport.ga4} gsc={dashboardReport.gsc} />
+          <SeoTab
+            ga4={dashboardReport.ga4}
+            gsc={dashboardReport.gsc}
+            gscError={dashboardReport.gscError}
+            isAdmin={isAdmin}
+          />
         )}
 
         {/* Full Dashboard tab */}

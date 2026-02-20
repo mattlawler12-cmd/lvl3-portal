@@ -12,15 +12,23 @@ import GscUrlsTable from './searchconsole/GscUrlsTable'
 interface Props {
   ga4: GA4Report | null
   gsc: GSCReport | null
+  gscError?: string
+  isAdmin: boolean
 }
 
-export default function SeoTab({ ga4, gsc }: Props) {
+export default function SeoTab({ ga4, gsc, gscError, isAdmin }: Props) {
   if (!ga4 && !gsc) {
     return (
-      <div className="p-6">
+      <div className="p-6 space-y-3">
         <div className="rounded-xl border border-surface-700 bg-surface-900/50 px-5 py-8 text-center">
           <p className="text-sm text-surface-500 italic">No SEO data available. Configure GA4 and/or GSC in client settings.</p>
         </div>
+        {isAdmin && gscError && (
+          <div className="rounded-xl border border-rose-900/50 bg-rose-950/30 px-5 py-3">
+            <p className="text-xs font-medium text-rose-400 mb-1">Admin — GSC error</p>
+            <p className="text-xs text-rose-300/80 font-mono break-all">{gscError}</p>
+          </div>
+        )}
       </div>
     )
   }
@@ -44,7 +52,7 @@ export default function SeoTab({ ga4, gsc }: Props) {
       )}
 
       {/* Search Console section */}
-      {gsc && (
+      {gsc ? (
         <div className="space-y-5">
           <SectionHeader title="Search Console" period="Last 28 days vs prior 28 days" />
           <GscKpiRow gsc={gsc} />
@@ -53,6 +61,23 @@ export default function SeoTab({ ga4, gsc }: Props) {
             <GscQueriesTable rows={gsc.topQueries} />
             <GscUrlsTable rows={gsc.topUrls} />
           </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <SectionHeader title="Search Console" />
+          <div className="rounded-xl border border-surface-700 bg-surface-900/50 px-5 py-4">
+            <p className="text-sm text-surface-500 italic">
+              {gscError && !isAdmin
+                ? 'Search Console data is unavailable. Contact your admin.'
+                : 'Configure a GSC Site URL in client settings to see Search Console data.'}
+            </p>
+          </div>
+          {isAdmin && gscError && (
+            <div className="rounded-xl border border-rose-900/50 bg-rose-950/30 px-5 py-3">
+              <p className="text-xs font-medium text-rose-400 mb-1">Admin — GSC error</p>
+              <p className="text-xs text-rose-300/80 font-mono break-all">{gscError}</p>
+            </div>
+          )}
         </div>
       )}
     </div>

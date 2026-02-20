@@ -147,8 +147,15 @@ export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
     searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: priorStart, endDate: priorEnd, dimensions: ['page'], rowLimit: 100 } }),
   ])
 
+  // If the primary call failed, throw so the caller gets the actual error
+  if (r1.status === 'rejected') {
+    const reason = r1.reason as { message?: string; errors?: { message: string }[] } | null
+    const msg = reason?.errors?.[0]?.message ?? reason?.message ?? String(r1.reason)
+    throw new Error(`GSC API error (${siteUrl}): ${msg}`)
+  }
+
   // Overall metrics
-  const overall = r1.status === 'fulfilled' ? (r1.value.data.rows?.[0] ?? {}) : {}
+  const overall = r1.value.data.rows?.[0] ?? {}
   const priorOverall = r2.status === 'fulfilled' ? (r2.value.data.rows?.[0] ?? {}) : {}
   const yoyOverall = r3.status === 'fulfilled' ? (r3.value.data.rows?.[0] ?? {}) : {}
 
