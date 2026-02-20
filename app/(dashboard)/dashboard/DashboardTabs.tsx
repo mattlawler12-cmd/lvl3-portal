@@ -110,7 +110,7 @@ export default function DashboardTabs({
               onClick={() => handleTabChange(tab.key)}
               className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-900 ${
                 activeTab === tab.key
-                  ? "border-surface-500 text-surface-500"
+                  ? "border-surface-500 text-surface-100"
                   : "border-transparent text-surface-400 hover:text-surface-100"
               }`}
             >
@@ -130,7 +130,7 @@ export default function DashboardTabs({
                   onClick={() => navigate({ period: opt.value })}
                   className={`px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
                     period === opt.value
-                      ? "border-surface-500 text-surface-500 bg-surface-500/10"
+                      ? "border-surface-500 text-surface-100 bg-surface-700/40"
                       : "border-surface-700 text-surface-400 hover:text-surface-100 hover:border-surface-600"
                   }`}
                 >

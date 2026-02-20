@@ -5,34 +5,31 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [error, setError]       = useState<string | null>(null)
+  const [loading, setLoading]   = useState(false)
   const [usePassword, setUsePassword] = useState(false)
 
   const supabase = createClient()
-  const router = useRouter()
+  const router   = useRouter()
 
   async function handleMagicLink(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
+    // Use NEXT_PUBLIC_SITE_URL if set (production), otherwise fall back to
+    // the current origin so magic links always point to the right host.
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { emailRedirectTo: `${origin}/auth/callback` },
     })
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
-
+    if (error) { setError(error.message); setLoading(false); return }
     setSubmitted(true)
     setLoading(false)
   }
@@ -44,131 +41,216 @@ export default function LoginPage() {
 
     const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-      return
-    }
-
+    if (error) { setError(error.message); setLoading(false); return }
     router.push('/')
     router.refresh()
   }
 
   return (
-    <div className="min-h-screen bg-surface-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm space-y-8">
-        {/* Logo */}
-        <div className="text-center">
-          <span className="text-surface-100 text-4xl font-bold tracking-tight">
+    // Full-page dark-ink hero — mirrors the editorial dark sections in the design system
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-16"
+      style={{ backgroundColor: 'var(--color-ink)' }}
+    >
+      {/* Subtle warm texture overlay */}
+      <div className="w-full max-w-sm">
+
+        {/* Brand mark — above the card */}
+        <div className="text-center mb-8">
+          <span
+            className="text-5xl font-bold tracking-tight"
+            style={{ color: 'var(--color-marigold)', fontFamily: 'var(--font-playfair), Georgia, serif' }}
+          >
             LVL3
           </span>
-          <p className="mt-2 text-surface-400 text-sm">Client Portal</p>
+          <p
+            className="mt-2 text-xs font-medium uppercase tracking-[0.14em]"
+            style={{ color: 'var(--nav-text)' }}
+          >
+            Client Portal
+          </p>
         </div>
 
-        {submitted ? (
-          <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 text-center space-y-2">
-            <p className="text-surface-100 font-medium">Check your email</p>
-            <p className="text-surface-400 text-sm">
-              We sent a magic link to <span className="text-surface-100">{email}</span>.
-              Click it to sign in.
-            </p>
-          </div>
-        ) : usePassword ? (
-          <form onSubmit={handlePasswordLogin} className="space-y-4">
-            <div className="flex items-center justify-end mb-1">
+        {/* Card */}
+        <div
+          className="rounded-[10px] p-8 shadow-[0_24px_64px_rgba(0,0,0,0.4)]"
+          style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+        >
+          {submitted ? (
+            <div className="text-center space-y-3 py-2">
+              {/* Marigold check circle */}
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-2xl"
+                style={{ backgroundColor: 'rgba(254,199,124,0.15)', color: 'var(--color-marigold)' }}
+              >
+                ✓
+              </div>
+              <p className="font-semibold text-surface-100" style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}>
+                Check your email
+              </p>
+              <p className="text-sm text-surface-400 leading-relaxed">
+                We sent a magic link to{' '}
+                <span className="text-surface-100 font-medium">{email}</span>.
+                Click it to sign in.
+              </p>
+              <button
+                type="button"
+                onClick={() => { setSubmitted(false); setEmail('') }}
+                className="text-xs text-surface-500 hover:text-surface-400 transition-colors mt-2"
+              >
+                Use a different email
+              </button>
+            </div>
+          ) : usePassword ? (
+            <form onSubmit={handlePasswordLogin} className="space-y-5">
+              <div>
+                <h1
+                  className="text-xl font-bold text-surface-100 mb-1"
+                  style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}
+                >
+                  Sign in
+                </h1>
+                <p className="text-xs text-surface-400">Enter your email and password below.</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="email-pw" className="block text-xs font-medium text-surface-400 mb-1.5 uppercase tracking-widest">
+                    Email
+                  </label>
+                  <input
+                    id="email-pw"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@company.com"
+                    className="w-full rounded-[4px] px-4 py-2.5 text-sm transition-colors focus:outline-none"
+                    style={{
+                      backgroundColor: 'var(--color-cream)',
+                      border: '1px solid var(--color-border)',
+                      color: 'var(--color-ink)',
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-gold-deep)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(176,126,9,0.12)' }}
+                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-xs font-medium text-surface-400 mb-1.5 uppercase tracking-widest">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    type="password"
+                    required
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full rounded-[4px] px-4 py-2.5 text-sm transition-colors focus:outline-none"
+                    style={{
+                      backgroundColor: 'var(--color-cream)',
+                      border: '1px solid var(--color-border)',
+                      color: 'var(--color-ink)',
+                    }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-gold-deep)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(176,126,9,0.12)' }}
+                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
+                  />
+                </div>
+              </div>
+
+              {error && (
+                <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-[4px] px-3 py-2">{error}</p>
+              )}
+
+              {/* Primary button — ink bg + cream text per design spec */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-[4px] px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-cream)' }}
+                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#2e2510' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-ink)' }}
+              >
+                {loading ? 'Signing in…' : 'Sign in'}
+              </button>
+
               <button
                 type="button"
                 onClick={() => { setUsePassword(false); setError(null) }}
-                className="text-xs text-brand-400 hover:text-surface-200 transition-colors"
+                className="w-full text-xs text-surface-500 hover:text-surface-400 transition-colors py-1"
               >
-                Use magic link instead
+                Use magic link instead →
               </button>
-            </div>
+            </form>
+          ) : (
+            <form onSubmit={handleMagicLink} className="space-y-5">
+              <div>
+                <h1
+                  className="text-xl font-bold text-surface-100 mb-1"
+                  style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}
+                >
+                  Welcome back
+                </h1>
+                <p className="text-xs text-surface-400">Enter your email — we&apos;ll send a sign-in link.</p>
+              </div>
 
-            <div>
-              <label htmlFor="email-pw" className="block text-sm font-medium text-surface-300 mb-1.5">
-                Email address
-              </label>
-              <input
-                id="email-pw"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                className="w-full bg-surface-900 border border-surface-600 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-surface-600 text-sm"
-              />
-            </div>
+              <div>
+                <label htmlFor="email" className="block text-xs font-medium text-surface-400 mb-1.5 uppercase tracking-widest">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@company.com"
+                  className="w-full rounded-[4px] px-4 py-2.5 text-sm transition-colors focus:outline-none"
+                  style={{
+                    backgroundColor: 'var(--color-cream)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-ink)',
+                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-gold-deep)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(176,126,9,0.12)' }}
+                  onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
+                />
+              </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-surface-300 mb-1.5">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-surface-900 border border-surface-600 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-surface-600 text-sm"
-              />
-            </div>
+              {error && (
+                <p className="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-[4px] px-3 py-2">{error}</p>
+              )}
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-brand-400 hover:bg-brand-500 text-surface-950 font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Signing in…' : 'Sign in with password'}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleMagicLink} className="space-y-4">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-surface-300 mb-1.5"
+              {/* Accent button — marigold bg + ink text */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-[4px] px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ backgroundColor: 'var(--color-marigold)', color: 'var(--color-ink)' }}
+                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#F5B53A' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-marigold)' }}
               >
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                className="w-full bg-surface-900 border border-surface-600 rounded-lg px-4 py-2.5 text-surface-100 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-surface-600 text-sm"
-              />
-            </div>
+                {loading ? 'Sending…' : 'Send magic link'}
+              </button>
 
-            {error && (
-              <p className="text-red-400 text-sm">{error}</p>
-            )}
+              <button
+                type="button"
+                onClick={() => { setUsePassword(true); setError(null) }}
+                className="w-full text-xs text-surface-500 hover:text-surface-400 transition-colors py-1"
+              >
+                Sign in with password instead →
+              </button>
+            </form>
+          )}
+        </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-brand-400 hover:bg-brand-500 text-surface-950 font-semibold rounded-lg px-4 py-2.5 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Sending…' : 'Send magic link'}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setUsePassword(true); setError(null) }}
-              className="w-full text-xs text-brand-400 hover:text-surface-200 transition-colors py-1"
-            >
-              Sign in with password instead
-            </button>
-          </form>
-        )}
+        {/* Footer note */}
+        <p className="text-center text-xs mt-6" style={{ color: 'var(--nav-text)' }}>
+          Secure portal — access by invitation only
+        </p>
       </div>
     </div>
   )
