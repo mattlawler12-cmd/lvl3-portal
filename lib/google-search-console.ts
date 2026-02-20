@@ -130,11 +130,11 @@ export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
 
   const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.allSettled([
     // 1: current 28-day overall
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate, endDate, dimensions: [] } }),
+    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate, endDate } }),
     // 2: prior 28-day overall
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: priorStart, endDate: priorEnd, dimensions: [] } }),
+    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: priorStart, endDate: priorEnd } }),
     // 3: YoY overall
-    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: yoyStart, endDate: yoyEnd, dimensions: [] } }),
+    searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: yoyStart, endDate: yoyEnd } }),
     // 4: daily data for monthly aggregation
     searchconsole.searchanalytics.query({ siteUrl, requestBody: { startDate: monthlyStart, endDate: monthlyEnd, dimensions: ['date'], rowLimit: 200 } }),
     // 5: top queries current
