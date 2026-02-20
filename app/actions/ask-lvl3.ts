@@ -221,7 +221,7 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
     }))
 
     // Agentic loop — model can call tools multiple times before giving final answer
-    let loopMessages = [...apiMessages]
+    const loopMessages = [...apiMessages]
     const MAX_ITERATIONS = 6
 
     for (let i = 0; i < MAX_ITERATIONS; i++) {
