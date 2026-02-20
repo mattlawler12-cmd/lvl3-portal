@@ -25,12 +25,11 @@ interface SidebarProps {
   onSearchOpen: () => void;
 }
 
-// Ink-context colour helpers — the dark sidebar uses CSS variables so
-// the light surface-* token remapping doesn't bleed into nav elements.
-const NAV_TEXT        = 'var(--nav-text)'        // #d4c098 warm tan
-const NAV_TEXT_BRIGHT = 'var(--nav-text-bright)' // #fdf6e3 cream
-const NAV_HOVER_BG    = 'var(--nav-hover)'        // #251c0d
-const NAV_ACTIVE      = 'var(--nav-active)'       // #FEC77C marigold
+// Sidebar uses its own CSS variables so nav-* (cream topbar) doesn't bleed in.
+const NAV_TEXT        = 'var(--sidebar-text)'        // #d4c098 warm tan
+const NAV_TEXT_BRIGHT = 'var(--sidebar-text-bright)' // #fdf6e3 cream
+const NAV_HOVER_BG    = 'var(--sidebar-hover)'        // #251c0d
+const NAV_ACTIVE      = 'var(--sidebar-active)'       // #FEC77C marigold
 const NAV_ACTIVE_BG   = 'rgba(254,199,124,0.12)'
 
 export default function Sidebar({
@@ -62,7 +61,7 @@ export default function Sidebar({
       {/* Desktop sidebar — fixed, starts below 56px top bar */}
       <aside
         className={`hidden md:flex flex-col fixed top-14 left-0 bottom-0 z-20 transition-all duration-200 overflow-hidden ${collapsed ? "w-14" : "w-56"}`}
-        style={{ backgroundColor: 'var(--nav-bg)', borderRight: '1px solid var(--nav-border)' }}
+        style={{ backgroundColor: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}
       >
         <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
           {navItems.map(({ label, href, icon: Icon, badge }) => {
@@ -115,7 +114,7 @@ export default function Sidebar({
           })}
         </nav>
 
-        <div className="px-2 py-3 space-y-0.5" style={{ borderTop: '1px solid #3a2e18' }}>
+        <div className="px-2 py-3 space-y-0.5" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
           {collapsed && (
             <button
               onClick={onSearchOpen}
@@ -167,7 +166,7 @@ export default function Sidebar({
       {/* Mobile bottom nav */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 h-16 z-20 flex items-center justify-around px-4"
-        style={{ backgroundColor: 'var(--nav-bg)', borderTop: '1px solid var(--nav-border)' }}
+        style={{ backgroundColor: 'var(--sidebar-bg)', borderTop: '1px solid var(--sidebar-border)' }}
       >
         <Link
           href="/"

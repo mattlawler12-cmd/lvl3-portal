@@ -21,7 +21,7 @@ const BUCKETS = [
   { key: 'top10' as keyof SerpDistribution, label: 'Page 1 (4–10)', color: '#2dd4bf', range: 'positions 4–10' },
   { key: 'page2' as keyof SerpDistribution, label: 'Page 2 (11–20)', color: '#6b7280', range: 'positions 11–20' },
   { key: 'page3to5' as keyof SerpDistribution, label: 'Pages 3–5 (21–50)', color: '#4e5569', range: 'positions 21–50' },
-  { key: 'beyond' as keyof SerpDistribution, label: 'Page 5+ (51+)', color: '#2c3246', range: 'positions 51+' },
+  { key: 'beyond' as keyof SerpDistribution, label: 'Page 5+ (51+)', color: '#4a5568', range: 'positions 51+' },
 ]
 
 interface TooltipPayload {
@@ -58,15 +58,15 @@ export default function SerpDistributionChart({ distribution }: Props) {
       </div>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2c3246" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#3a2e18" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            tick={{ fill: '#c4ae84', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#9ca3af', fontSize: 11 }}
+            tick={{ fill: '#c4ae84', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             allowDecimals={false}

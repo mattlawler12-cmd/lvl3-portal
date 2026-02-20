@@ -74,7 +74,7 @@ export default function LoginPage() {
         {/* Card */}
         <div
           className="rounded-[10px] p-8 shadow-[0_24px_64px_rgba(0,0,0,0.4)]"
-          style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)' }}
+          style={{ backgroundColor: 'var(--color-cream)', border: '1px solid var(--color-border)' }}
         >
           {submitted ? (
             <div className="text-center space-y-3 py-2">

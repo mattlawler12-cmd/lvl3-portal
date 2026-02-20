@@ -4,24 +4,33 @@
 
 :root {
   /* ── Marigold & Ink palette ───────────────────────────── */
-  --background:       #fdf6e3;
-  --foreground:       #1a1408;
+  --background:       #1a1408;
+  --foreground:       #fdf6e3;
 
   --color-ink:        #1a1408;
   --color-cream:      #fdf6e3;
   --color-cream-alt:  #f5ead0;
-  --color-card:       #fffdf8;
+  --color-card:       #252010;
   --color-marigold:   #FEC77C;
   --color-gold-deep:  #B07E09;
-  --color-muted:      #7A6540;
+  --color-muted:      #c4ae84;
   --color-border:     #e0c878;
 
-  /* Nav-specific (dark context) */
-  --nav-bg:           #1a1408;
-  --nav-hover:        #251c0d;
-  --nav-text:         #d4c098;
-  --nav-text-bright:  #fdf6e3;
+  /* Top nav — cream bar */
+  --nav-bg:           #fdf6e3;
+  --nav-hover:        #f0e4c2;
+  --nav-text:         #7A6540;
+  --nav-text-bright:  #1a1408;
+  --nav-active:       #B07E09;
   --nav-border:       #e0c878;
+
+  /* Sidebar — stays dark */
+  --sidebar-bg:           #1a1408;
+  --sidebar-hover:        #251c0d;
+  --sidebar-text:         #d4c098;
+  --sidebar-text-bright:  #fdf6e3;
+  --sidebar-active:       #FEC77C;
+  --sidebar-border:       #2e2815;
 }
 
 * {
@@ -40,7 +49,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-playfair), Georgia, serif;
   font-weight: 700;
-  color: var(--color-ink);
+  color: var(--foreground);
 }
 
 /* ── Scrollbar ──────────────────────────────────────────── */

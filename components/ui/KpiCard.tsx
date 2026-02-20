@@ -26,7 +26,7 @@ export default function KpiCard({
         {/* Value — deep gold editorial number in display serif */}
         <p
           className="text-3xl font-bold leading-none"
-          style={{ color: 'var(--color-gold-deep)', fontFamily: 'var(--font-playfair), Georgia, serif' }}
+          style={{ color: 'var(--color-marigold)', fontFamily: 'var(--font-playfair), Georgia, serif' }}
         >
           {value}
         </p>

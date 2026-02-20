@@ -27,17 +27,17 @@ export default function GscTrendChart({ data }: Props) {
       <p className="text-sm font-semibold text-surface-100 mb-4">Clicks & Impressions Trend</p>
       <ResponsiveContainer width="100%" height={240}>
         <ComposedChart data={data} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="#1e2433" strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid stroke="#3a2e18" strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fill: '#9ba3b5', fontSize: 11 }}
+            tick={{ fill: '#c4ae84', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             yAxisId="left"
             tickFormatter={fmtNum}
-            tick={{ fill: '#9ba3b5', fontSize: 11 }}
+            tick={{ fill: '#c4ae84', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={40}
@@ -46,21 +46,21 @@ export default function GscTrendChart({ data }: Props) {
             yAxisId="right"
             orientation="right"
             tickFormatter={fmtNum}
-            tick={{ fill: '#9ba3b5', fontSize: 11 }}
+            tick={{ fill: '#c4ae84', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={40}
           />
           <Tooltip
             formatter={(v, name) => [Number(v ?? 0).toLocaleString(), name ?? '']}
-            contentStyle={{ background: '#18181b', border: '1px solid #1e2433', borderRadius: 8 }}
-            labelStyle={{ color: '#e4e4e7' }}
-            itemStyle={{ color: '#9ba3b5' }}
+            contentStyle={{ background: '#252010', border: '1px solid #3a2e18', borderRadius: 8 }}
+            labelStyle={{ color: '#e8d8b4' }}
+            itemStyle={{ color: '#c4ae84' }}
           />
           <Legend
             iconType="circle"
             iconSize={8}
-            formatter={(value) => <span style={{ color: '#9ba3b5', fontSize: 12 }}>{value}</span>}
+            formatter={(value) => <span style={{ color: '#c4ae84', fontSize: 12 }}>{value}</span>}
           />
           <Area
             yAxisId="left"

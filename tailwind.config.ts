@@ -11,19 +11,19 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // Warm light scale — body, cards, panels, borders
+        // Warm dark scale — body, cards, panels, borders
         surface: {
-          950: '#f0e4c2', // deepest cream alternate bg
-          900: '#fffdf8', // card / panel bg
-          850: '#fefbf2', // card hover
-          800: '#f5ead0', // alternate section bg
-          700: '#e0c878', // border
+          950: '#0f0c05', // deepest dark bg
+          900: '#252010', // card / panel bg
+          850: '#2e2815', // card hover
+          800: '#382f1c', // alternate/input bg
+          700: '#e0c878', // border (gold)
           600: '#cbb567', // border hover
           500: '#B07E09', // deep gold — eyebrow labels, section accents
-          400: '#7A6540', // muted body text
-          300: '#9a8760', // medium muted
-          200: '#c4ae84', // light muted (readable on dark bg too)
-          100: '#1a1408', // primary text (ink, on light backgrounds)
+          400: '#c4ae84', // muted text on dark
+          300: '#d4c098', // medium muted on dark
+          200: '#e8d8b4', // lighter muted on dark
+          100: '#fdf6e3', // primary text (cream, on dark backgrounds)
         },
         // Marigold gold scale
         brand: {

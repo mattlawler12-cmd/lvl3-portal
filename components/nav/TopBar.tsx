@@ -77,7 +77,7 @@ export default function TopBar({
         href="/"
         className="flex items-center gap-1.5 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
       >
-        <span className="text-brand-400 font-bold tracking-tight text-base" style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}>LVL3</span>
+        <span className="font-bold tracking-tight text-base" style={{ color: 'var(--color-gold-deep)', fontFamily: 'var(--font-playfair), Georgia, serif' }}>LVL3</span>
         <span className="hidden sm:inline text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--nav-text)', letterSpacing: '0.06em' }}>
           Portal
         </span>
@@ -121,7 +121,7 @@ export default function TopBar({
         className="hidden md:flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
         style={{
           backgroundColor: 'var(--nav-hover)',
-          border: '1px solid #3e3018',
+          border: '1px solid var(--nav-border)',
           color: 'var(--nav-text)',
         }}
         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--nav-text-bright)' }}
@@ -132,7 +132,7 @@ export default function TopBar({
         <span>Search…</span>
         <kbd
           className="hidden lg:inline-flex items-center text-[10px] rounded px-1 py-0.5"
-          style={{ backgroundColor: '#3a2e18', border: '1px solid #4e3d22', color: 'var(--nav-text)' }}
+          style={{ backgroundColor: 'var(--nav-hover)', border: '1px solid var(--nav-border)', color: 'var(--nav-text)' }}
         >
           ⌘K
         </kbd>
@@ -215,7 +215,7 @@ export default function TopBar({
         >
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
-            style={{ backgroundColor: '#3a2e18', color: 'var(--color-marigold)' }}
+            style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-marigold)' }}
           >
             {userEmail.slice(0, 1).toUpperCase()}
           </div>
@@ -236,7 +236,7 @@ export default function TopBar({
               className="absolute right-0 top-full mt-1 w-56 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.2)] z-50 py-1 animate-fade-in"
               style={{ backgroundColor: 'var(--nav-bg)', border: '1px solid var(--nav-border)' }}
             >
-              <div className="px-4 py-3" style={{ borderBottom: '1px solid #3a2e18' }}>
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--nav-border)' }}>
                 <p className="text-sm font-medium truncate" style={{ color: 'var(--nav-text-bright)' }}>{userEmail}</p>
                 <span
                   className="inline-flex items-center text-xs px-2 py-0.5 rounded-full mt-1"
