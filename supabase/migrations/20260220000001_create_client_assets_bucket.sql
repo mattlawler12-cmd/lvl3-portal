@@ -8,7 +8,8 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
-CREATE POLICY IF NOT EXISTS "admins_manage_client_assets"
+DROP POLICY IF EXISTS "admins_manage_client_assets" ON storage.objects;
+CREATE POLICY "admins_manage_client_assets"
   ON storage.objects
   FOR ALL
   TO authenticated
@@ -21,7 +22,8 @@ CREATE POLICY IF NOT EXISTS "admins_manage_client_assets"
     AND public.get_my_role() = 'admin'
   );
 
-CREATE POLICY IF NOT EXISTS "authenticated_view_client_assets"
+DROP POLICY IF EXISTS "authenticated_view_client_assets" ON storage.objects;
+CREATE POLICY "authenticated_view_client_assets"
   ON storage.objects
   FOR SELECT
   TO authenticated
