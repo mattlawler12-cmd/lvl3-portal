@@ -1,8 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, Send, Loader2 } from 'lucide-react'
-import { sendChatMessage, type ChatMessage } from '@/app/actions/ask-lvl3'
+import { MessageCircle, Send, Loader2, Trash2 } from 'lucide-react'
+import { type ChatMessage } from '@/app/actions/ask-lvl3'
+import {
+  loadConversation,
+  deleteConversation,
+  type ConversationSummary,
+} from '@/app/actions/ask-lvl3-conversations'
 
 const STARTERS = [
   'What are our biggest SEO wins this month?',
@@ -14,19 +19,91 @@ const STARTERS = [
 interface Props {
   clientId: string | null
   clientName: string | null
+  conversations: ConversationSummary[]
+  initialMessages: ChatMessage[]
+  initialConversationId: string | null
 }
 
-export default function AskLvl3Chat({ clientId, clientName }: Props) {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+export default function AskLvl3Chat({
+  clientId,
+  clientName,
+  conversations,
+  initialMessages,
+  initialConversationId,
+}: Props) {
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
+  const [conversationId, setConversationId] = useState<string | null>(initialConversationId)
+  const [threadList, setThreadList] = useState<ConversationSummary[]>(conversations)
+  const [statusText, setStatusText] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const isFirstRender = useRef(true)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
+
+  // When clientId changes after initial mount, reset and load new client's most recent thread
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setMessages([])
+    setConversationId(null)
+    setThreadList(conversations)
+    setStatusText(null)
+    setError(null)
+
+    if (clientId && conversations.length > 0) {
+      loadConversation(conversations[0].id)
+        .then((msgs) => {
+          setMessages(msgs)
+          setConversationId(conversations[0].id)
+        })
+        .catch(() => {})
+    }
+  }, [clientId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleLoadThread(id: string) {
+    if (loading) return
+    setLoading(true)
+    try {
+      const msgs = await loadConversation(id)
+      setMessages(msgs)
+      setConversationId(id)
+      setStatusText(null)
+      setError(null)
+    } catch {
+      setError('Failed to load conversation')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDeleteThread(id: string) {
+    try {
+      await deleteConversation(id)
+      setThreadList((prev) => prev.filter((t) => t.id !== id))
+      if (conversationId === id) {
+        setMessages([])
+        setConversationId(null)
+        setError(null)
+      }
+    } catch {
+      setError('Failed to delete conversation')
+    }
+  }
+
+  function handleNewChat() {
+    setMessages([])
+    setConversationId(null)
+    setStatusText(null)
+    setError(null)
+  }
 
   async function handleSend(text?: string) {
     const content = (text ?? input).trim()
@@ -37,18 +114,105 @@ export default function AskLvl3Chat({ clientId, clientName }: Props) {
     setInput('')
     setLoading(true)
     setError(null)
+    setStatusText(null)
 
-    const result = await sendChatMessage(clientId, newMessages)
+    try {
+      const res = await fetch('/api/ask-lvl3', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          messages: newMessages,
+          conversationId: conversationId ?? undefined,
+        }),
+      })
 
-    if (result.error) {
-      setError(result.error)
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Request failed' }))
+        setError(errData.error ?? 'Request failed')
+        setMessages(messages)
+        setLoading(false)
+        return
+      }
+
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            const event = JSON.parse(line) as {
+              type: string
+              text?: string
+              delta?: string
+              conversationId?: string
+              message?: string
+            }
+
+            if (event.type === 'status') {
+              setStatusText(event.text ?? null)
+            } else if (event.type === 'text') {
+              const delta = event.delta ?? ''
+              setMessages((prev) => {
+                const last = prev[prev.length - 1]
+                if (last?.role === 'assistant') {
+                  return [
+                    ...prev.slice(0, -1),
+                    { role: 'assistant', content: last.content + delta },
+                  ]
+                }
+                return [...prev, { role: 'assistant', content: delta }]
+              })
+            } else if (event.type === 'done') {
+              const newConvId = event.conversationId ?? ''
+              if (newConvId) {
+                setConversationId(newConvId)
+                setThreadList((prev) => {
+                  if (prev.find((t) => t.id === newConvId)) {
+                    return prev.map((t) =>
+                      t.id === newConvId
+                        ? { ...t, updated_at: new Date().toISOString() }
+                        : t
+                    )
+                  }
+                  const title = content.slice(0, 80)
+                  return [
+                    {
+                      id: newConvId,
+                      title,
+                      created_at: new Date().toISOString(),
+                      updated_at: new Date().toISOString(),
+                    },
+                    ...prev,
+                  ]
+                })
+              }
+              setStatusText(null)
+            } else if (event.type === 'error') {
+              setError(event.message ?? 'Unknown error')
+            }
+          } catch {
+            // malformed JSON line — skip
+          }
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to get response')
       setMessages(messages)
-    } else if (result.reply) {
-      setMessages([...newMessages, { role: 'assistant', content: result.reply }])
+    } finally {
+      setLoading(false)
+      setStatusText(null)
+      inputRef.current?.focus()
     }
-
-    setLoading(false)
-    inputRef.current?.focus()
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -62,6 +226,7 @@ export default function AskLvl3Chat({ clientId, clientName }: Props) {
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)]">
+      {/* Header */}
       <div className="px-6 py-4 border-b border-surface-700 flex items-center gap-3 shrink-0">
         <MessageCircle className="w-5 h-5 text-surface-400" />
         <div>
@@ -72,19 +237,52 @@ export default function AskLvl3Chat({ clientId, clientName }: Props) {
               : 'Select a client from the top bar to start'}
           </p>
         </div>
-        {messages.length > 0 && (
-          <button
-            onClick={() => {
-              setMessages([])
-              setError(null)
-            }}
-            className="ml-auto text-xs text-surface-500 hover:text-surface-300 transition-colors"
-          >
-            Clear
-          </button>
-        )}
+
+        <div className="ml-auto flex items-center gap-2">
+          {threadList.length > 0 && (
+            <select
+              value={conversationId ?? ''}
+              onChange={(e) => {
+                const id = e.target.value
+                if (id) {
+                  handleLoadThread(id)
+                } else {
+                  handleNewChat()
+                }
+              }}
+              className="text-xs bg-surface-900 border border-surface-700 text-surface-300 rounded-lg px-2 py-1 max-w-[180px] truncate"
+            >
+              <option value="">New chat</option>
+              {threadList.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {(t.title ?? 'Chat').slice(0, 40)}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {conversationId && (
+            <button
+              onClick={() => handleDeleteThread(conversationId)}
+              title="Delete this conversation"
+              className="text-surface-500 hover:text-red-400 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+
+          {(messages.length > 0 || conversationId) && (
+            <button
+              onClick={handleNewChat}
+              className="text-xs text-surface-500 hover:text-surface-300 transition-colors"
+            >
+              New chat
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
         {empty && clientId && (
           <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
@@ -138,7 +336,11 @@ export default function AskLvl3Chat({ clientId, clientName }: Props) {
         {loading && (
           <div className="flex justify-start">
             <div className="bg-surface-900 border border-surface-700 rounded-xl px-4 py-3">
-              <Loader2 className="w-4 h-4 text-surface-400 animate-spin" />
+              {statusText ? (
+                <span className="text-xs text-surface-400 animate-pulse">{statusText}</span>
+              ) : (
+                <Loader2 className="w-4 h-4 text-surface-400 animate-spin" />
+              )}
             </div>
           </div>
         )}
@@ -154,6 +356,7 @@ export default function AskLvl3Chat({ clientId, clientName }: Props) {
         <div ref={bottomRef} />
       </div>
 
+      {/* Input */}
       <div className="px-6 py-4 border-t border-surface-700 shrink-0">
         <div className="flex items-end gap-3 max-w-3xl mx-auto">
           <textarea
