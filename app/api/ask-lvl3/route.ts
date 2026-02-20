@@ -268,19 +268,29 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
           })
 
           let isToolIteration = false
+          let partialText = '' // text emitted this iteration; cleared if tool_use detected
 
           for await (const event of streamObj) {
             if (
               event.type === 'content_block_start' &&
               event.content_block.type === 'tool_use'
             ) {
-              isToolIteration = true
+              if (!isToolIteration) {
+                isToolIteration = true
+                // Clear any thinking text we streamed before detecting tool_use
+                if (partialText) {
+                  emit(controller, { type: 'clear_partial' })
+                  assistantText = assistantText.slice(0, assistantText.length - partialText.length)
+                  partialText = ''
+                }
+              }
             }
             if (
               !isToolIteration &&
               event.type === 'content_block_delta' &&
               event.delta.type === 'text_delta'
             ) {
+              partialText += event.delta.text
               assistantText += event.delta.text
               emit(controller, { type: 'text', delta: event.delta.text })
             }
@@ -349,7 +359,19 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
           return
         }
 
-        // Hit max iterations
+        // Hit max iterations — emit fallback answer
+        const fallback =
+          'I ran into repeated errors fetching the data and was unable to complete your request. ' +
+          'This usually means the GSC or GA4 data source is unavailable or the date range returned no results. ' +
+          'Try a simpler question, or check that the client\'s GSC site URL and GA4 property are configured correctly in client settings.'
+        emit(controller, { type: 'text', delta: fallback })
+        if (conversationId) {
+          await service.from('ask_lvl3_messages').insert({
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: fallback,
+          })
+        }
         emit(controller, { type: 'done', conversationId })
         controller.close()
       } catch (err) {

@@ -151,7 +151,7 @@ export default function AskLvl3Chat({
           if (!line.trim()) continue
           try {
             const event = JSON.parse(line) as {
-              type: string
+              type: 'status' | 'clear_partial' | 'text' | 'done' | 'error' | string
               text?: string
               delta?: string
               conversationId?: string
@@ -160,6 +160,13 @@ export default function AskLvl3Chat({
 
             if (event.type === 'status') {
               setStatusText(event.text ?? null)
+            } else if (event.type === 'clear_partial') {
+              // Model called a tool — remove the partial thinking text it streamed before the tool call
+              setMessages((prev) => {
+                const last = prev[prev.length - 1]
+                if (last?.role === 'assistant') return prev.slice(0, -1)
+                return prev
+              })
             } else if (event.type === 'text') {
               const delta = event.delta ?? ''
               setMessages((prev) => {
