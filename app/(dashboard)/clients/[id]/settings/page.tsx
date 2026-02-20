@@ -30,7 +30,7 @@ export default async function ClientSettingsPage({ params }: Props) {
   const { data: client } = await service
     .from('clients')
     .select(
-      'id, name, slug, logo_url, hero_image_url, google_sheet_id, looker_embed_url, sheet_header_row, sheet_column_map, ga4_property_id, gsc_site_url'
+      'id, name, slug, logo_url, google_sheet_id, looker_embed_url, sheet_header_row, sheet_column_map, ga4_property_id, gsc_site_url'
     )
     .eq('id', id)
     .single()
@@ -60,7 +60,7 @@ export default async function ClientSettingsPage({ params }: Props) {
           name: client.name,
           slug: client.slug,
           logo_url: client.logo_url ?? null,
-          hero_image_url: (client.hero_image_url as string | null) ?? null,
+          hero_image_url: null,
           google_sheet_id: client.google_sheet_id ?? null,
           looker_embed_url: client.looker_embed_url ?? null,
           sheet_header_row: (client.sheet_header_row as number | null) ?? null,

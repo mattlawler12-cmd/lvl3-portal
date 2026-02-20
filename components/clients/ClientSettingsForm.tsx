@@ -99,13 +99,13 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
     setHeroUploading(true)
     try {
       const ext = file.name.split('.').pop() ?? 'jpg'
-      const path = `client-assets/${client.id}/hero.${ext}`
+      const path = `${client.id}/hero.${ext}`
       const supabase = createSupabaseClient()
       const { error: uploadError } = await supabase.storage
-        .from('public')
+        .from('client-assets')
         .upload(path, file, { upsert: true })
       if (uploadError) throw uploadError
-      const { data } = supabase.storage.from('public').getPublicUrl(path)
+      const { data } = supabase.storage.from('client-assets').getPublicUrl(path)
       setHeroImageUrl(data.publicUrl)
     } finally {
       setHeroUploading(false)
