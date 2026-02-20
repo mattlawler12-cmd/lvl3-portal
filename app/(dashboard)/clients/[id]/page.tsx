@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ChevronLeft, Settings } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { requireAdmin } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
 import { getClientUsers } from '@/app/actions/clients'
 import ClientUsersTable from '@/components/clients/client-users-table'
+import ClientSettingsForm from '@/components/clients/ClientSettingsForm'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -56,13 +57,6 @@ export default async function ClientDetailPage({ params }: Props) {
           <h1 className="text-surface-100 text-2xl font-bold">{client.name}</h1>
           <p className="text-surface-500 text-sm font-mono">{client.slug}</p>
         </div>
-        <a
-          href={`/clients/${id}/settings`}
-          className="flex items-center gap-1.5 text-surface-500 hover:text-surface-100 text-sm transition-colors border border-surface-700 rounded-lg px-3 py-1.5"
-        >
-          <Settings size={14} />
-          Settings
-        </a>
       </div>
 
       {/* Stats row */}
@@ -90,6 +84,27 @@ export default async function ClientDetailPage({ params }: Props) {
 
       {/* Users table */}
       <ClientUsersTable users={users} clientId={id} clientName={client.name} />
+
+      {/* Settings */}
+      <div className="mt-12">
+        <h2 className="text-surface-100 text-xl font-bold mb-1">Settings</h2>
+        <p className="text-surface-400 text-sm mb-6">Update details and integrations for {client.name}.</p>
+        <ClientSettingsForm
+          client={{
+            id: client.id,
+            name: client.name,
+            slug: client.slug,
+            logo_url: client.logo_url ?? null,
+            hero_image_url: (client.hero_image_url as string | null) ?? null,
+            google_sheet_id: client.google_sheet_id ?? null,
+            looker_embed_url: client.looker_embed_url ?? null,
+            sheet_header_row: (client.sheet_header_row as number | null) ?? null,
+            sheet_column_map: (client.sheet_column_map as Record<string, string> | null) ?? null,
+            ga4_property_id: (client.ga4_property_id as string | null) ?? null,
+            gsc_site_url: (client.gsc_site_url as string | null) ?? null,
+          }}
+        />
+      </div>
     </div>
   )
 }

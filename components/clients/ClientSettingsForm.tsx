@@ -2,14 +2,16 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { RefreshCw, Info } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { updateClient } from '@/app/actions/clients'
 import {
   fetchLogoUrl,
   getSheetHeadersAction,
   generateAnalyticsInsights,
-  detectGSCSiteUrl,
+  listGA4Properties,
+  listGSCSiteOptions,
+  type GA4PropertyOption,
+  type GSCSiteOption,
 } from '@/app/actions/analytics'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 
@@ -29,7 +31,6 @@ interface ClientData {
 
 interface Props {
   client: ClientData
-  serviceAccountEmail: string | null
 }
 
 const COLUMN_FIELDS = [
@@ -43,7 +44,7 @@ const COLUMN_FIELDS = [
 
 type ColumnField = (typeof COLUMN_FIELDS)[number]['key']
 
-export default function ClientSettingsForm({ client, serviceAccountEmail }: Props) {
+export default function ClientSettingsForm({ client }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -69,15 +70,16 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
   // Analytics
   const [ga4PropertyId, setGa4PropertyId] = useState(client.ga4_property_id ?? '')
   const [gscSiteUrl, setGscSiteUrl] = useState(client.gsc_site_url ?? '')
+  const [ga4Properties, setGa4Properties] = useState<GA4PropertyOption[]>([])
+  const [ga4Loading, setGa4Loading] = useState(false)
+  const [ga4LoadError, setGa4LoadError] = useState<string | null>(null)
+  const [gscSiteOptions, setGscSiteOptions] = useState<GSCSiteOption[]>([])
+  const [gscOptionsLoading, setGscOptionsLoading] = useState(false)
 
   // UI states
   const [logoFetching, setLogoFetching] = useState(false)
   const [headersLoading, setHeadersLoading] = useState(false)
   const [headersError, setHeadersError] = useState<string | null>(null)
-  const [gscDetecting, setGscDetecting] = useState(false)
-  const [gscSites, setGscSites] = useState<string[]>([])
-  const [gscFromGA4Domain, setGscFromGA4Domain] = useState(false)
-  const [gscDetectError, setGscDetectError] = useState<string | null>(null)
   const [analyticsRefreshing, setAnalyticsRefreshing] = useState(false)
   const [analyticsError, setAnalyticsError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -125,21 +127,20 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
     setHeadersLoading(false)
   }
 
-  async function handleDetectGSC() {
-    if (!ga4PropertyId) return
-    setGscDetecting(true)
-    setGscDetectError(null)
-    setGscSites([])
-    setGscFromGA4Domain(false)
-    const result = await detectGSCSiteUrl(ga4PropertyId)
-    if (result.error) {
-      setGscDetectError(result.error)
-    } else {
-      setGscSites(result.sites)
-      setGscFromGA4Domain(result.fromGA4Domain ?? false)
-      if (result.matched) setGscSiteUrl(result.matched)
-    }
-    setGscDetecting(false)
+  async function handleLoadGA4Properties() {
+    setGa4Loading(true)
+    setGa4LoadError(null)
+    const result = await listGA4Properties()
+    if (result.properties) setGa4Properties(result.properties)
+    if (result.error) setGa4LoadError(result.error)
+    setGa4Loading(false)
+  }
+
+  async function handleLoadGSCSites() {
+    setGscOptionsLoading(true)
+    const result = await listGSCSiteOptions()
+    if (result.sites) setGscSiteOptions(result.sites)
+    setGscOptionsLoading(false)
   }
 
   async function handleRefreshAnalytics() {
@@ -174,7 +175,7 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
         fd.set('ga4_property_id', ga4PropertyId)
         fd.set('gsc_site_url', gscSiteUrl)
         await updateClient(client.id, fd)
-        router.push(`/clients/${client.id}`)
+        router.refresh()
       } catch (err) {
         setSaveError(err instanceof Error ? err.message : 'Failed to save changes')
       }
@@ -396,85 +397,65 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
       <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 space-y-4">
         <h2 className="text-surface-100 font-semibold text-sm uppercase tracking-wide">Analytics</h2>
 
-        {serviceAccountEmail && (
-          <div className="flex gap-2.5 bg-surface-800/60 border border-surface-600 rounded-lg p-3">
-            <Info size={15} className="text-blue-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-surface-400 leading-relaxed">
-              Add{' '}
-              <code className="font-mono text-surface-200 bg-surface-700 px-1 py-0.5 rounded text-[11px] break-all">
-                {serviceAccountEmail}
-              </code>{' '}
-              as a <strong className="text-surface-300">Viewer</strong> in GA4 (Admin → Property → Property Access Management) and as a{' '}
-              <strong className="text-surface-300">User</strong> in Search Console (Settings → Users and Permissions).
-            </p>
-          </div>
-        )}
-
         <div>
-          <label className="block text-surface-400 text-sm mb-1.5">GA4 Property ID</label>
-          <input
-            type="text"
-            value={ga4PropertyId}
-            onChange={(e) => setGa4PropertyId(e.target.value)}
-            placeholder="123456789"
-            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500 font-mono"
-          />
-          <p className="text-surface-500 text-xs mt-1.5">
-            Found in GA4: Admin → Property → Property details
-          </p>
+          <label className="block text-surface-400 text-sm mb-1.5">GA4 Property</label>
+          <div className="flex gap-2">
+            <select
+              value={ga4PropertyId}
+              onChange={(e) => setGa4PropertyId(e.target.value)}
+              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">— select a property —</option>
+              {ga4Properties.map((p) => (
+                <option key={p.propertyId} value={p.propertyId}>
+                  {p.displayName} ({p.propertyId})
+                </option>
+              ))}
+              {ga4PropertyId && !ga4Properties.find((p) => p.propertyId === ga4PropertyId) && (
+                <option value={ga4PropertyId}>{ga4PropertyId} (currently saved)</option>
+              )}
+            </select>
+            <button
+              type="button"
+              onClick={handleLoadGA4Properties}
+              disabled={ga4Loading}
+              className="shrink-0 bg-surface-800 border border-surface-600 text-surface-300 rounded-lg px-3 py-2 text-sm hover:bg-surface-700 hover:text-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+            >
+              <RefreshCw size={12} className={ga4Loading ? 'animate-spin' : ''} />
+              {ga4Loading ? 'Loading…' : 'Load'}
+            </button>
+          </div>
+          {ga4LoadError && <p className="text-red-400 text-xs mt-1.5">{ga4LoadError}</p>}
         </div>
 
         <div>
-          <label className="block text-surface-400 text-sm mb-1.5">Search Console Site URL</label>
+          <label className="block text-surface-400 text-sm mb-1.5">Search Console Site</label>
           <div className="flex gap-2">
-            <input
-              type="text"
+            <select
               value={gscSiteUrl}
               onChange={(e) => setGscSiteUrl(e.target.value)}
-              placeholder="https://example.com/"
-              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
-            />
+              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">— select a site —</option>
+              {gscSiteOptions.map((s) => (
+                <option key={s.siteUrl} value={s.siteUrl}>
+                  {s.siteUrl}
+                </option>
+              ))}
+              {gscSiteUrl && !gscSiteOptions.find((s) => s.siteUrl === gscSiteUrl) && (
+                <option value={gscSiteUrl}>{gscSiteUrl} (currently saved)</option>
+              )}
+            </select>
             <button
               type="button"
-              onClick={handleDetectGSC}
-              disabled={!ga4PropertyId || gscDetecting}
+              onClick={handleLoadGSCSites}
+              disabled={gscOptionsLoading}
               className="shrink-0 bg-surface-800 border border-surface-600 text-surface-300 rounded-lg px-3 py-2 text-sm hover:bg-surface-700 hover:text-surface-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
-              <RefreshCw size={12} className={gscDetecting ? 'animate-spin' : ''} />
-              Detect from GA4
+              <RefreshCw size={12} className={gscOptionsLoading ? 'animate-spin' : ''} />
+              {gscOptionsLoading ? 'Loading…' : 'Load'}
             </button>
           </div>
-          <p className="text-surface-500 text-xs mt-1.5">
-            Must match exactly what&apos;s registered in Search Console (including trailing slash). Enter GA4 Property ID first, then click &ldquo;Detect from GA4&rdquo;.
-          </p>
-          {gscDetectError && (
-            <p className="text-red-400 text-xs mt-1.5">{gscDetectError}</p>
-          )}
-          {gscSites.length > 0 && (
-            <div className="mt-2">
-              <p className="text-surface-500 text-xs mb-1.5">
-                {gscFromGA4Domain
-                  ? 'Suggested URLs from GA4 domain — pick the one that matches your Search Console property:'
-                  : 'Accessible Search Console sites — click to select:'}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {gscSites.map((site) => (
-                  <button
-                    key={site}
-                    type="button"
-                    onClick={() => setGscSiteUrl(site)}
-                    className={`text-xs px-2 py-1 rounded-full border transition-colors ${
-                      gscSiteUrl === site
-                        ? 'bg-blue-600 border-blue-500 text-surface-100'
-                        : 'bg-surface-800 border-surface-600 text-surface-300 hover:border-surface-500'
-                    }`}
-                  >
-                    {site}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="pt-1">
@@ -503,12 +484,6 @@ export default function ClientSettingsForm({ client, serviceAccountEmail }: Prop
         >
           {isPending ? 'Saving…' : 'Save Changes'}
         </button>
-        <Link
-          href={`/clients/${client.id}`}
-          className="text-surface-400 hover:text-surface-100 text-sm transition-colors"
-        >
-          Cancel
-        </Link>
       </div>
     </form>
   )

@@ -1,24 +1,6 @@
 import { google } from 'googleapis'
 import type { DateRange } from './date-range'
-
-function getCredentials() {
-  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY env var is not set')
-  raw = raw.trim()
-  if (
-    (raw.startsWith("'") && raw.endsWith("'")) ||
-    (raw.startsWith('"') && raw.endsWith('"'))
-  ) {
-    raw = raw.slice(1, -1)
-  }
-  try {
-    return JSON.parse(raw)
-  } catch (e) {
-    throw new Error(
-      `GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON. Error: ${e instanceof Error ? e.message : String(e)}`
-    )
-  }
-}
+import { getAdminOAuthClient } from '@/lib/google-auth'
 
 export type GA4Metrics = {
   sessions: number
@@ -32,12 +14,7 @@ export type GA4Metrics = {
 }
 
 export async function fetchGA4Metrics(propertyId: string, range?: DateRange): Promise<GA4Metrics> {
-  const credentials = getCredentials()
-
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
-  })
+  const auth = await getAdminOAuthClient()
 
   const analyticsdata = google.analyticsdata({ version: 'v1beta', auth })
 
@@ -150,11 +127,7 @@ export type GA4Report = {
 }
 
 export async function fetchGA4Report(propertyId: string, range?: DateRange): Promise<GA4Report> {
-  const credentials = getCredentials()
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/analytics.readonly'],
-  })
+  const auth = await getAdminOAuthClient()
   const analyticsdata = google.analyticsdata({ version: 'v1beta', auth })
 
   const today = new Date()

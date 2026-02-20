@@ -1,24 +1,6 @@
 import { google } from 'googleapis'
 import type { DateRange } from './date-range'
-
-function getCredentials() {
-  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY env var is not set')
-  raw = raw.trim()
-  if (
-    (raw.startsWith("'") && raw.endsWith("'")) ||
-    (raw.startsWith('"') && raw.endsWith('"'))
-  ) {
-    raw = raw.slice(1, -1)
-  }
-  try {
-    return JSON.parse(raw)
-  } catch (e) {
-    throw new Error(
-      `GOOGLE_SERVICE_ACCOUNT_KEY is not valid JSON. Error: ${e instanceof Error ? e.message : String(e)}`
-    )
-  }
-}
+import { getAdminOAuthClient } from '@/lib/google-auth'
 
 export type GSCMetrics = {
   clicks: number
@@ -29,11 +11,7 @@ export type GSCMetrics = {
 }
 
 export async function listGSCSites(): Promise<string[]> {
-  const credentials = getCredentials()
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
-  })
+  const auth = await getAdminOAuthClient()
   const searchconsole = google.searchconsole({ version: 'v1', auth })
   const { data } = await searchconsole.sites.list()
   return (data.siteEntry ?? [])
@@ -42,12 +20,7 @@ export async function listGSCSites(): Promise<string[]> {
 }
 
 export async function fetchGSCMetrics(siteUrl: string, range?: DateRange): Promise<GSCMetrics> {
-  const credentials = getCredentials()
-
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
-  })
+  const auth = await getAdminOAuthClient()
 
   const searchconsole = google.searchconsole({ version: 'v1', auth })
 
@@ -136,11 +109,7 @@ function normalizeSiteUrl(raw: string): string {
 
 export async function fetchGSCReport(siteUrl: string, range?: DateRange): Promise<GSCReport> {
   const normalizedUrl = normalizeSiteUrl(siteUrl)
-  const credentials = getCredentials()
-  const auth = new google.auth.GoogleAuth({
-    credentials,
-    scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
-  })
+  const auth = await getAdminOAuthClient()
   const searchconsole = google.searchconsole({ version: 'v1', auth })
 
   const today = new Date()

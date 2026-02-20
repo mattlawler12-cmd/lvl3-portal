@@ -1,6 +1,7 @@
 'use server'
 
 import { google } from 'googleapis'
+import { getAdminOAuthClient } from '@/lib/google-auth'
 import { requireAdmin } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
 import { parseSheetId, fetchSheetHeaders } from '@/lib/google-sheets'
@@ -140,12 +141,6 @@ export async function fetchDashboardReport(
 
 // ── GSC site detection ────────────────────────────────────────────────────────
 
-function getCredentials() {
-  let raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
-  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_KEY env var is not set')
-  raw = raw.trim().replace(/^['"]|['"]$/g, '')
-  return JSON.parse(raw)
-}
 
 function extractDomain(url: string): string {
   try {
@@ -174,14 +169,7 @@ export async function detectGSCSiteUrl(
   try {
     await requireAdmin()
 
-    const credentials = getCredentials()
-    const auth = new google.auth.GoogleAuth({
-      credentials,
-      scopes: [
-        'https://www.googleapis.com/auth/webmasters.readonly',
-        'https://www.googleapis.com/auth/analytics.readonly',
-      ],
-    })
+    const auth = await getAdminOAuthClient()
 
     const analyticsadmin = google.analyticsadmin({ version: 'v1beta', auth })
 
@@ -231,6 +219,73 @@ export async function detectGSCSiteUrl(
       sites: [],
       error: err instanceof Error ? err.message : 'Failed to detect GSC sites',
     }
+  }
+}
+
+// ── List accessible GA4 properties ───────────────────────────────────────────
+
+export type GA4PropertyOption = {
+  propertyId: string
+  displayName: string
+  websiteUrl: string
+}
+
+export async function listGA4Properties(): Promise<{
+  properties?: GA4PropertyOption[]
+  error?: string
+}> {
+  try {
+    await requireAdmin()
+    const { getAdminOAuthClient } = await import('@/lib/google-auth')
+    const auth = await getAdminOAuthClient()
+    const analyticsadmin = google.analyticsadmin({ version: 'v1beta', auth })
+
+    const response = await analyticsadmin.accountSummaries.list({ pageSize: 200 })
+
+    const properties: GA4PropertyOption[] = []
+    for (const account of response.data.accountSummaries ?? []) {
+      for (const prop of account.propertySummaries ?? []) {
+        properties.push({
+          propertyId: (prop.property ?? '').replace('properties/', ''),
+          displayName: prop.displayName ?? 'Unnamed property',
+          websiteUrl: '',
+        })
+      }
+    }
+
+    return { properties }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to list GA4 properties' }
+  }
+}
+
+// ── List accessible GSC sites ─────────────────────────────────────────────────
+
+export type GSCSiteOption = {
+  siteUrl: string
+  permissionLevel: string
+}
+
+export async function listGSCSiteOptions(): Promise<{
+  sites?: GSCSiteOption[]
+  error?: string
+}> {
+  try {
+    await requireAdmin()
+    const { getAdminOAuthClient } = await import('@/lib/google-auth')
+    const auth = await getAdminOAuthClient()
+    const searchconsole = google.searchconsole({ version: 'v1', auth })
+
+    const { data } = await searchconsole.sites.list()
+
+    const sites: GSCSiteOption[] = (data.siteEntry ?? []).map((s) => ({
+      siteUrl: s.siteUrl ?? '',
+      permissionLevel: s.permissionLevel ?? '',
+    }))
+
+    return { sites }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to list GSC sites' }
   }
 }
 

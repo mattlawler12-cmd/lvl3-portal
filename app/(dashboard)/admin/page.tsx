@@ -2,8 +2,14 @@ import { requireAdmin } from "@/lib/auth";
 import { getClientsWithStats } from "@/app/actions/clients";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ShieldCheck, CheckCircle, XCircle } from "lucide-react";
+import GoogleConnectionPanel from "@/components/admin/GoogleConnectionPanel";
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ google?: string }>
+}) {
+  const params = await searchParams
   await requireAdmin();
 
   const clients = await getClientsWithStats();
@@ -26,6 +32,7 @@ export default async function AdminPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6 pb-8">
+      <GoogleConnectionPanel googleParam={params.google ?? null} />
       <div className="flex items-center gap-3">
         <ShieldCheck className="w-5 h-5 text-surface-400" />
         <div>
