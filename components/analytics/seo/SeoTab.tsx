@@ -8,6 +8,7 @@ import GscKpiRow from './searchconsole/GscKpiRow'
 import GscTrendChart from './searchconsole/GscTrendChart'
 import GscQueriesTable from './searchconsole/GscQueriesTable'
 import GscUrlsTable from './searchconsole/GscUrlsTable'
+import SerpDistributionChart from './searchconsole/SerpDistributionChart'
 
 interface Props {
   ga4: GA4Report | null
@@ -38,8 +39,8 @@ export default function SeoTab({ ga4, gsc, gscError, isAdmin }: Props) {
       {/* Organic Search (GA4) section */}
       {ga4 && (
         <div className="space-y-5">
-          <SectionHeader title="Organic Search (GA4)" period="Last 28 days vs prior 28 days" />
-          <OrganicKpiRow ga4={ga4} />
+          <SectionHeader title="Organic Search (GA4)" period={ga4.compareLabel} />
+          <OrganicKpiRow ga4={ga4} compareLabel={ga4.compareLabel} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <DeviceDonutChart
               mobile={ga4.deviceBreakdown.mobile}
@@ -54,8 +55,9 @@ export default function SeoTab({ ga4, gsc, gscError, isAdmin }: Props) {
       {/* Search Console section */}
       {gsc ? (
         <div className="space-y-5">
-          <SectionHeader title="Search Console" period="Last 28 days vs prior 28 days" />
-          <GscKpiRow gsc={gsc} />
+          <SectionHeader title="Search Console" period={gsc.compareLabel} />
+          <GscKpiRow gsc={gsc} compareLabel={gsc.compareLabel} />
+          <SerpDistributionChart distribution={gsc.serpDistribution} />
           {gsc.monthlyTrend.length > 0 && <GscTrendChart data={gsc.monthlyTrend} />}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <GscQueriesTable rows={gsc.topQueries} />

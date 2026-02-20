@@ -24,8 +24,8 @@ export default function WebsiteTab({ ga4 }: Props) {
     <div className="p-6 max-w-6xl space-y-8">
       {/* KPI Row */}
       <div>
-        <SectionHeader title="Website Performance" period="Last 28 days vs prior 28 days" />
-        <WebsiteKpiRow ga4={ga4} />
+        <SectionHeader title="Website Performance" period={ga4.compareLabel} />
+        <WebsiteKpiRow ga4={ga4} compareLabel={ga4.compareLabel} />
       </div>
 
       {/* Channel chart + Source/Medium table */}

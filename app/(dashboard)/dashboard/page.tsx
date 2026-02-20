@@ -4,8 +4,15 @@ import { fetchAnalyticsData, fetchDashboardReport, type AnalyticsData, type Dash
 import { BarChart2 } from "lucide-react";
 import DashboardTabs from "./DashboardTabs";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string; compare?: string; tab?: string }>
+}) {
   const { user } = await requireAuth();
+  const params = await searchParams;
+  const period = params.period ?? '28d';
+  const compare = params.compare ?? 'prior';
 
   type ClientRow = {
     id: string;
@@ -51,14 +58,14 @@ export default async function DashboardPage() {
   // Fetch analytics data (returns null fields if not configured)
   let analyticsData: AnalyticsData = { ga4: null, gsc: null };
   try {
-    analyticsData = await fetchAnalyticsData(selectedClient.id);
+    analyticsData = await fetchAnalyticsData(selectedClient.id, { period, compare });
   } catch {
     // Non-fatal — dashboard still renders without analytics
   }
 
   let dashboardReport: DashboardReport = { ga4: null, gsc: null };
   try {
-    dashboardReport = await fetchDashboardReport(selectedClient.id);
+    dashboardReport = await fetchDashboardReport(selectedClient.id, { period, compare });
   } catch {
     // Non-fatal
   }

@@ -15,28 +15,29 @@ function dir(pct: number): 'up' | 'down' | 'flat' {
 
 interface Props {
   gsc: GSCReport
+  compareLabel: string
 }
 
-export default function GscKpiRow({ gsc }: Props) {
+export default function GscKpiRow({ gsc, compareLabel }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <KpiCard
         label="Clicks"
         value={fmtNum(gsc.clicks)}
         delta={{ direction: dir(gsc.clicksDelta), percent: `${Math.abs(gsc.clicksDelta)}%` }}
-        tooltip="Organic search clicks in the last 28 days vs prior 28 days (Search Console)"
+        tooltip={`Organic search clicks ${compareLabel} (Search Console)`}
       />
       <KpiCard
         label="Impressions"
         value={fmtNum(gsc.impressions)}
         delta={{ direction: dir(gsc.impressionsDelta), percent: `${Math.abs(gsc.impressionsDelta)}%` }}
-        tooltip="Search impressions in the last 28 days vs prior 28 days (Search Console)"
+        tooltip={`Search impressions ${compareLabel} (Search Console)`}
       />
       <KpiCard
         label="Avg. Position"
         value={gsc.position.toFixed(1)}
         delta={{ direction: dir(gsc.positionDelta), percent: `${Math.abs(gsc.positionDelta)}%` }}
-        tooltip="Average search ranking position in the last 28 days vs prior 28 days (Search Console)"
+        tooltip={`Average search ranking position ${compareLabel} (Search Console)`}
       />
     </div>
   )

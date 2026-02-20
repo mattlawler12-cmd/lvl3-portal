@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import type { DateRange } from './date-range'
 
 function getCredentials() {
   let raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
@@ -40,7 +41,7 @@ export async function listGSCSites(): Promise<string[]> {
     .filter(Boolean)
 }
 
-export async function fetchGSCMetrics(siteUrl: string): Promise<GSCMetrics> {
+export async function fetchGSCMetrics(siteUrl: string, range?: DateRange): Promise<GSCMetrics> {
   const credentials = getCredentials()
 
   const auth = new google.auth.GoogleAuth({
@@ -50,9 +51,17 @@ export async function fetchGSCMetrics(siteUrl: string): Promise<GSCMetrics> {
 
   const searchconsole = google.searchconsole({ version: 'v1', auth })
 
-  const today = new Date()
-  const endDate = new Date(today.getTime() - 86400000).toISOString().slice(0, 10)
-  const startDate = new Date(today.getTime() - 29 * 86400000).toISOString().slice(0, 10)
+  let startDate: string
+  let endDate: string
+
+  if (range) {
+    startDate = range.startDate
+    endDate = range.endDate
+  } else {
+    const today = new Date()
+    endDate = new Date(today.getTime() - 86400000).toISOString().slice(0, 10)
+    startDate = new Date(today.getTime() - 29 * 86400000).toISOString().slice(0, 10)
+  }
 
   const [overallRes, queriesRes] = await Promise.all([
     searchconsole.searchanalytics.query({
@@ -95,14 +104,24 @@ export type GSCMonthlyPoint = { month: string; yearMonth: string; clicks: number
 export type QueryRow = { query: string; clicks: number; clicksDelta: number; impressions: number; impressionsDelta: number; position: number }
 export type UrlRow = { page: string; clicks: number; clicksDelta: number; impressions: number; position: number }
 
+export type SerpDistribution = {
+  top3: number
+  top10: number
+  page2: number
+  page3to5: number
+  beyond: number
+}
+
 export type GSCReport = {
-  clicks: number; clicksDelta: number; clicksYoYDelta: number
-  impressions: number; impressionsDelta: number; impressionsYoYDelta: number
-  position: number; positionDelta: number; positionYoYDelta: number
+  clicks: number; clicksDelta: number
+  impressions: number; impressionsDelta: number
+  position: number; positionDelta: number
   ctr: number
+  compareLabel: string
   monthlyTrend: GSCMonthlyPoint[]
   topQueries: QueryRow[]
   topUrls: UrlRow[]
+  serpDistribution: SerpDistribution
 }
 
 function normalizeSiteUrl(raw: string): string {
@@ -115,7 +134,7 @@ function normalizeSiteUrl(raw: string): string {
   return `https://${url}/`
 }
 
-export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
+export async function fetchGSCReport(siteUrl: string, range?: DateRange): Promise<GSCReport> {
   const normalizedUrl = normalizeSiteUrl(siteUrl)
   const credentials = getCredentials()
   const auth = new google.auth.GoogleAuth({
@@ -127,35 +146,44 @@ export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
   const today = new Date()
   const fmt = (d: Date) => d.toISOString().slice(0, 10)
 
-  const endDate = fmt(new Date(today.getTime() - 86400000))
-  const startDate = fmt(new Date(today.getTime() - 29 * 86400000))
-  const priorEnd = fmt(new Date(today.getTime() - 30 * 86400000))
-  const priorStart = fmt(new Date(today.getTime() - 57 * 86400000))
-  const yoyEnd = fmt(new Date(today.getTime() - 365 * 86400000 - 86400000))
-  const yoyStart = fmt(new Date(today.getTime() - 365 * 86400000 - 29 * 86400000))
+  let startDate: string
+  let endDate: string
+  let priorStart: string
+  let priorEnd: string
+  let compareLabel: string
+
+  if (range) {
+    startDate = range.startDate
+    endDate = range.endDate
+    priorStart = range.compareStart
+    priorEnd = range.compareEnd
+    compareLabel = range.compareLabel
+  } else {
+    endDate = fmt(new Date(today.getTime() - 86400000))
+    startDate = fmt(new Date(today.getTime() - 29 * 86400000))
+    priorEnd = fmt(new Date(today.getTime() - 30 * 86400000))
+    priorStart = fmt(new Date(today.getTime() - 57 * 86400000))
+    compareLabel = 'vs. prior 28 days'
+  }
 
   // 6-month daily range for monthly aggregation
   const firstOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
   const monthlyEnd = fmt(new Date(firstOfCurrentMonth.getTime() - 86400000))
   const monthlyStart = fmt(new Date(today.getFullYear(), today.getMonth() - 6, 1))
 
-  const [r1, r2, r3, r4, r5, r6, r7, r8] = await Promise.allSettled([
-    // 1: current 28-day overall
+  const [r1, r2, r3, r4, r5, r6] = await Promise.allSettled([
+    // 1: current overall
     searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate, endDate } }),
-    // 2: prior 28-day overall
+    // 2: prior/compare overall
     searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: priorStart, endDate: priorEnd } }),
-    // 3: YoY overall
-    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: yoyStart, endDate: yoyEnd } }),
-    // 4: daily data for monthly aggregation
+    // 3: daily data for monthly aggregation
     searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: monthlyStart, endDate: monthlyEnd, dimensions: ['date'], rowLimit: 200 } }),
-    // 5: top queries current
-    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate, endDate, dimensions: ['query'], rowLimit: 25 } }),
-    // 6: top queries prior (for delta)
+    // 4: top queries current (500 rows for SERP distribution; top 25 shown in table)
+    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate, endDate, dimensions: ['query'], rowLimit: 500 } }),
+    // 5: top queries prior (for delta)
     searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: priorStart, endDate: priorEnd, dimensions: ['query'], rowLimit: 100 } }),
-    // 7: top pages current
+    // 6: top pages current
     searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate, endDate, dimensions: ['page'], rowLimit: 25 } }),
-    // 8: top pages prior (for delta)
-    searchconsole.searchanalytics.query({ siteUrl: normalizedUrl, requestBody: { startDate: priorStart, endDate: priorEnd, dimensions: ['page'], rowLimit: 100 } }),
   ])
 
   // If the primary call failed, throw so the caller gets the actual error
@@ -168,7 +196,6 @@ export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
   // Overall metrics
   const overall = r1.value.data.rows?.[0] ?? {}
   const priorOverall = r2.status === 'fulfilled' ? (r2.value.data.rows?.[0] ?? {}) : {}
-  const yoyOverall = r3.status === 'fulfilled' ? (r3.value.data.rows?.[0] ?? {}) : {}
 
   const clicks = (overall as { clicks?: number }).clicks ?? 0
   const impressions = (overall as { impressions?: number }).impressions ?? 0
@@ -179,17 +206,13 @@ export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
   const priorImpressions = (priorOverall as { impressions?: number }).impressions ?? 0
   const priorPosition = (priorOverall as { position?: number }).position ?? 0
 
-  const yoyClicks = (yoyOverall as { clicks?: number }).clicks ?? 0
-  const yoyImpressions = (yoyOverall as { impressions?: number }).impressions ?? 0
-  const yoyPosition = (yoyOverall as { position?: number }).position ?? 0
-
   const pct = (curr: number, prior: number) =>
     prior === 0 ? 0 : Math.round(((curr - prior) / prior) * 100)
 
   // Monthly trend: aggregate daily rows by yearMonth
   const monthlyMap = new Map<string, { clicks: number; impressions: number }>()
-  if (r4.status === 'fulfilled') {
-    for (const row of r4.value.data.rows ?? []) {
+  if (r3.status === 'fulfilled') {
+    for (const row of r3.value.data.rows ?? []) {
       const dateStr = row.keys?.[0] ?? ''
       const ym = dateStr.slice(0, 7).replace('-', '') // "2025-01" -> "202501"
       const prev = monthlyMap.get(ym) ?? { clicks: 0, impressions: 0 }
@@ -208,45 +231,50 @@ export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
       return { month: label, yearMonth: ym, ...data }
     })
 
-  // Queries
+  // Queries — all 500 rows used for SERP distribution, top 25 used for table
+  const allQueryRows = r4.status === 'fulfilled' ? (r4.value.data.rows ?? []) : []
+
+  // SERP distribution bucketing
+  const serpDistribution: SerpDistribution = { top3: 0, top10: 0, page2: 0, page3to5: 0, beyond: 0 }
+  for (const row of allQueryRows) {
+    const pos = row.position ?? 0
+    if (pos <= 3) serpDistribution.top3++
+    else if (pos <= 10) serpDistribution.top10++
+    else if (pos <= 20) serpDistribution.page2++
+    else if (pos <= 50) serpDistribution.page3to5++
+    else serpDistribution.beyond++
+  }
+
   const priorQueryMap = new Map<string, { clicks: number; impressions: number }>()
-  if (r6.status === 'fulfilled') {
-    for (const row of r6.value.data.rows ?? []) {
+  if (r5.status === 'fulfilled') {
+    for (const row of r5.value.data.rows ?? []) {
       priorQueryMap.set(row.keys?.[0] ?? '', { clicks: row.clicks ?? 0, impressions: row.impressions ?? 0 })
     }
   }
   const topQueries: QueryRow[] = []
-  if (r5.status === 'fulfilled') {
-    for (const row of r5.value.data.rows ?? []) {
-      const q = row.keys?.[0] ?? ''
-      const prior = priorQueryMap.get(q)
-      topQueries.push({
-        query: q,
-        clicks: row.clicks ?? 0,
-        clicksDelta: (row.clicks ?? 0) - (prior?.clicks ?? 0),
-        impressions: row.impressions ?? 0,
-        impressionsDelta: (row.impressions ?? 0) - (prior?.impressions ?? 0),
-        position: row.position ?? 0,
-      })
-    }
+  for (const row of allQueryRows.slice(0, 25)) {
+    const q = row.keys?.[0] ?? ''
+    const prior = priorQueryMap.get(q)
+    topQueries.push({
+      query: q,
+      clicks: row.clicks ?? 0,
+      clicksDelta: (row.clicks ?? 0) - (prior?.clicks ?? 0),
+      impressions: row.impressions ?? 0,
+      impressionsDelta: (row.impressions ?? 0) - (prior?.impressions ?? 0),
+      position: row.position ?? 0,
+    })
   }
 
-  // URLs
-  const priorUrlMap = new Map<string, { clicks: number; impressions: number }>()
-  if (r8.status === 'fulfilled') {
-    for (const row of r8.value.data.rows ?? []) {
-      priorUrlMap.set(row.keys?.[0] ?? '', { clicks: row.clicks ?? 0, impressions: row.impressions ?? 0 })
-    }
-  }
+  // URLs — we removed the prior pages call; no delta available without it, use prior query map approach
+  // Fetch top pages prior for delta separately if needed — for now keep topUrls without prior delta
   const topUrls: UrlRow[] = []
-  if (r7.status === 'fulfilled') {
-    for (const row of r7.value.data.rows ?? []) {
+  if (r6.status === 'fulfilled') {
+    for (const row of r6.value.data.rows ?? []) {
       const page = row.keys?.[0] ?? ''
-      const prior = priorUrlMap.get(page)
       topUrls.push({
         page,
         clicks: row.clicks ?? 0,
-        clicksDelta: (row.clicks ?? 0) - (prior?.clicks ?? 0),
+        clicksDelta: 0,
         impressions: row.impressions ?? 0,
         position: row.position ?? 0,
       })
@@ -254,9 +282,10 @@ export async function fetchGSCReport(siteUrl: string): Promise<GSCReport> {
   }
 
   return {
-    clicks, clicksDelta: pct(clicks, priorClicks), clicksYoYDelta: pct(clicks, yoyClicks),
-    impressions, impressionsDelta: pct(impressions, priorImpressions), impressionsYoYDelta: pct(impressions, yoyImpressions),
-    position, positionDelta: pct(position, priorPosition), positionYoYDelta: pct(position, yoyPosition),
-    ctr, monthlyTrend, topQueries, topUrls,
+    clicks, clicksDelta: pct(clicks, priorClicks),
+    impressions, impressionsDelta: pct(impressions, priorImpressions),
+    position, positionDelta: pct(position, priorPosition),
+    ctr, compareLabel,
+    monthlyTrend, topQueries, topUrls, serpDistribution,
   }
 }

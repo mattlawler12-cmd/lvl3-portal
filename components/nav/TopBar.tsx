@@ -68,44 +68,48 @@ export default function TopBar({
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 bg-surface-900 border-b border-surface-700 z-30 flex items-center px-4 gap-3">
+    <header
+      className="fixed top-0 left-0 right-0 h-14 z-30 flex items-center px-4 gap-3"
+      style={{ backgroundColor: 'var(--nav-bg)', borderBottom: '1px solid var(--nav-border)' }}
+    >
       {/* Brand */}
       <Link
         href="/"
-        className="flex items-center gap-1.5 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400 rounded"
+        className="flex items-center gap-1.5 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
       >
-        <span className="text-brand-400 font-bold tracking-tight">LVL3</span>
-        <span className="text-surface-400 text-xs font-medium uppercase tracking-widest hidden sm:inline">
+        <span className="text-brand-400 font-bold tracking-tight text-base" style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}>LVL3</span>
+        <span className="hidden sm:inline text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--nav-text)', letterSpacing: '0.06em' }}>
           Portal
         </span>
       </Link>
 
-      <div className="h-5 w-px bg-surface-700 shrink-0" />
+      <div className="h-5 w-px shrink-0" style={{ backgroundColor: 'var(--nav-border)', opacity: 0.5 }} />
 
       {/* Client switcher */}
       <div className="flex flex-col min-w-0 max-w-[200px]">
-        <span className="text-[10px] text-surface-500 uppercase tracking-wider leading-none mb-0.5">
+        <span className="text-[10px] font-medium uppercase tracking-wider leading-none mb-0.5" style={{ color: 'var(--nav-text)', letterSpacing: '0.12em' }}>
           Workspace
         </span>
         {showSelector ? (
           <select
             value={selectedClientId ?? ""}
             onChange={handleClientChange}
-            className="bg-transparent border-none text-sm text-surface-100 focus:outline-none cursor-pointer truncate"
+            className="bg-transparent border-none text-sm focus:outline-none cursor-pointer truncate"
+            style={{ color: 'var(--nav-text-bright)', fontFamily: 'var(--font-dm-sans)' }}
           >
-            <option value="">Select a client</option>
+            <option value="" style={{ backgroundColor: 'var(--nav-bg)' }}>Select a client</option>
             {clientList.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.id} value={c.id} style={{ backgroundColor: 'var(--nav-bg)' }}>
                 {c.name}
               </option>
             ))}
           </select>
         ) : selectedClientName ? (
-          <span className="text-sm text-surface-100 font-medium truncate">
+          <span className="text-sm font-medium truncate" style={{ color: 'var(--nav-text-bright)' }}>
             {selectedClientName}
           </span>
         ) : (
-          <span className="text-sm text-surface-400">Select a client</span>
+          <span className="text-sm" style={{ color: 'var(--nav-text)' }}>Select a client</span>
         )}
       </div>
 
@@ -114,12 +118,22 @@ export default function TopBar({
       {/* Search trigger */}
       <button
         onClick={onSearchOpen}
-        className="hidden md:flex items-center gap-2 bg-surface-800 border border-surface-600 rounded-lg px-3 py-1.5 text-sm text-surface-400 hover:border-surface-500 hover:text-surface-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
+        className="hidden md:flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+        style={{
+          backgroundColor: 'var(--nav-hover)',
+          border: '1px solid #3e3018',
+          color: 'var(--nav-text)',
+        }}
+        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--nav-text-bright)' }}
+        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--nav-text)' }}
         aria-label="Open search (Cmd+K)"
       >
         <Search size={13} />
         <span>Search…</span>
-        <kbd className="hidden lg:inline-flex items-center text-[10px] text-surface-400 bg-surface-700 border border-surface-600/50 rounded px-1 py-0.5">
+        <kbd
+          className="hidden lg:inline-flex items-center text-[10px] rounded px-1 py-0.5"
+          style={{ backgroundColor: '#3a2e18', border: '1px solid #4e3d22', color: 'var(--nav-text)' }}
+        >
           ⌘K
         </kbd>
       </button>
@@ -127,7 +141,8 @@ export default function TopBar({
       {/* Last updated */}
       {summaryUpdatedAt && (
         <span
-          className="hidden lg:block text-xs text-surface-500 shrink-0"
+          className="hidden lg:block text-xs shrink-0"
+          style={{ color: 'var(--nav-text)' }}
           title={`Client data last synced: ${new Date(summaryUpdatedAt).toLocaleString()}`}
         >
           Updated {formatRelativeTime(summaryUpdatedAt)}
@@ -137,12 +152,23 @@ export default function TopBar({
       {/* Notifications */}
       <button
         onClick={onNotificationsOpen}
-        className="relative p-2 rounded-lg text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
+        className="relative p-2 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+        style={{ color: 'var(--nav-text)' }}
+        onMouseEnter={e => {
+          const el = e.currentTarget as HTMLButtonElement
+          el.style.color = 'var(--nav-text-bright)'
+          el.style.backgroundColor = 'var(--nav-hover)'
+        }}
+        onMouseLeave={e => {
+          const el = e.currentTarget as HTMLButtonElement
+          el.style.color = 'var(--nav-text)'
+          el.style.backgroundColor = 'transparent'
+        }}
         aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
       >
         <Bell size={17} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-brand-400 text-surface-950 text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
+          <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-brand-400 text-[10px] font-bold rounded-full flex items-center justify-center px-0.5" style={{ color: 'var(--color-ink)' }}>
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -151,7 +177,18 @@ export default function TopBar({
       {/* Help */}
       <a
         href="#"
-        className="p-2 rounded-lg text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
+        className="p-2 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+        style={{ color: 'var(--nav-text)' }}
+        onMouseEnter={e => {
+          const el = e.currentTarget as HTMLAnchorElement
+          el.style.color = 'var(--nav-text-bright)'
+          el.style.backgroundColor = 'var(--nav-hover)'
+        }}
+        onMouseLeave={e => {
+          const el = e.currentTarget as HTMLAnchorElement
+          el.style.color = 'var(--nav-text)'
+          el.style.backgroundColor = 'transparent'
+        }}
         aria-label="Help"
       >
         <HelpCircle size={17} />
@@ -161,11 +198,25 @@ export default function TopBar({
       <div className="relative">
         <button
           onClick={() => setUserMenuOpen(!userMenuOpen)}
-          className="flex items-center gap-1.5 p-1.5 rounded-lg text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400"
+          className="flex items-center gap-1.5 p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+          style={{ color: 'var(--nav-text)' }}
+          onMouseEnter={e => {
+            const el = e.currentTarget as HTMLButtonElement
+            el.style.color = 'var(--nav-text-bright)'
+            el.style.backgroundColor = 'var(--nav-hover)'
+          }}
+          onMouseLeave={e => {
+            const el = e.currentTarget as HTMLButtonElement
+            el.style.color = 'var(--nav-text)'
+            el.style.backgroundColor = 'transparent'
+          }}
           aria-label="User menu"
           aria-expanded={userMenuOpen}
         >
-          <div className="w-7 h-7 rounded-full bg-surface-700 flex items-center justify-center text-xs font-semibold text-surface-100">
+          <div
+            className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
+            style={{ backgroundColor: '#3a2e18', color: 'var(--color-marigold)' }}
+          >
             {userEmail.slice(0, 1).toUpperCase()}
           </div>
           <ChevronDown
@@ -181,16 +232,33 @@ export default function TopBar({
               onClick={() => setUserMenuOpen(false)}
               aria-hidden="true"
             />
-            <div className="absolute right-0 top-full mt-1 w-56 bg-surface-900 border border-surface-700 rounded-xl shadow-xl z-50 py-1 animate-fade-in">
-              <div className="px-4 py-3 border-b border-surface-700">
-                <p className="text-sm text-surface-100 font-medium truncate">{userEmail}</p>
-                <span className="inline-flex items-center text-xs bg-brand-400/15 text-brand-400 px-2 py-0.5 rounded-full mt-1">
+            <div
+              className="absolute right-0 top-full mt-1 w-56 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.2)] z-50 py-1 animate-fade-in"
+              style={{ backgroundColor: 'var(--nav-bg)', border: '1px solid var(--nav-border)' }}
+            >
+              <div className="px-4 py-3" style={{ borderBottom: '1px solid #3a2e18' }}>
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--nav-text-bright)' }}>{userEmail}</p>
+                <span
+                  className="inline-flex items-center text-xs px-2 py-0.5 rounded-full mt-1"
+                  style={{ backgroundColor: 'rgba(254,199,124,0.15)', color: 'var(--color-marigold)' }}
+                >
                   {ROLE_LABELS[userRole] ?? userRole}
                 </span>
               </div>
               <button
                 onClick={handleSignOut}
-                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-surface-300 hover:text-surface-100 hover:bg-surface-800 transition-colors"
+                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm transition-colors"
+                style={{ color: 'var(--nav-text)' }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLButtonElement
+                  el.style.color = 'var(--nav-text-bright)'
+                  el.style.backgroundColor = 'var(--nav-hover)'
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLButtonElement
+                  el.style.color = 'var(--nav-text)'
+                  el.style.backgroundColor = 'transparent'
+                }}
               >
                 <LogOut size={14} />
                 Sign out

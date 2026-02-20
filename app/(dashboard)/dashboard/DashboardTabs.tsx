@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import LookerEmbed from "@/components/dashboard/looker-embed";
 import AnalyticsKpiStrip from "@/components/analytics/AnalyticsKpiStrip";
@@ -20,6 +21,14 @@ interface Props {
 }
 
 type Tab = "snapshot" | "website" | "seo" | "full" | "definitions";
+
+const PERIOD_OPTIONS: { value: string; label: string }[] = [
+  { value: "7d", label: "7D" },
+  { value: "28d", label: "28D" },
+  { value: "90d", label: "3M" },
+  { value: "180d", label: "6M" },
+  { value: "365d", label: "12M" },
+];
 
 function SnapshotSection({
   title,
@@ -50,12 +59,23 @@ export default function DashboardTabs({
   clientId,
   dashboardReport,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>("snapshot");
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [iframeEverActive, setIframeEverActive] = useState(false);
   const [iframeTimedOut, setIframeTimedOut] = useState(false);
 
+  const activeTab = (searchParams.get("tab") ?? "snapshot") as Tab;
+  const period = searchParams.get("period") ?? "28d";
+  const compare = searchParams.get("compare") ?? "prior";
+
+  function navigate(updates: Record<string, string>) {
+    const p = new URLSearchParams(searchParams.toString());
+    Object.entries(updates).forEach(([k, v]) => p.set(k, v));
+    router.push(`/dashboard?${p.toString()}`);
+  }
+
   function handleTabChange(tab: Tab) {
-    setActiveTab(tab);
+    navigate({ tab });
     if (tab === "full" && !iframeEverActive) {
       setIframeEverActive(true);
       setTimeout(() => {
@@ -76,23 +96,60 @@ export default function DashboardTabs({
     { key: "definitions" as Tab, label: "Definitions & Notes" },
   ];
 
+  const showDateSelector = ["snapshot", "website", "seo"].includes(activeTab) && hasAnalytics;
+
   return (
     <div className="flex flex-col h-full">
       {/* Tab bar */}
-      <div className="flex items-center gap-0 border-b border-surface-700 px-6 shrink-0">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => handleTabChange(tab.key)}
-            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-400 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-900 ${
-              activeTab === tab.key
-                ? "border-brand-400 text-brand-400"
-                : "border-transparent text-surface-400 hover:text-surface-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex items-center gap-0 border-b border-surface-700 px-6 shrink-0 justify-between">
+        {/* Left: tab pills */}
+        <div className="flex items-center gap-0">
+          {TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => handleTabChange(tab.key)}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-surface-500 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-900 ${
+                activeTab === tab.key
+                  ? "border-surface-500 text-surface-500"
+                  : "border-transparent text-surface-400 hover:text-surface-100"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Right: date range selector */}
+        {showDateSelector && (
+          <div className="flex items-center gap-2 pb-1">
+            {/* Period pills */}
+            <div className="flex items-center gap-1">
+              {PERIOD_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => navigate({ period: opt.value })}
+                  className={`px-2.5 py-1 text-xs font-medium rounded border transition-colors ${
+                    period === opt.value
+                      ? "border-surface-500 text-surface-500 bg-surface-500/10"
+                      : "border-surface-700 text-surface-400 hover:text-surface-100 hover:border-surface-600"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Compare select */}
+            <select
+              value={compare}
+              onChange={(e) => navigate({ compare: e.target.value })}
+              className="text-xs bg-surface-800 border border-surface-600 text-surface-300 rounded px-2 py-1 focus:outline-none focus:border-surface-500"
+            >
+              <option value="prior">vs. prior period</option>
+              <option value="yoy">vs. prior year</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Tab content */}

@@ -11,63 +11,67 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        brand: {
-          50:  '#FFF8F0',
-          100: '#FFEDD5',
-          200: '#FED7AA',
-          300: '#FDBA74',
-          400: '#FB923C',
-          500: '#F97316',
-          600: '#EA580C',
-          700: '#C2410C',
-          800: '#9A3412',
-          900: '#7C2D12',
-        },
-        accent: {
-          50:  '#F0FDFA',
-          100: '#CCFBF1',
-          200: '#99F6E4',
-          300: '#5EEAD4',
-          400: '#2DD4BF',
-          500: '#14B8A6',
-          600: '#0D9488',
-          700: '#0F766E',
-          800: '#115E59',
-          900: '#134E4A',
-        },
+        // Warm light scale — body, cards, panels, borders
         surface: {
-          950: '#0D1017',
-          900: '#161B26',
-          850: '#1B2130',
-          800: '#21263A',
-          700: '#2C3246',
-          600: '#3C4258',
-          500: '#4E5569',
-          400: '#6B7280',
-          300: '#9CA3AF',
-          200: '#D1D5DB',
-          100: '#F3F4F6',
+          950: '#f0e4c2', // deepest cream alternate bg
+          900: '#fffdf8', // card / panel bg
+          850: '#fefbf2', // card hover
+          800: '#f5ead0', // alternate section bg
+          700: '#e0c878', // border
+          600: '#cbb567', // border hover
+          500: '#B07E09', // deep gold — eyebrow labels, section accents
+          400: '#7A6540', // muted body text
+          300: '#9a8760', // medium muted
+          200: '#c4ae84', // light muted (readable on dark bg too)
+          100: '#1a1408', // primary text (ink, on light backgrounds)
+        },
+        // Marigold gold scale
+        brand: {
+          50:  '#FFF9EC',
+          100: '#FFF3CC',
+          200: '#FFE49A',
+          300: '#FFD26B',
+          400: '#FEC77C', // main marigold accent
+          500: '#F5AD3A',
+          600: '#D4950A',
+          700: '#B07E09', // deep gold
+          800: '#7A5807',
+          900: '#1a1408', // ink
+        },
+        // Warm gold scale — used for positive indicators and chart accents
+        accent: {
+          50:  '#FFF9EC',
+          100: '#FFF3CC',
+          200: '#FFE49A',
+          300: '#FFD26B',
+          400: '#B07E09', // deep gold (positive/up indicator)
+          500: '#8A6007',
+          600: '#6A4807',
+          700: '#4A3005',
+          800: '#2C1C04',
+          900: '#1a1008',
         },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
+        sans:  ['var(--font-dm-sans)', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['var(--font-playfair)', 'Georgia', 'serif'],
       },
       animation: {
-        "fade-in": "fadeIn 0.15s ease-out",
+        "fade-in":        "fadeIn 0.15s ease-out",
         "slide-in-right": "slideInRight 0.2s ease-out",
-        "slide-in-up": "slideInUp 0.2s ease-out",
+        "slide-in-up":    "slideInUp 0.2s ease-out",
       },
       keyframes: {
         fadeIn: {
-          "0%": { opacity: "0" },
+          "0%":   { opacity: "0" },
           "100%": { opacity: "1" },
         },
         slideInRight: {
-          "0%": { transform: "translateX(100%)" },
+          "0%":   { transform: "translateX(100%)" },
           "100%": { transform: "translateX(0)" },
         },
         slideInUp: {
-          "0%": { transform: "translateY(8px)", opacity: "0" },
+          "0%":   { transform: "translateY(8px)", opacity: "0" },
           "100%": { transform: "translateY(0)", opacity: "1" },
         },
       },

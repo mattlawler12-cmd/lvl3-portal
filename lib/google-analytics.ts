@@ -1,4 +1,5 @@
 import { google } from 'googleapis'
+import type { DateRange } from './date-range'
 
 function getCredentials() {
   let raw = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
@@ -30,7 +31,7 @@ export type GA4Metrics = {
   pageviewsDelta: number
 }
 
-export async function fetchGA4Metrics(propertyId: string): Promise<GA4Metrics> {
+export async function fetchGA4Metrics(propertyId: string, range?: DateRange): Promise<GA4Metrics> {
   const credentials = getCredentials()
 
   const auth = new google.auth.GoogleAuth({
@@ -40,19 +41,30 @@ export async function fetchGA4Metrics(propertyId: string): Promise<GA4Metrics> {
 
   const analyticsdata = google.analyticsdata({ version: 'v1beta', auth })
 
-  const today = new Date()
-  const fmt = (d: Date) => d.toISOString().slice(0, 10)
+  let startDate: string
+  let endDate: string
+  let priorStart: string
+  let priorEnd: string
 
-  const endDate = fmt(new Date(today.getTime() - 86400000))
-  const startDate30 = fmt(new Date(today.getTime() - 31 * 86400000))
-  const priorEnd = fmt(new Date(today.getTime() - 32 * 86400000))
-  const priorStart = fmt(new Date(today.getTime() - 61 * 86400000))
+  if (range) {
+    startDate = range.startDate
+    endDate = range.endDate
+    priorStart = range.compareStart
+    priorEnd = range.compareEnd
+  } else {
+    const today = new Date()
+    const fmt = (d: Date) => d.toISOString().slice(0, 10)
+    endDate = fmt(new Date(today.getTime() - 86400000))
+    startDate = fmt(new Date(today.getTime() - 31 * 86400000))
+    priorEnd = fmt(new Date(today.getTime() - 32 * 86400000))
+    priorStart = fmt(new Date(today.getTime() - 61 * 86400000))
+  }
 
   const [currentRes, priorRes, channelRes] = await Promise.all([
     analyticsdata.properties.runReport({
       property: `properties/${propertyId}`,
       requestBody: {
-        dateRanges: [{ startDate: startDate30, endDate }],
+        dateRanges: [{ startDate, endDate }],
         metrics: [
           { name: 'sessions' },
           { name: 'totalUsers' },
@@ -75,7 +87,7 @@ export async function fetchGA4Metrics(propertyId: string): Promise<GA4Metrics> {
     analyticsdata.properties.runReport({
       property: `properties/${propertyId}`,
       requestBody: {
-        dateRanges: [{ startDate: startDate30, endDate }],
+        dateRanges: [{ startDate, endDate }],
         dimensions: [{ name: 'sessionDefaultChannelGroup' }],
         metrics: [{ name: 'sessions' }],
         orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
@@ -124,7 +136,7 @@ export type SourceMediumRow = { sourceMedium: string; sessions: number; users: n
 export type LandingPageRow = { page: string; sessions: number; sessionsDelta: number }
 
 export type GA4Report = {
-  sessions: number; sessionsDelta: number; sessionsYoYDelta: number
+  sessions: number; sessionsDelta: number; compareLabel: string
   purchaseRevenue: number; purchaseRevenueDelta: number
   transactions: number; transactionsDelta: number
   topChannels: ChannelRow[]
@@ -137,7 +149,7 @@ export type GA4Report = {
   organicLandingPages: LandingPageRow[]
 }
 
-export async function fetchGA4Report(propertyId: string): Promise<GA4Report> {
+export async function fetchGA4Report(propertyId: string, range?: DateRange): Promise<GA4Report> {
   const credentials = getCredentials()
   const auth = new google.auth.GoogleAuth({
     credentials,
@@ -148,12 +160,25 @@ export async function fetchGA4Report(propertyId: string): Promise<GA4Report> {
   const today = new Date()
   const fmt = (d: Date) => d.toISOString().slice(0, 10)
 
-  const endDate = fmt(new Date(today.getTime() - 86400000))
-  const startDate = fmt(new Date(today.getTime() - 29 * 86400000))
-  const priorEnd = fmt(new Date(today.getTime() - 30 * 86400000))
-  const priorStart = fmt(new Date(today.getTime() - 57 * 86400000))
-  const yoyEnd = fmt(new Date(today.getTime() - 365 * 86400000 - 86400000))
-  const yoyStart = fmt(new Date(today.getTime() - 365 * 86400000 - 29 * 86400000))
+  let startDate: string
+  let endDate: string
+  let priorStart: string
+  let priorEnd: string
+  let compareLabel: string
+
+  if (range) {
+    startDate = range.startDate
+    endDate = range.endDate
+    priorStart = range.compareStart
+    priorEnd = range.compareEnd
+    compareLabel = range.compareLabel
+  } else {
+    endDate = fmt(new Date(today.getTime() - 86400000))
+    startDate = fmt(new Date(today.getTime() - 29 * 86400000))
+    priorEnd = fmt(new Date(today.getTime() - 30 * 86400000))
+    priorStart = fmt(new Date(today.getTime() - 57 * 86400000))
+    compareLabel = 'vs. prior 28 days'
+  }
 
   const firstOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1)
   const monthlyEnd = fmt(new Date(firstOfCurrentMonth.getTime() - 86400000))
@@ -167,7 +192,7 @@ export async function fetchGA4Report(propertyId: string): Promise<GA4Report> {
     },
   }
 
-  const [r1, r2, r3, r4cur, r4pri, r5, r6, r7cur, r7pri, r8cur, r8pri] = await Promise.allSettled([
+  const [r1, r2, r4cur, r4pri, r5, r6, r7cur, r7pri, r8cur, r8pri] = await Promise.allSettled([
     // 1: overall current
     analyticsdata.properties.runReport({
       property: prop,
@@ -176,19 +201,11 @@ export async function fetchGA4Report(propertyId: string): Promise<GA4Report> {
         metrics: [{ name: 'sessions' }, { name: 'purchaseRevenue' }, { name: 'transactions' }],
       },
     }),
-    // 2: overall prior
+    // 2: overall prior/compare
     analyticsdata.properties.runReport({
       property: prop,
       requestBody: {
         dateRanges: [{ startDate: priorStart, endDate: priorEnd }],
-        metrics: [{ name: 'sessions' }, { name: 'purchaseRevenue' }, { name: 'transactions' }],
-      },
-    }),
-    // 3: overall YoY
-    analyticsdata.properties.runReport({
-      property: prop,
-      requestBody: {
-        dateRanges: [{ startDate: yoyStart, endDate: yoyEnd }],
         metrics: [{ name: 'sessions' }, { name: 'purchaseRevenue' }, { name: 'transactions' }],
       },
     }),
@@ -213,7 +230,7 @@ export async function fetchGA4Report(propertyId: string): Promise<GA4Report> {
         limit: '20',
       },
     }),
-    // 5: monthly trend
+    // 5: monthly trend (fixed 6-month window)
     analyticsdata.properties.runReport({
       property: prop,
       requestBody: {
@@ -285,7 +302,6 @@ export async function fetchGA4Report(propertyId: string): Promise<GA4Report> {
   // Overall metrics
   const cur1 = r1.status === 'fulfilled' ? (r1.value.data.rows?.[0]?.metricValues ?? []) : []
   const cur2 = r2.status === 'fulfilled' ? (r2.value.data.rows?.[0]?.metricValues ?? []) : []
-  const cur3 = r3.status === 'fulfilled' ? (r3.value.data.rows?.[0]?.metricValues ?? []) : []
 
   const sessions = parseInt(cur1[0]?.value ?? '0')
   const purchaseRevenue = parseFloat(cur1[1]?.value ?? '0')
@@ -293,7 +309,6 @@ export async function fetchGA4Report(propertyId: string): Promise<GA4Report> {
   const priorSessions = parseInt(cur2[0]?.value ?? '0')
   const priorRevenue = parseFloat(cur2[1]?.value ?? '0')
   const priorTransactions = parseInt(cur2[2]?.value ?? '0')
-  const yoySessions = parseInt(cur3[0]?.value ?? '0')
 
   // Channels
   const channelPriorMap = new Map<string, number>()
@@ -388,7 +403,7 @@ export async function fetchGA4Report(propertyId: string): Promise<GA4Report> {
   }
 
   return {
-    sessions, sessionsDelta: pct(sessions, priorSessions), sessionsYoYDelta: pct(sessions, yoySessions),
+    sessions, sessionsDelta: pct(sessions, priorSessions), compareLabel,
     purchaseRevenue, purchaseRevenueDelta: pct(purchaseRevenue, priorRevenue),
     transactions, transactionsDelta: pct(transactions, priorTransactions),
     topChannels, monthlyTrend, topSourceMediums,

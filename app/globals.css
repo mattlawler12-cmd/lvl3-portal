@@ -3,8 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --background: #0D1017;
-  --foreground: #D1D5DB;
+  /* ── Marigold & Ink palette ───────────────────────────── */
+  --background:       #fdf6e3;
+  --foreground:       #1a1408;
+
+  --color-ink:        #1a1408;
+  --color-cream:      #fdf6e3;
+  --color-cream-alt:  #f5ead0;
+  --color-card:       #fffdf8;
+  --color-marigold:   #FEC77C;
+  --color-gold-deep:  #B07E09;
+  --color-muted:      #7A6540;
+  --color-border:     #e0c878;
+
+  /* Nav-specific (dark context) */
+  --nav-bg:           #1a1408;
+  --nav-hover:        #251c0d;
+  --nav-text:         #d4c098;
+  --nav-text-bright:  #fdf6e3;
+  --nav-border:       #e0c878;
 }
 
 * {
@@ -12,29 +29,40 @@
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color:       var(--foreground);
+  background:  var(--background);
+  font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #2C3246;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3C4258;
+/* Headings use the serif */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  color: var(--color-ink);
 }
 
+/* ── Scrollbar ──────────────────────────────────────────── */
+::-webkit-scrollbar        { width: 6px; height: 6px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  {
+  background:    var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--color-gold-deep); }
+
+/* ── Utilities ──────────────────────────────────────────── */
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-balance { text-wrap: balance; }
+
+  /* Eyebrow labels — uppercase small caps above headings */
+  .eyebrow {
+    font-family:    var(--font-dm-sans), sans-serif;
+    font-size:      11px;
+    font-weight:    500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color:          var(--color-gold-deep);
   }
 }

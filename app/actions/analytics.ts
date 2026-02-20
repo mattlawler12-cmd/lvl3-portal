@@ -5,10 +5,11 @@ import { requireAdmin } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
 import { parseSheetId, fetchSheetHeaders } from '@/lib/google-sheets'
 import { fetchGA4Metrics, GA4Metrics, fetchGA4Report, GA4Report, ChannelRow, MonthlySessionPoint, SourceMediumRow, LandingPageRow } from '@/lib/google-analytics'
-import { fetchGSCMetrics, GSCMetrics, listGSCSites, fetchGSCReport, GSCReport, GSCMonthlyPoint, QueryRow, UrlRow } from '@/lib/google-search-console'
+import { fetchGSCMetrics, GSCMetrics, listGSCSites, fetchGSCReport, GSCReport, GSCMonthlyPoint, QueryRow, UrlRow, SerpDistribution } from '@/lib/google-search-console'
+import { buildDateRange, DateRange } from '@/lib/date-range'
 import Anthropic from '@anthropic-ai/sdk'
 
-export type { GA4Metrics, GSCMetrics, GA4Report, GSCReport, ChannelRow, MonthlySessionPoint, SourceMediumRow, LandingPageRow, GSCMonthlyPoint, QueryRow, UrlRow }
+export type { GA4Metrics, GSCMetrics, GA4Report, GSCReport, ChannelRow, MonthlySessionPoint, SourceMediumRow, LandingPageRow, GSCMonthlyPoint, QueryRow, UrlRow, SerpDistribution, DateRange }
 
 export type SnapshotInsights = {
   takeaways: string
@@ -54,7 +55,11 @@ export type AnalyticsData = {
   error?: string
 }
 
-export async function fetchAnalyticsData(clientId: string): Promise<AnalyticsData> {
+export async function fetchAnalyticsData(
+  clientId: string,
+  opts?: { period?: string; compare?: string }
+): Promise<AnalyticsData> {
+  const range = buildDateRange(opts?.period, opts?.compare)
   const service = await createServiceClient()
   const { data: client } = await service
     .from('clients')
@@ -66,10 +71,10 @@ export async function fetchAnalyticsData(clientId: string): Promise<AnalyticsDat
 
   const [ga4Result, gscResult] = await Promise.allSettled([
     client.ga4_property_id
-      ? fetchGA4Metrics(client.ga4_property_id)
+      ? fetchGA4Metrics(client.ga4_property_id, range)
       : Promise.resolve(null),
     client.gsc_site_url
-      ? fetchGSCMetrics(client.gsc_site_url)
+      ? fetchGSCMetrics(client.gsc_site_url, range)
       : Promise.resolve(null),
   ])
 
@@ -94,7 +99,11 @@ export type DashboardReport = {
   gscError?: string
 }
 
-export async function fetchDashboardReport(clientId: string): Promise<DashboardReport> {
+export async function fetchDashboardReport(
+  clientId: string,
+  opts?: { period?: string; compare?: string }
+): Promise<DashboardReport> {
+  const range = buildDateRange(opts?.period, opts?.compare)
   const service = await createServiceClient()
   const { data: client } = await service
     .from('clients')
@@ -105,8 +114,8 @@ export async function fetchDashboardReport(clientId: string): Promise<DashboardR
   if (!client) return { ga4: null, gsc: null, ga4Error: 'Client not found' }
 
   const [ga4Result, gscResult] = await Promise.allSettled([
-    client.ga4_property_id ? fetchGA4Report(client.ga4_property_id) : Promise.resolve(null),
-    client.gsc_site_url ? fetchGSCReport(client.gsc_site_url) : Promise.resolve(null),
+    client.ga4_property_id ? fetchGA4Report(client.ga4_property_id, range) : Promise.resolve(null),
+    client.gsc_site_url ? fetchGSCReport(client.gsc_site_url, range) : Promise.resolve(null),
   ])
 
   const ga4 = ga4Result.status === 'fulfilled' ? ga4Result.value : null
