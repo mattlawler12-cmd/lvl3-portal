@@ -52,7 +52,7 @@ export default function GscTrendChart({ data }: Props) {
             width={40}
           />
           <Tooltip
-            formatter={(v: number | undefined, name: string | undefined) => [(v ?? 0).toLocaleString(), name ?? '']}
+            formatter={(v, name) => [Number(v ?? 0).toLocaleString(), name ?? '']}
             contentStyle={{ background: '#18181b', border: '1px solid #1e2433', borderRadius: 8 }}
             labelStyle={{ color: '#e4e4e7' }}
             itemStyle={{ color: '#9ba3b5' }}

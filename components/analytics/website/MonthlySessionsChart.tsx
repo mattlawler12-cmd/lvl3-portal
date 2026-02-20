@@ -33,7 +33,7 @@ export default function MonthlySessionsChart({ data }: Props) {
             width={40}
           />
           <Tooltip
-            formatter={(v: number | undefined) => [(v ?? 0).toLocaleString(), 'Sessions']}
+            formatter={(v) => [Number(v ?? 0).toLocaleString(), 'Sessions']}
             contentStyle={{ background: '#18181b', border: '1px solid #1e2433', borderRadius: 8 }}
             labelStyle={{ color: '#e4e4e7' }}
             itemStyle={{ color: '#9ba3b5' }}
