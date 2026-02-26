@@ -179,6 +179,161 @@ export async function checkAIVisibility(clientId: string): Promise<{
   }
 }
 
+// ── Semrush Competitor Gap Analysis ──────────────────────────────────────────
+
+export type GapKeyword = {
+  keyword: string
+  volume: number
+  difficulty: number
+  competitorPositions: { domain: string; position: number }[]
+  clientPosition: number | null
+}
+
+function normalizeDomain(raw: string): string {
+  return raw
+    .replace(/^sc-domain:/, '')
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/.*$/, '')
+    .toLowerCase()
+    .trim()
+}
+
+const PAGE_SECTION_FILTERS: Record<string, string | null> = {
+  all: null,
+  blog: 'Pu|Co|/blog/|Or|Pu|Co|/articles/|Or|Pu|Co|/news/',
+  product: 'Pu|Co|/product/|Or|Pu|Co|/products/|Or|Pu|Co|/shop/',
+  service: 'Pu|Co|/service/|Or|Pu|Co|/services/',
+  location: 'Pu|Co|/location/|Or|Pu|Co|/locations/',
+}
+
+async function semrushQuery(
+  domain: string,
+  database: string,
+  apiKey: string,
+  displayFilter?: string | null
+): Promise<{ Ph: string; Po: number; Nq: number; Kd: number }[]> {
+  const params = new URLSearchParams({
+    type: 'domain_organic',
+    key: apiKey,
+    domain,
+    database,
+    display_limit: '10000',
+    export_columns: 'Ph,Po,Nq,Kd',
+    export_decode: '1',
+  })
+  if (displayFilter) {
+    params.set('display_filter', displayFilter)
+  }
+
+  const res = await fetch(`https://api.semrush.com/?${params.toString()}`)
+  if (!res.ok) {
+    const body = await res.text()
+    console.error(`Semrush API error for ${domain}:`, res.status, body)
+    return []
+  }
+
+  const text = await res.text()
+  if (!text.trim()) return []
+
+  const lines = text.trim().split('\n')
+  if (lines.length < 2) return []
+
+  const headers = lines[0].split(';')
+  return lines.slice(1).map((line) => {
+    const cols = line.split(';')
+    const row: Record<string, string> = {}
+    headers.forEach((h, i) => { row[h.trim()] = cols[i]?.trim() ?? '' })
+    return {
+      Ph: row['Keyword'] ?? row['Ph'] ?? '',
+      Po: parseInt(row['Position'] ?? row['Po'] ?? '0', 10),
+      Nq: parseInt(row['Search Volume'] ?? row['Nq'] ?? '0', 10),
+      Kd: parseFloat(row['Keyword Difficulty'] ?? row['Kd'] ?? '0'),
+    }
+  }).filter((r) => r.Ph)
+}
+
+export async function fetchSemrushGap(params: {
+  clientDomain: string
+  competitors: string[]
+  pageSection: string
+  database: string
+}): Promise<{ gaps: GapKeyword[]; error?: string }> {
+  try {
+    await requireAdmin()
+
+    const apiKey = process.env.SEMRUSH_API_KEY
+    if (!apiKey) {
+      return { gaps: [], error: 'SEMRUSH_API_KEY is not configured. Add it to your environment variables.' }
+    }
+
+    const competitors = params.competitors
+      .map((c) => normalizeDomain(c))
+      .filter(Boolean)
+
+    if (competitors.length === 0 || competitors.length > 4) {
+      return { gaps: [], error: 'Provide between 1 and 4 competitor domains.' }
+    }
+
+    const clientDomain = normalizeDomain(params.clientDomain)
+    if (!clientDomain) {
+      return { gaps: [], error: 'Client domain is required.' }
+    }
+
+    const db = params.database || 'us'
+    const displayFilter = PAGE_SECTION_FILTERS[params.pageSection] ?? null
+
+    // Fetch client keywords (no URL filter)
+    const clientRows = await semrushQuery(clientDomain, db, apiKey)
+    const clientMap = new Map<string, number>()
+    for (const row of clientRows) {
+      clientMap.set(row.Ph.toLowerCase(), row.Po)
+    }
+
+    // Fetch competitor keywords in parallel
+    const competitorResults = await Promise.all(
+      competitors.map(async (domain) => ({
+        domain,
+        rows: await semrushQuery(domain, db, apiKey, displayFilter),
+      }))
+    )
+
+    // Merge: find keywords competitors rank for but client doesn't (or ranks >20)
+    const gapMap = new Map<string, GapKeyword>()
+
+    for (const { domain, rows } of competitorResults) {
+      for (const row of rows) {
+        const kw = row.Ph.toLowerCase()
+        const clientPos = clientMap.get(kw) ?? null
+        if (clientPos !== null && clientPos <= 20) continue
+
+        const existing = gapMap.get(kw)
+        if (existing) {
+          existing.competitorPositions.push({ domain, position: row.Po })
+          if (row.Nq > existing.volume) existing.volume = row.Nq
+          if (row.Kd > existing.difficulty) existing.difficulty = row.Kd
+        } else {
+          gapMap.set(kw, {
+            keyword: row.Ph,
+            volume: row.Nq,
+            difficulty: row.Kd,
+            competitorPositions: [{ domain, position: row.Po }],
+            clientPosition: clientPos,
+          })
+        }
+      }
+    }
+
+    const gaps = Array.from(gapMap.values())
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 100)
+
+    return { gaps }
+  } catch (err) {
+    return { gaps: [], error: err instanceof Error ? err.message : 'Failed to run gap analysis' }
+  }
+}
+
 // ── Content Gap Finder ────────────────────────────────────────────────────────
 
 export type ContentGap = {

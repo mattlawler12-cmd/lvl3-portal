@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/auth'
 import { resolveSelectedClientId } from '@/lib/client-resolution'
 import Link from 'next/link'
-import { Wrench, TrendingUp, Eye, FileSearch, ImageIcon } from 'lucide-react'
+import { Wrench, TrendingUp, Eye, FileSearch, ImageIcon, GitCompare } from 'lucide-react'
 
 const TOOLS = [
   {
@@ -26,6 +26,14 @@ const TOOLS = [
     label: 'Content Gap Finder',
     description:
       'Surface high-impression queries with low CTR or poor rankings — pages that need copy, title, or structural work.',
+    requiresClient: true,
+  },
+  {
+    href: '/tools/semrush-gap',
+    icon: GitCompare,
+    label: 'Competitor Gap Analysis',
+    description:
+      "Find keywords competitors rank for that your client doesn't. Filter by blog, product, service, or location pages.",
     requiresClient: true,
   },
   {
