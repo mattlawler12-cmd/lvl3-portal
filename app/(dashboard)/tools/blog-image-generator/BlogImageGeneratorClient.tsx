@@ -89,6 +89,10 @@ export default function BlogImageGeneratorClient() {
   const [completedCount, setCompletedCount] = useState(0)
 
   const imageDataRef = useRef<Map<string, string>>(new Map())
+  const abortRef = useRef<AbortController | null>(null)
+  const stallTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const STALL_TIMEOUT_MS = 120_000
 
   function handleFile(file: File) {
     setFileName(file.name)
@@ -128,6 +132,21 @@ export default function BlogImageGeneratorClient() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  function resetStallTimer() {
+    if (stallTimerRef.current) clearTimeout(stallTimerRef.current)
+    stallTimerRef.current = setTimeout(() => {
+      abortRef.current?.abort()
+      setError('Generation stalled — no response from server for 2 minutes')
+      setGenerating(false)
+    }, STALL_TIMEOUT_MS)
+  }
+
+  function handleCancel() {
+    abortRef.current?.abort()
+    if (stallTimerRef.current) clearTimeout(stallTimerRef.current)
+    setGenerating(false)
+  }
+
   async function handleGenerate() {
     if (!fileText || previewRows.length === 0 || generating) return
 
@@ -142,6 +161,9 @@ export default function BlogImageGeneratorClient() {
     setCompletedCount(0)
     imageDataRef.current = new Map()
 
+    const abortController = new AbortController()
+    abortRef.current = abortController
+
     const formData = new FormData()
     const blob = new Blob([fileText], { type: 'text/plain' })
     formData.append('file', blob, fileName || 'prompts.csv')
@@ -151,6 +173,7 @@ export default function BlogImageGeneratorClient() {
       const res = await fetch('/api/generate-blog-images', {
         method: 'POST',
         body: formData,
+        signal: abortController.signal,
       })
 
       if (!res.ok) {
@@ -164,9 +187,13 @@ export default function BlogImageGeneratorClient() {
       const decoder = new TextDecoder()
       let buffer = ''
 
+      resetStallTimer()
+
       while (true) {
         const { done: streamDone, value } = await reader.read()
         if (streamDone) break
+
+        resetStallTimer()
 
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
@@ -176,13 +203,15 @@ export default function BlogImageGeneratorClient() {
           if (!line.trim()) continue
           try {
             const event = JSON.parse(line) as {
-              type: 'progress' | 'image' | 'image_error' | 'done' | 'error'
+              type: 'progress' | 'image' | 'image_error' | 'done' | 'error' | 'heartbeat'
               index?: number
               total?: number
               filename?: string
               data?: string
               message?: string
             }
+
+            if (event.type === 'heartbeat') continue
 
             if (event.type === 'progress' && event.filename) {
               setImages((prev) =>
@@ -222,8 +251,14 @@ export default function BlogImageGeneratorClient() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect')
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        // user cancelled or stall timeout — error already set if stall
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to connect')
+      }
     } finally {
+      if (stallTimerRef.current) clearTimeout(stallTimerRef.current)
+      abortRef.current = null
       setGenerating(false)
     }
   }
@@ -336,6 +371,16 @@ export default function BlogImageGeneratorClient() {
           {generating && <Loader2 className="w-4 h-4 animate-spin" />}
           {generating ? 'Generating…' : 'Generate Images'}
         </button>
+
+        {generating && (
+          <button
+            onClick={handleCancel}
+            className="flex items-center gap-2 px-5 py-2.5 bg-surface-800 hover:bg-surface-700 text-surface-300 text-sm font-medium rounded-lg transition-colors border border-surface-600"
+          >
+            <X className="w-4 h-4" />
+            Cancel
+          </button>
+        )}
 
         {done && successCount > 0 && (
           <button

@@ -70,13 +70,20 @@ function parseCsvTsv(text: string): ParsedRow[] {
   return rows
 }
 
+const PER_IMAGE_TIMEOUT_MS = 90_000
+
 async function generateAndCrop(prompt: string): Promise<Buffer> {
-  const resp = await openai.images.generate({
-    model: 'gpt-image-1',
-    prompt,
-    size: '1536x1024',
-    n: 1,
-  })
+  const resp = await Promise.race([
+    openai.images.generate({
+      model: 'gpt-image-1',
+      prompt,
+      size: '1536x1024',
+      n: 1,
+    }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('OpenAI image generation timed out (90s)')), PER_IMAGE_TIMEOUT_MS)
+    ),
+  ])
 
   const b64 = resp.data?.[0]?.b64_json
   if (!b64) throw new Error('No image data returned from OpenAI')
@@ -90,7 +97,7 @@ async function generateAndCrop(prompt: string): Promise<Buffer> {
       fit: 'cover',
       position: 'centre',
     })
-    .webp({ quality: 82, effort: 6 })
+    .webp({ quality: 82, effort: 4 })
     .toBuffer()
 
   return webpBuffer
@@ -144,33 +151,51 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream({
     async start(controller) {
       const total = rows.length
+      let heartbeatTimer: ReturnType<typeof setInterval> | null = null
 
-      for (let i = 0; i < total; i++) {
-        const { filename, prompt } = rows[i]
-        const fullFilename = `${filename}.webp`
+      try {
+        heartbeatTimer = setInterval(() => {
+          try {
+            emit(controller, { type: 'heartbeat' })
+          } catch { /* controller may be closed */ }
+        }, 15_000)
 
-        emit(controller, { type: 'progress', index: i, total, filename: fullFilename })
+        for (let i = 0; i < total; i++) {
+          const { filename, prompt } = rows[i]
+          const fullFilename = `${filename}.webp`
 
-        try {
-          const fullPrompt = styleRules
-            ? `${prompt}\n\n${styleRules}`
-            : prompt
+          emit(controller, { type: 'progress', index: i, total, filename: fullFilename })
 
-          const webpBuffer = await generateAndCrop(fullPrompt)
-          const b64 = webpBuffer.toString('base64')
+          try {
+            const fullPrompt = styleRules
+              ? `${prompt}\n\n${styleRules}`
+              : prompt
 
-          emit(controller, { type: 'image', filename: fullFilename, data: b64 })
-        } catch (err) {
-          emit(controller, {
-            type: 'image_error',
-            filename: fullFilename,
-            message: err instanceof Error ? err.message : 'Generation failed',
-          })
+            const webpBuffer = await generateAndCrop(fullPrompt)
+            const b64 = webpBuffer.toString('base64')
+
+            emit(controller, { type: 'image', filename: fullFilename, data: b64 })
+          } catch (err) {
+            emit(controller, {
+              type: 'image_error',
+              filename: fullFilename,
+              message: err instanceof Error ? err.message : 'Generation failed',
+            })
+          }
         }
-      }
 
-      emit(controller, { type: 'done', total })
-      controller.close()
+        emit(controller, { type: 'done', total })
+      } catch (err) {
+        try {
+          emit(controller, {
+            type: 'error',
+            message: err instanceof Error ? err.message : 'Stream failed unexpectedly',
+          })
+        } catch { /* controller may already be closed */ }
+      } finally {
+        if (heartbeatTimer) clearInterval(heartbeatTimer)
+        try { controller.close() } catch { /* already closed */ }
+      }
     },
   })
 
