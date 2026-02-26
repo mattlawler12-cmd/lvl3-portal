@@ -65,7 +65,7 @@ export default function SemrushGapClient({
   // New state
   const [matrix, setMatrix] = useState<MatrixKeyword[]>([])
   const [relevanceScores, setRelevanceScores] = useState<Record<string, number>>({})
-  const [activeTab, setActiveTab] = useState<'matrix' | 'gaps'>('gaps')
+  const [activeTab, setActiveTab] = useState<'matrix' | 'gaps' | 'urls'>('gaps')
   const [activeReportId, setActiveReportId] = useState<string | null>(null)
   const [minVolumeInput, setMinVolumeInput] = useState('')
   const [includeTermsInput, setIncludeTermsInput] = useState('')
@@ -160,6 +160,104 @@ export default function SemrushGapClient({
     })
   }, [gapKeywords, search, minRelevance, sortKey, sortDir])
 
+  type UrlCoverageRow = {
+    url: string
+    domain: string
+    totalKeywords: number
+    top10Keywords: number
+    domainOverlap: Record<string, number>
+    clientOverlap: number
+    gapScore: number
+  }
+
+  const urlCoverage = useMemo((): UrlCoverageRow[] => {
+    if (!resolvedClientDomain) return []
+
+    // Group keywords by competitor URL
+    const urlKeywords = new Map<string, { domain: string; keywords: Set<string> }>()
+
+    for (const m of matrix) {
+      for (const [domain, pos] of Object.entries(m.positions)) {
+        if (domain === resolvedClientDomain || !pos.url) continue
+        const existing = urlKeywords.get(pos.url)
+        if (existing) {
+          existing.keywords.add(m.keyword)
+        } else {
+          urlKeywords.set(pos.url, { domain, keywords: new Set([m.keyword]) })
+        }
+      }
+    }
+
+    // Build keyword → domains lookup
+    const keywordDomains = new Map<string, Record<string, number>>()
+    for (const m of matrix) {
+      const domainPositions: Record<string, number> = {}
+      for (const [domain, pos] of Object.entries(m.positions)) {
+        domainPositions[domain] = pos.position
+      }
+      keywordDomains.set(m.keyword, domainPositions)
+    }
+
+    const rows: UrlCoverageRow[] = []
+    for (const [url, { domain, keywords }] of Array.from(urlKeywords.entries())) {
+      if (keywords.size < 5) continue
+
+      const keywordArr = Array.from(keywords)
+      let top10 = 0
+      const domainOverlap: Record<string, number> = {}
+
+      for (const d of allDomains) domainOverlap[d] = 0
+
+      for (const kw of keywordArr) {
+        const positions = keywordDomains.get(kw)
+        if (!positions) continue
+        // Count top 10 for this URL's domain
+        const thisPos = positions[domain]
+        if (thisPos !== undefined && thisPos <= 10) top10++
+        // Count overlap per domain
+        for (const d of allDomains) {
+          if (positions[d] !== undefined) domainOverlap[d]++
+        }
+      }
+
+      const clientOverlap = domainOverlap[resolvedClientDomain] ?? 0
+
+      rows.push({
+        url,
+        domain,
+        totalKeywords: keywordArr.length,
+        top10Keywords: top10,
+        domainOverlap,
+        clientOverlap,
+        gapScore: keywordArr.length - clientOverlap,
+      })
+    }
+
+    rows.sort((a, b) => b.gapScore - a.gapScore)
+    return rows
+  }, [matrix, resolvedClientDomain, allDomains])
+
+  const filteredUrls = useMemo(() => {
+    let result = urlCoverage
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter((r) => r.url.toLowerCase().includes(q))
+    }
+    return [...result].sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1
+      if (sortKey === 'url') return dir * a.url.localeCompare(b.url)
+      if (sortKey === 'domain') return dir * a.domain.localeCompare(b.domain)
+      if (sortKey === 'totalKeywords') return dir * (a.totalKeywords - b.totalKeywords)
+      if (sortKey === 'top10Keywords') return dir * (a.top10Keywords - b.top10Keywords)
+      if (sortKey === 'clientOverlap') return dir * (a.clientOverlap - b.clientOverlap)
+      if (sortKey === 'gapScore') return dir * (a.gapScore - b.gapScore)
+      // Competitor domain overlap column
+      const aVal = a.domainOverlap[sortKey] ?? 0
+      const bVal = b.domainOverlap[sortKey] ?? 0
+      return dir * (aVal - bVal)
+    })
+  }, [urlCoverage, search, sortKey, sortDir])
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -250,13 +348,47 @@ export default function SemrushGapClient({
   }
 
   function downloadCSV() {
+    if (activeTab === 'urls') {
+      const headers = ['URL', 'Domain', 'Keywords', 'Top 10', `${clientName || resolvedClientDomain} Overlap`]
+      for (const d of competitorDomains) headers.push(`${d} Overlap`)
+      headers.push('Gap Score')
+
+      const csvRows = [headers.join(',')]
+      for (const row of filteredUrls) {
+        const cells = [
+          `"${row.url.replace(/"/g, '""')}"`,
+          row.domain,
+          String(row.totalKeywords),
+          String(row.top10Keywords),
+          String(row.clientOverlap),
+        ]
+        for (const d of competitorDomains) {
+          cells.push(String(row.domainOverlap[d] ?? 0))
+        }
+        cells.push(String(row.gapScore))
+        csvRows.push(cells.join(','))
+      }
+
+      const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      const dateStr = new Date().toISOString().slice(0, 10)
+      a.href = url
+      a.download = `${resolvedClientDomain}-url-coverage-${dateStr}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      return
+    }
+
     const isGaps = activeTab === 'gaps'
     const domains = isGaps ? [resolvedClientDomain, ...competitorDomains] : allDomains
     const rows = isGaps ? filteredGaps : filteredMatrix
 
     const headers = ['Keyword', 'Volume', 'Competition']
     if (isGaps) headers.push('Relevance')
-    headers.push(...domains)
+    for (const d of domains) {
+      headers.push(`${d} Pos`, `${d} URL`)
+    }
 
     const csvRows = [headers.join(',')]
     for (const row of rows) {
@@ -271,6 +403,7 @@ export default function SemrushGapClient({
       for (const d of domains) {
         const pos = ('positions' in row ? row.positions : (row as typeof filteredGaps[0]).positions)[d]
         cells.push(pos ? String(pos.position) : '')
+        cells.push(pos?.url ? `"${pos.url.replace(/"/g, '""')}"` : '')
       }
       csvRows.push(cells.join(','))
     }
@@ -532,6 +665,17 @@ export default function SemrushGapClient({
               >
                 Gap Keywords ({gapKeywords.length.toLocaleString()})
               </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('urls'); setSortKey('gapScore'); setSortDir('desc'); setSearch('') }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'urls'
+                    ? 'bg-surface-700 text-surface-100'
+                    : 'text-surface-400 hover:text-surface-200'
+                }`}
+              >
+                URL Coverage ({urlCoverage.length.toLocaleString()})
+              </button>
             </div>
 
             <div className="flex items-center gap-3">
@@ -555,7 +699,7 @@ export default function SemrushGapClient({
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Filter keywords…"
+                  placeholder={activeTab === 'urls' ? 'Filter URLs…' : 'Filter keywords…'}
                   className={`${inputClass} pl-8`}
                 />
               </div>
@@ -714,6 +858,68 @@ export default function SemrushGapClient({
                     <button className="underline hover:text-surface-300" onClick={() => setMinRelevance(0)}>Show all relevance levels</button>
                   )}
                 </p>
+              )}
+            </div>
+          )}
+
+          {/* URL Coverage Table */}
+          {activeTab === 'urls' && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-surface-700">
+                    <SortHeader label="Competitor URL" sortKey="url" current={sortKey} dir={sortDir} onSort={toggleSort} align="left" />
+                    <SortHeader label="Domain" sortKey="domain" current={sortKey} dir={sortDir} onSort={toggleSort} align="left" />
+                    <SortHeader label="Keywords" sortKey="totalKeywords" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortHeader label="Top 10" sortKey="top10Keywords" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortHeader label={clientName || 'Client'} sortKey="clientOverlap" current={sortKey} dir={sortDir} onSort={toggleSort} isClient />
+                    {competitorDomains.map((d) => (
+                      <SortHeader key={d} label={d} sortKey={d} current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    ))}
+                    <SortHeader label="Gap" sortKey="gapScore" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUrls.map((row) => {
+                    const pct = row.totalKeywords > 0 ? row.clientOverlap / row.totalKeywords : 0
+                    const pctColor = pct >= 0.5 ? 'text-emerald-400' : pct >= 0.25 ? 'text-yellow-400' : 'text-red-400'
+                    return (
+                      <tr key={row.url} className="border-b border-surface-800 hover:bg-surface-850">
+                        <td className="py-2 pr-4 max-w-[300px]">
+                          <a
+                            href={row.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-surface-300 hover:text-brand-400 text-xs truncate block"
+                            title={row.url}
+                          >
+                            {row.url.replace(/^https?:\/\/[^/]+/, '') || '/'}
+                          </a>
+                        </td>
+                        <td className="py-2 pr-4 text-surface-400 text-xs whitespace-nowrap">{row.domain}</td>
+                        <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-marigold)' }}>
+                          {row.totalKeywords}
+                        </td>
+                        <td className="py-2 px-3 text-right tabular-nums text-surface-300">{row.top10Keywords}</td>
+                        <td className={`py-2 px-3 text-right tabular-nums ${pctColor}`}>
+                          {row.clientOverlap} / {row.totalKeywords}
+                          <span className="text-[10px] ml-1">({Math.round(pct * 100)}%)</span>
+                        </td>
+                        {competitorDomains.map((d) => (
+                          <td key={d} className="py-2 px-3 text-right tabular-nums text-surface-400">
+                            {row.domainOverlap[d] ?? 0}
+                          </td>
+                        ))}
+                        <td className="py-2 px-3 text-right tabular-nums font-medium" style={{ color: 'var(--color-marigold)' }}>
+                          {row.gapScore}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+              {filteredUrls.length === 0 && search && (
+                <p className="text-xs text-surface-500 text-center py-4">No URLs match the filter.</p>
               )}
             </div>
           )}
