@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/auth'
 import { resolveSelectedClientId } from '@/lib/client-resolution'
 import Link from 'next/link'
-import { Wrench, TrendingUp, Eye, FileSearch } from 'lucide-react'
+import { Wrench, TrendingUp, Eye, FileSearch, ImageIcon } from 'lucide-react'
 
 const TOOLS = [
   {
@@ -10,6 +10,7 @@ const TOOLS = [
     label: 'Keyword Quick Wins',
     description:
       'Find keywords ranking positions 4-20 with high impressions. The easiest clicks you are leaving on the table.',
+    requiresClient: true,
   },
   {
     href: '/tools/ai-visibility',
@@ -17,6 +18,7 @@ const TOOLS = [
     label: 'AI Visibility Check',
     description:
       'Measure branded vs. non-branded search share. See whether AI referral traffic is building brand recognition.',
+    requiresClient: true,
   },
   {
     href: '/tools/content-gaps',
@@ -24,6 +26,15 @@ const TOOLS = [
     label: 'Content Gap Finder',
     description:
       'Surface high-impression queries with low CTR or poor rankings — pages that need copy, title, or structural work.',
+    requiresClient: true,
+  },
+  {
+    href: '/tools/blog-image-generator',
+    icon: ImageIcon,
+    label: 'Blog Image Generator',
+    description:
+      'Upload a CSV or TSV of post titles and prompts. Generates 1500×1000 WebP images via OpenAI and bundles them into a ZIP.',
+    requiresClient: false,
   },
 ]
 
@@ -52,33 +63,36 @@ export default async function ToolsPage() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {TOOLS.map(({ href, icon: Icon, label, description }) => (
-          <Link
-            key={href}
-            href={selectedClientId ? href : '#'}
-            className={`bg-surface-900 border border-surface-700 rounded-xl p-6 space-y-3 transition-all duration-200 ${
-              selectedClientId
-                ? 'hover:border-surface-600 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)]'
-                : 'opacity-50 cursor-not-allowed'
-            }`}
-          >
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: 'rgba(254,199,124,0.1)' }}
+        {TOOLS.map(({ href, icon: Icon, label, description, requiresClient }) => {
+          const enabled = !requiresClient || !!selectedClientId
+          return (
+            <Link
+              key={href}
+              href={enabled ? href : '#'}
+              className={`bg-surface-900 border border-surface-700 rounded-xl p-6 space-y-3 transition-all duration-200 ${
+                enabled
+                  ? 'hover:border-surface-600 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgba(0,0,0,0.12)]'
+                  : 'opacity-50 cursor-not-allowed'
+              }`}
             >
-              <Icon className="w-4 h-4" style={{ color: 'var(--color-marigold)' }} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-surface-100 mb-1">{label}</p>
-              <p className="text-xs text-surface-400 leading-relaxed">{description}</p>
-            </div>
-            {selectedClientId && (
-              <p className="text-xs font-medium" style={{ color: 'var(--color-marigold)' }}>
-                Run →
-              </p>
-            )}
-          </Link>
-        ))}
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(254,199,124,0.1)' }}
+              >
+                <Icon className="w-4 h-4" style={{ color: 'var(--color-marigold)' }} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-surface-100 mb-1">{label}</p>
+                <p className="text-xs text-surface-400 leading-relaxed">{description}</p>
+              </div>
+              {enabled && (
+                <p className="text-xs font-medium" style={{ color: 'var(--color-marigold)' }}>
+                  Run →
+                </p>
+              )}
+            </Link>
+          )
+        })}
       </div>
     </div>
   )
