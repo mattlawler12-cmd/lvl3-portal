@@ -46,6 +46,7 @@ export default async function SemrushGapPage() {
 
       <SemrushGapClient
         clientName={client?.name ?? ''}
+        clientId={selectedClientId}
         defaultClientDomain={defaultClientDomain}
       />
     </div>

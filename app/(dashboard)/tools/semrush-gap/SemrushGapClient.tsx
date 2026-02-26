@@ -1,8 +1,19 @@
 'use client'
 
-import { useState, useTransition, useMemo } from 'react'
-import { Loader2, Plus, X, Search, ArrowUpDown } from 'lucide-react'
-import { fetchSemrushGap, type GapKeyword } from '@/app/actions/tools'
+import { useState, useTransition, useMemo, useEffect, useCallback } from 'react'
+import { Loader2, Plus, X, Search, ArrowUpDown, Download, History, Trash2 } from 'lucide-react'
+import { runSemrushAnalysis, type MatrixKeyword, type PreFilters, type SemrushReportMeta } from '@/app/actions/tools'
+
+function normalizeDomain(raw: string): string {
+  return raw
+    .replace(/^sc-domain:/, '')
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/.*$/, '')
+    .toLowerCase()
+    .trim()
+}
+import { listSemrushReports, loadSemrushReport, deleteSemrushReport } from '@/app/actions/semrush-reports'
 
 const PAGE_SECTIONS = [
   { value: 'all', label: 'All Pages' },
@@ -31,9 +42,11 @@ const RELEVANCE_OPTIONS = [
 
 export default function SemrushGapClient({
   clientName,
+  clientId,
   defaultClientDomain,
 }: {
   clientName: string
+  clientId: string
   defaultClientDomain: string
 }) {
   const [clientDomain, setClientDomain] = useState(defaultClientDomain)
@@ -41,7 +54,6 @@ export default function SemrushGapClient({
   const [pageSection, setPageSection] = useState('all')
   const [database, setDatabase] = useState('us')
   const [isPending, startTransition] = useTransition()
-  const [gaps, setGaps] = useState<GapKeyword[]>([])
   const [error, setError] = useState<string | null>(null)
   const [hasRun, setHasRun] = useState(false)
   const [clientKeywordCount, setClientKeywordCount] = useState(0)
@@ -50,18 +62,77 @@ export default function SemrushGapClient({
   const [sortKey, setSortKey] = useState<SortKey>('relevance')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
-  const allCompetitorDomains = useMemo(() => {
+  // New state
+  const [matrix, setMatrix] = useState<MatrixKeyword[]>([])
+  const [relevanceScores, setRelevanceScores] = useState<Record<string, number>>({})
+  const [activeTab, setActiveTab] = useState<'matrix' | 'gaps'>('gaps')
+  const [activeReportId, setActiveReportId] = useState<string | null>(null)
+  const [minVolumeInput, setMinVolumeInput] = useState('')
+  const [includeTermsInput, setIncludeTermsInput] = useState('')
+  const [excludeTermsInput, setExcludeTermsInput] = useState('')
+  const [reports, setReports] = useState<SemrushReportMeta[]>([])
+  const [showHistory, setShowHistory] = useState(false)
+  const [resolvedClientDomain, setResolvedClientDomain] = useState('')
+
+  const fetchReports = useCallback(async () => {
+    const list = await listSemrushReports(clientId)
+    setReports(list)
+  }, [clientId])
+
+  useEffect(() => {
+    fetchReports()
+  }, [fetchReports])
+
+  const allDomains = useMemo(() => {
     const set = new Set<string>()
-    for (const g of gaps) {
-      for (const cp of g.competitorPositions) {
-        set.add(cp.domain)
+    for (const m of matrix) {
+      for (const d of Object.keys(m.positions)) {
+        set.add(d)
       }
     }
     return Array.from(set)
-  }, [gaps])
+  }, [matrix])
+
+  const competitorDomains = useMemo(() => {
+    return allDomains.filter((d) => d !== resolvedClientDomain)
+  }, [allDomains, resolvedClientDomain])
+
+  const gapKeywords = useMemo(() => {
+    return matrix
+      .filter((m) => {
+        const cp = m.positions[resolvedClientDomain]
+        return !cp || cp.position > 20
+      })
+      .map((m) => ({
+        keyword: m.keyword,
+        volume: m.volume,
+        competition: m.competition,
+        relevance: relevanceScores[m.keyword] ?? 0,
+        clientPosition: m.positions[resolvedClientDomain]?.position ?? null,
+        clientUrl: m.positions[resolvedClientDomain]?.url ?? null,
+        positions: m.positions,
+      }))
+  }, [matrix, relevanceScores, resolvedClientDomain])
+
+  const filteredMatrix = useMemo(() => {
+    let result = matrix
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter((m) => m.keyword.toLowerCase().includes(q))
+    }
+    return [...result].sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1
+      if (sortKey === 'keyword') return dir * a.keyword.localeCompare(b.keyword)
+      if (sortKey === 'volume') return dir * (a.volume - b.volume)
+      if (sortKey === 'competition') return dir * (a.competition - b.competition)
+      // Domain column sort
+      const getPos = (m: MatrixKeyword) => m.positions[sortKey]?.position ?? 999
+      return dir * (getPos(a) - getPos(b))
+    })
+  }, [matrix, search, sortKey, sortDir])
 
   const filteredGaps = useMemo(() => {
-    let result = gaps
+    let result = gapKeywords
     if (minRelevance > 0) {
       result = result.filter((g) => g.relevance >= minRelevance)
     }
@@ -84,11 +155,10 @@ export default function SemrushGapClient({
         const bPos = b.clientPosition ?? 999
         return dir * (aPos - bPos)
       }
-      const getPos = (g: GapKeyword) =>
-        g.competitorPositions.find((cp) => cp.domain === sortKey)?.position ?? 999
+      const getPos = (g: typeof gapKeywords[0]) => g.positions[sortKey]?.position ?? 999
       return dir * (getPos(a) - getPos(b))
     })
-  }, [gaps, search, minRelevance, sortKey, sortDir])
+  }, [gapKeywords, search, minRelevance, sortKey, sortDir])
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -110,23 +180,109 @@ export default function SemrushGapClient({
       return
     }
 
+    const filters: PreFilters = {
+      minVolume: minVolumeInput ? parseInt(minVolumeInput, 10) : null,
+      includeTerms: includeTermsInput ? includeTermsInput.split(',').map((t) => t.trim()).filter(Boolean) : [],
+      excludeTerms: excludeTermsInput ? excludeTermsInput.split(',').map((t) => t.trim()).filter(Boolean) : [],
+    }
+
     setError(null)
     startTransition(async () => {
-      const result = await fetchSemrushGap({
+      const result = await runSemrushAnalysis({
+        clientId,
         clientDomain: clientDomain.trim(),
         competitors: filtered,
         pageSection,
         database,
+        filters,
       })
-      setGaps(result.gaps)
-      setClientKeywordCount(result.clientKeywordCount)
-      setError(result.error ?? null)
-      setHasRun(true)
-      setSearch('')
-      setMinRelevance(3)
-      setSortKey('relevance')
-      setSortDir('desc')
+      if (result.error) {
+        setError(result.error)
+      } else {
+        setMatrix(result.matrix ?? [])
+        setRelevanceScores(result.relevanceScores ?? {})
+        setClientKeywordCount(result.clientKeywordCount ?? 0)
+        setResolvedClientDomain(result.clientDomain ?? normalizeDomain(clientDomain))
+        setActiveReportId(result.reportId ?? null)
+        setHasRun(true)
+        setSearch('')
+        setMinRelevance(3)
+        setSortKey('relevance')
+        setSortDir('desc')
+        await fetchReports()
+      }
     })
+  }
+
+  async function handleLoadReport(reportId: string) {
+    const report = await loadSemrushReport(reportId)
+    if (!report) {
+      setError('Failed to load report.')
+      return
+    }
+    setMatrix(report.matrix_data)
+    setRelevanceScores(report.relevance_scores ?? {})
+    setClientKeywordCount(report.client_keyword_count)
+    setResolvedClientDomain(report.client_domain)
+    setClientDomain(report.client_domain)
+    setCompetitors(report.competitors.length > 0 ? report.competitors : [''])
+    setPageSection(report.page_section)
+    setDatabase(report.database)
+    setMinVolumeInput(report.filters.minVolume ? String(report.filters.minVolume) : '')
+    setIncludeTermsInput(report.filters.includeTerms?.join(', ') ?? '')
+    setExcludeTermsInput(report.filters.excludeTerms?.join(', ') ?? '')
+    setActiveReportId(report.id)
+    setHasRun(true)
+    setError(null)
+    setSearch('')
+    setMinRelevance(3)
+    setSortKey('relevance')
+    setSortDir('desc')
+    setShowHistory(false)
+  }
+
+  async function handleDeleteReport(reportId: string) {
+    await deleteSemrushReport(reportId)
+    setReports((prev) => prev.filter((r) => r.id !== reportId))
+    if (activeReportId === reportId) {
+      setActiveReportId(null)
+    }
+  }
+
+  function downloadCSV() {
+    const isGaps = activeTab === 'gaps'
+    const domains = isGaps ? [resolvedClientDomain, ...competitorDomains] : allDomains
+    const rows = isGaps ? filteredGaps : filteredMatrix
+
+    const headers = ['Keyword', 'Volume', 'Competition']
+    if (isGaps) headers.push('Relevance')
+    headers.push(...domains)
+
+    const csvRows = [headers.join(',')]
+    for (const row of rows) {
+      const cells = [
+        `"${row.keyword.replace(/"/g, '""')}"`,
+        String(row.volume),
+        row.competition.toFixed(2),
+      ]
+      if (isGaps) {
+        cells.push(String((row as typeof filteredGaps[0]).relevance))
+      }
+      for (const d of domains) {
+        const pos = ('positions' in row ? row.positions : (row as typeof filteredGaps[0]).positions)[d]
+        cells.push(pos ? String(pos.position) : '')
+      }
+      csvRows.push(cells.join(','))
+    }
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const dateStr = new Date().toISOString().slice(0, 10)
+    a.href = url
+    a.download = `${resolvedClientDomain}-${activeTab}-${dateStr}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const inputClass =
@@ -217,22 +373,120 @@ export default function SemrushGapClient({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isPending}
-          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-surface-100 text-sm font-medium px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2"
-        >
-          {isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Analyzing…
-            </>
-          ) : (
-            'Run Gap Analysis'
+        {/* Pre-filters */}
+        <div>
+          <p className="text-xs font-medium text-surface-400 mb-2 uppercase tracking-wide">Pre-Filters</p>
+          <div className="flex flex-wrap gap-4">
+            <div style={{ maxWidth: 160 }}>
+              <label className="block text-xs text-surface-500 mb-1">Min Volume</label>
+              <input
+                type="number"
+                value={minVolumeInput}
+                onChange={(e) => setMinVolumeInput(e.target.value)}
+                placeholder="e.g. 100"
+                className={inputClass}
+              />
+            </div>
+            <div style={{ maxWidth: 260 }}>
+              <label className="block text-xs text-surface-500 mb-1">Include Terms (comma-sep)</label>
+              <input
+                type="text"
+                value={includeTermsInput}
+                onChange={(e) => setIncludeTermsInput(e.target.value)}
+                placeholder="seo, marketing"
+                className={inputClass}
+              />
+            </div>
+            <div style={{ maxWidth: 260 }}>
+              <label className="block text-xs text-surface-500 mb-1">Exclude Terms (comma-sep)</label>
+              <input
+                type="text"
+                value={excludeTermsInput}
+                onChange={(e) => setExcludeTermsInput(e.target.value)}
+                placeholder="free, cheap"
+                className={inputClass}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isPending}
+            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-surface-100 text-sm font-medium px-5 py-2.5 rounded-lg transition-colors flex items-center gap-2"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Analyzing…
+              </>
+            ) : (
+              'Run Analysis'
+            )}
+          </button>
+          {reports.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowHistory(!showHistory)}
+              className="text-surface-400 hover:text-surface-200 text-sm flex items-center gap-1.5 transition-colors"
+            >
+              <History className="w-4 h-4" />
+              Report History ({reports.length})
+            </button>
           )}
-        </button>
+        </div>
       </div>
+
+      {/* Report History */}
+      {showHistory && reports.length > 0 && (
+        <div className="bg-surface-900 border border-surface-700 rounded-xl p-5 space-y-2">
+          <h3 className="text-xs font-medium text-surface-400 uppercase tracking-wide mb-3">Saved Reports</h3>
+          {reports.map((r) => (
+            <div
+              key={r.id}
+              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm ${
+                activeReportId === r.id ? 'bg-surface-800 border border-surface-600' : 'hover:bg-surface-850'
+              }`}
+            >
+              <div className="text-surface-300">
+                <span className="text-surface-100 font-medium">
+                  {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  {', '}
+                  {new Date(r.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </span>
+                <span className="text-surface-500 mx-2">·</span>
+                {r.competitors.length} competitor{r.competitors.length !== 1 ? 's' : ''}
+                <span className="text-surface-500 mx-2">·</span>
+                {r.keyword_count.toLocaleString()} keywords
+                {r.page_section !== 'all' && (
+                  <>
+                    <span className="text-surface-500 mx-2">·</span>
+                    <span className="text-surface-500">{PAGE_SECTIONS.find((s) => s.value === r.page_section)?.label}</span>
+                  </>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleLoadReport(r.id)}
+                  className="text-xs font-medium px-2.5 py-1 rounded bg-surface-800 text-surface-300 hover:text-surface-100 border border-surface-600 hover:border-surface-500 transition-colors"
+                >
+                  Load
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteReport(r.id)}
+                  className="text-surface-500 hover:text-red-400 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -242,44 +496,59 @@ export default function SemrushGapClient({
       )}
 
       {/* Empty state */}
-      {hasRun && !error && gaps.length === 0 && (
+      {hasRun && !error && matrix.length === 0 && (
         <div className="bg-surface-900 border border-surface-700 rounded-xl px-5 py-4">
           <p className="text-sm text-surface-400">
-            No gap keywords found. Try selecting a different page section or adding different competitors.
+            No keywords found. Try selecting a different page section or adding different competitors.
           </p>
         </div>
       )}
 
       {/* Results */}
-      {hasRun && gaps.length > 0 && (
+      {hasRun && matrix.length > 0 && (
         <div className="bg-surface-900 border border-surface-700 rounded-xl p-5 space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-surface-100">
-                {gaps.length} gap keyword{gaps.length !== 1 ? 's' : ''} found
-                <span className="ml-2 text-xs font-normal text-surface-500">
-                  ({clientKeywordCount.toLocaleString()} client keywords indexed)
-                </span>
-              </h2>
-              {pageSection !== 'all' && (
-                <span className="text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full bg-surface-800 text-surface-400 border border-surface-600">
-                  {PAGE_SECTIONS.find((s) => s.value === pageSection)?.label}
-                </span>
-              )}
+          {/* Tabs */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-1 bg-surface-800 rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => { setActiveTab('matrix'); setSortKey('volume'); setSortDir('desc'); setSearch('') }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'matrix'
+                    ? 'bg-surface-700 text-surface-100'
+                    : 'text-surface-400 hover:text-surface-200'
+                }`}
+              >
+                All Keywords ({matrix.length.toLocaleString()})
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('gaps'); setSortKey('relevance'); setSortDir('desc'); setSearch('') }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'gaps'
+                    ? 'bg-surface-700 text-surface-100'
+                    : 'text-surface-400 hover:text-surface-200'
+                }`}
+              >
+                Gap Keywords ({gapKeywords.length.toLocaleString()})
+              </button>
             </div>
+
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <label className="text-xs text-surface-400 whitespace-nowrap">Min Relevance</label>
-                <select
-                  value={minRelevance}
-                  onChange={(e) => setMinRelevance(Number(e.target.value))}
-                  className={selectClass}
-                >
-                  {RELEVANCE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
+              {activeTab === 'gaps' && (
+                <div className="flex items-center gap-1.5">
+                  <label className="text-xs text-surface-400 whitespace-nowrap">Min Relevance</label>
+                  <select
+                    value={minRelevance}
+                    onChange={(e) => setMinRelevance(Number(e.target.value))}
+                    className={selectClass}
+                  >
+                    {RELEVANCE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="relative" style={{ maxWidth: 260 }}>
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-surface-500" />
                 <input
@@ -290,74 +559,163 @@ export default function SemrushGapClient({
                   className={`${inputClass} pl-8`}
                 />
               </div>
+              <button
+                type="button"
+                onClick={downloadCSV}
+                className="text-surface-400 hover:text-surface-200 transition-colors flex items-center gap-1.5 text-xs font-medium"
+                title="Download CSV"
+              >
+                <Download className="w-4 h-4" />
+                CSV
+              </button>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-surface-700">
-                  <SortHeader label="Keyword" sortKey="keyword" current={sortKey} dir={sortDir} onSort={toggleSort} align="left" />
-                  <SortHeader label="Volume" sortKey="volume" current={sortKey} dir={sortDir} onSort={toggleSort} />
-                  <SortHeader label="Comp" sortKey="competition" current={sortKey} dir={sortDir} onSort={toggleSort} />
-                  <SortHeader label="Relevance" sortKey="relevance" current={sortKey} dir={sortDir} onSort={toggleSort} />
-                  <SortHeader label={clientName || 'Client'} sortKey="clientPosition" current={sortKey} dir={sortDir} onSort={toggleSort} />
-                  {allCompetitorDomains.map((d) => (
-                    <SortHeader key={d} label={d} sortKey={d} current={sortKey} dir={sortDir} onSort={toggleSort} />
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredGaps.map((g) => (
-                  <tr key={g.keyword} className="border-b border-surface-800 hover:bg-surface-850">
-                    <td className="py-2 pr-4 text-surface-200 font-medium whitespace-nowrap">{g.keyword}</td>
-                    <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-marigold)' }}>
-                      {g.volume.toLocaleString()}
-                    </td>
-                    <td className="py-2 px-3 text-right tabular-nums text-surface-400">
-                      {g.competition.toFixed(2)}
-                    </td>
-                    <td className="py-2 px-3 text-right">
-                      <RelevanceBadge score={g.relevance} />
-                    </td>
-                    <td className="py-2 px-3 text-right">
-                      {g.clientPosition === null ? (
-                        <span className="text-amber-400">–</span>
-                      ) : (
-                        <div className="flex flex-col items-end">
-                          <span className="text-surface-500 tabular-nums">{g.clientPosition}</span>
-                          {g.clientUrl && <UrlLink url={g.clientUrl} />}
-                        </div>
-                      )}
-                    </td>
-                    {allCompetitorDomains.map((d) => {
-                      const cp = g.competitorPositions.find((p) => p.domain === d)
-                      return (
-                        <td key={d} className="py-2 px-3 text-right text-surface-300">
-                          {cp ? (
-                            <div className="flex flex-col items-end">
-                              <span className="tabular-nums">{cp.position}</span>
-                              {cp.url && <UrlLink url={cp.url} />}
-                            </div>
-                          ) : (
-                            <span className="text-surface-600">–</span>
-                          )}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="text-xs text-surface-500">
+            {clientKeywordCount.toLocaleString()} client keywords indexed
+            {pageSection !== 'all' && (
+              <span className="ml-2 text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full bg-surface-800 text-surface-400 border border-surface-600">
+                {PAGE_SECTIONS.find((s) => s.value === pageSection)?.label}
+              </span>
+            )}
           </div>
 
-          {filteredGaps.length === 0 && (search || minRelevance > 0) && (
-            <p className="text-xs text-surface-500 text-center py-4">
-              No keywords match the current filters.{' '}
-              {minRelevance > 0 && (
-                <button className="underline hover:text-surface-300" onClick={() => setMinRelevance(0)}>Show all relevance levels</button>
+          {/* Matrix Table */}
+          {activeTab === 'matrix' && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-surface-700">
+                    <SortHeader label="Keyword" sortKey="keyword" current={sortKey} dir={sortDir} onSort={toggleSort} align="left" />
+                    <SortHeader label="Volume" sortKey="volume" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortHeader label="Comp" sortKey="competition" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    {allDomains.map((d) => (
+                      <SortHeader
+                        key={d}
+                        label={d === resolvedClientDomain ? (clientName || d) : d}
+                        sortKey={d}
+                        current={sortKey}
+                        dir={sortDir}
+                        onSort={toggleSort}
+                        isClient={d === resolvedClientDomain}
+                      />
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMatrix.map((m) => (
+                    <tr key={m.keyword} className="border-b border-surface-800 hover:bg-surface-850">
+                      <td className="py-2 pr-4 text-surface-200 font-medium whitespace-nowrap">{m.keyword}</td>
+                      <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-marigold)' }}>
+                        {m.volume.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 text-right tabular-nums text-surface-400">
+                        {m.competition.toFixed(2)}
+                      </td>
+                      {allDomains.map((d) => {
+                        const pos = m.positions[d]
+                        const isClient = d === resolvedClientDomain
+                        return (
+                          <td key={d} className="py-2 px-3 text-right">
+                            {pos ? (
+                              <div className="flex flex-col items-end">
+                                <span className={`tabular-nums ${
+                                  isClient
+                                    ? pos.position <= 10
+                                      ? 'text-emerald-400'
+                                      : pos.position <= 20
+                                        ? 'text-yellow-400'
+                                        : 'text-surface-500'
+                                    : 'text-surface-300'
+                                }`}>
+                                  {pos.position}
+                                </span>
+                                {pos.url && <UrlLink url={pos.url} />}
+                              </div>
+                            ) : (
+                              <span className={isClient ? 'text-amber-400' : 'text-surface-600'}>–</span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {filteredMatrix.length === 0 && search && (
+                <p className="text-xs text-surface-500 text-center py-4">No keywords match the filter.</p>
               )}
-            </p>
+            </div>
+          )}
+
+          {/* Gap Table */}
+          {activeTab === 'gaps' && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-surface-700">
+                    <SortHeader label="Keyword" sortKey="keyword" current={sortKey} dir={sortDir} onSort={toggleSort} align="left" />
+                    <SortHeader label="Volume" sortKey="volume" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortHeader label="Comp" sortKey="competition" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortHeader label="Relevance" sortKey="relevance" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    <SortHeader label={clientName || 'Client'} sortKey="clientPosition" current={sortKey} dir={sortDir} onSort={toggleSort} isClient />
+                    {competitorDomains.map((d) => (
+                      <SortHeader key={d} label={d} sortKey={d} current={sortKey} dir={sortDir} onSort={toggleSort} />
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredGaps.map((g) => (
+                    <tr key={g.keyword} className="border-b border-surface-800 hover:bg-surface-850">
+                      <td className="py-2 pr-4 text-surface-200 font-medium whitespace-nowrap">{g.keyword}</td>
+                      <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-marigold)' }}>
+                        {g.volume.toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 text-right tabular-nums text-surface-400">
+                        {g.competition.toFixed(2)}
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        <RelevanceBadge score={g.relevance} />
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        {g.clientPosition === null ? (
+                          <span className="text-amber-400">–</span>
+                        ) : (
+                          <div className="flex flex-col items-end">
+                            <span className="text-surface-500 tabular-nums">{g.clientPosition}</span>
+                            {g.clientUrl && <UrlLink url={g.clientUrl} />}
+                          </div>
+                        )}
+                      </td>
+                      {competitorDomains.map((d) => {
+                        const pos = g.positions[d]
+                        return (
+                          <td key={d} className="py-2 px-3 text-right text-surface-300">
+                            {pos ? (
+                              <div className="flex flex-col items-end">
+                                <span className="tabular-nums">{pos.position}</span>
+                                {pos.url && <UrlLink url={pos.url} />}
+                              </div>
+                            ) : (
+                              <span className="text-surface-600">–</span>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {filteredGaps.length === 0 && (search || minRelevance > 0) && (
+                <p className="text-xs text-surface-500 text-center py-4">
+                  No keywords match the current filters.{' '}
+                  {minRelevance > 0 && (
+                    <button className="underline hover:text-surface-300" onClick={() => setMinRelevance(0)}>Show all relevance levels</button>
+                  )}
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -403,6 +761,7 @@ function SortHeader({
   dir,
   onSort,
   align = 'right',
+  isClient = false,
 }: {
   label: string
   sortKey: string
@@ -410,11 +769,12 @@ function SortHeader({
   dir: SortDir
   onSort: (key: string) => void
   align?: 'left' | 'right'
+  isClient?: boolean
 }) {
   const active = current === sortKey
   return (
     <th
-      className={`py-2 ${align === 'left' ? 'pr-4 text-left' : 'px-3 text-right'} text-xs font-medium text-surface-400 cursor-pointer select-none hover:text-surface-200 whitespace-nowrap`}
+      className={`py-2 ${align === 'left' ? 'pr-4 text-left' : 'px-3 text-right'} text-xs font-medium ${isClient ? 'text-brand-400' : 'text-surface-400'} cursor-pointer select-none hover:text-surface-200 whitespace-nowrap`}
       onClick={() => onSort(sortKey)}
     >
       <span className="inline-flex items-center gap-1">

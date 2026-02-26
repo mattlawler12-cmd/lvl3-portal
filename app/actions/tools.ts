@@ -182,6 +182,36 @@ export async function checkAIVisibility(clientId: string): Promise<{
 
 // ── Semrush Competitor Gap Analysis ──────────────────────────────────────────
 
+export type MatrixKeyword = {
+  keyword: string
+  volume: number
+  competition: number
+  positions: Record<string, { position: number; url: string }>
+}
+
+export type PreFilters = {
+  minVolume: number | null
+  includeTerms: string[]
+  excludeTerms: string[]
+}
+
+export type SemrushReportMeta = {
+  id: string
+  client_domain: string
+  competitors: string[]
+  database: string
+  page_section: string
+  filters: PreFilters
+  client_keyword_count: number
+  keyword_count: number
+  created_at: string
+}
+
+export type SemrushReportFull = SemrushReportMeta & {
+  matrix_data: MatrixKeyword[]
+  relevance_scores: Record<string, number> | null
+}
+
 export type GapKeyword = {
   keyword: string
   volume: number
@@ -210,6 +240,34 @@ const PAGE_SECTION_FILTERS: Record<string, string | null> = {
   location: 'Pu|Co|/location/|Or|Pu|Co|/locations/',
 }
 
+function buildDisplayFilter(pageSection: string, minVolume: number | null): string | null {
+  const sectionFilter = PAGE_SECTION_FILTERS[pageSection] ?? null
+  const volumeFilter = minVolume && minVolume > 0 ? `Nq|Gt|${minVolume}` : null
+  if (sectionFilter && volumeFilter) return `${sectionFilter}|And|${volumeFilter}`
+  return sectionFilter ?? volumeFilter
+}
+
+function applyKeywordFilters(
+  rows: { Ph: string; Po: number; Nq: number; Co: number; Ur: string }[],
+  includeTerms: string[],
+  excludeTerms: string[]
+): { Ph: string; Po: number; Nq: number; Co: number; Ur: string }[] {
+  let filtered = rows
+  if (includeTerms.length > 0) {
+    filtered = filtered.filter((r) => {
+      const kw = r.Ph.toLowerCase()
+      return includeTerms.some((t) => kw.includes(t.toLowerCase()))
+    })
+  }
+  if (excludeTerms.length > 0) {
+    filtered = filtered.filter((r) => {
+      const kw = r.Ph.toLowerCase()
+      return !excludeTerms.some((t) => kw.includes(t.toLowerCase()))
+    })
+  }
+  return filtered
+}
+
 async function semrushQuery(
   domain: string,
   database: string,
@@ -221,7 +279,7 @@ async function semrushQuery(
     key: apiKey,
     domain,
     database,
-    display_limit: '10000',
+    display_limit: '2500',
     export_columns: 'Ph,Po,Nq,Co,Ur',
   })
   if (displayFilter) {
@@ -257,49 +315,68 @@ async function semrushQuery(
   }).filter((r) => r.Ph)
 }
 
-async function scoreRelevance(gaps: GapKeyword[], clientDomain: string): Promise<void> {
-  if (gaps.length === 0) return
+async function scoreRelevance(keywords: string[], clientDomain: string): Promise<Record<string, number>> {
+  if (keywords.length === 0) return {}
+  const scores: Record<string, number> = {}
   try {
     const anthropic = new Anthropic()
-    const keywords = gaps.map((g) => g.keyword)
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 4096,
-      system: 'You are an SEO relevance scorer. Respond with valid JSON only, no markdown fences.',
-      messages: [
-        {
-          role: 'user',
-          content: `Given the domain "${clientDomain}", score each keyword for business relevance on a 1-5 scale:\n1 = completely irrelevant to the domain's likely business\n2 = tangentially related\n3 = somewhat relevant\n4 = clearly relevant\n5 = highly relevant / core topic\n\nKeywords:\n${JSON.stringify(keywords)}\n\nRespond with exactly: {"scores":{"keyword1":3,"keyword2":5,...}} covering every keyword.`,
-        },
-      ],
-    })
-    const textBlock = response.content.find((b) => b.type === 'text')
-    if (!textBlock || textBlock.type !== 'text') return
-    const parsed = JSON.parse(textBlock.text) as { scores: Record<string, number> }
-    if (!parsed.scores) return
-    for (const gap of gaps) {
-      const score = parsed.scores[gap.keyword]
-      if (typeof score === 'number' && score >= 1 && score <= 5) {
-        gap.relevance = score
+    const chunks: string[][] = []
+    for (let i = 0; i < keywords.length; i += 250) {
+      chunks.push(keywords.slice(i, i + 250))
+    }
+    const results = await Promise.all(
+      chunks.map(async (chunk) => {
+        const response = await anthropic.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 4096,
+          system: 'You are an SEO relevance scorer. Respond with valid JSON only, no markdown fences.',
+          messages: [
+            {
+              role: 'user',
+              content: `Given the domain "${clientDomain}", score each keyword for business relevance on a 1-5 scale:\n1 = completely irrelevant to the domain's likely business\n2 = tangentially related\n3 = somewhat relevant\n4 = clearly relevant\n5 = highly relevant / core topic\n\nKeywords:\n${JSON.stringify(chunk)}\n\nRespond with exactly: {"scores":{"keyword1":3,"keyword2":5,...}} covering every keyword.`,
+            },
+          ],
+        })
+        const textBlock = response.content.find((b) => b.type === 'text')
+        if (!textBlock || textBlock.type !== 'text') return {}
+        const parsed = JSON.parse(textBlock.text) as { scores: Record<string, number> }
+        return parsed.scores ?? {}
+      })
+    )
+    for (const chunk of results) {
+      for (const [kw, score] of Object.entries(chunk)) {
+        if (typeof score === 'number' && score >= 1 && score <= 5) {
+          scores[kw] = score
+        }
       }
     }
   } catch (err) {
     console.error('Relevance scoring failed (scores will be 0):', err)
   }
+  return scores
 }
 
-export async function fetchSemrushGap(params: {
+export async function runSemrushAnalysis(params: {
+  clientId: string
   clientDomain: string
   competitors: string[]
   pageSection: string
   database: string
-}): Promise<{ gaps: GapKeyword[]; clientKeywordCount: number; error?: string }> {
+  filters: PreFilters
+}): Promise<{
+  reportId?: string
+  matrix?: MatrixKeyword[]
+  relevanceScores?: Record<string, number>
+  clientKeywordCount?: number
+  clientDomain?: string
+  error?: string
+}> {
   try {
     await requireAdmin()
 
     const apiKey = process.env.SEMRUSH_API_KEY
     if (!apiKey) {
-      return { gaps: [], clientKeywordCount: 0, error: 'SEMRUSH_API_KEY is not configured. Add it to your environment variables.' }
+      return { error: 'SEMRUSH_API_KEY is not configured. Add it to your environment variables.' }
     }
 
     const competitors = params.competitors
@@ -307,77 +384,120 @@ export async function fetchSemrushGap(params: {
       .filter(Boolean)
 
     if (competitors.length === 0 || competitors.length > 4) {
-      return { gaps: [], clientKeywordCount: 0, error: 'Provide between 1 and 4 competitor domains.' }
+      return { error: 'Provide between 1 and 4 competitor domains.' }
     }
 
     const clientDomain = normalizeDomain(params.clientDomain)
     if (!clientDomain) {
-      return { gaps: [], clientKeywordCount: 0, error: 'Client domain is required.' }
+      return { error: 'Client domain is required.' }
     }
 
     const db = params.database || 'us'
-    const displayFilter = PAGE_SECTION_FILTERS[params.pageSection] ?? null
+    const displayFilter = buildDisplayFilter(params.pageSection, params.filters.minVolume)
 
-    // Fetch client keywords (no URL filter)
-    const clientRows = await semrushQuery(clientDomain, db, apiKey)
-    const clientMap = new Map<string, { position: number; url: string }>()
-    for (const row of clientRows) {
-      clientMap.set(row.Ph.toLowerCase(), { position: row.Po, url: row.Ur })
-    }
+    const clientRows = applyKeywordFilters(
+      await semrushQuery(clientDomain, db, apiKey, displayFilter),
+      params.filters.includeTerms,
+      params.filters.excludeTerms
+    )
 
     if (clientRows.length === 0) {
       return {
-        gaps: [],
-        clientKeywordCount: 0,
         error: `No organic keywords found for "${clientDomain}" in the ${db.toUpperCase()} database. Check that the domain is correct.`,
       }
     }
 
-    // Fetch competitor keywords in parallel
     const competitorResults = await Promise.all(
       competitors.map(async (domain) => ({
         domain,
-        rows: await semrushQuery(domain, db, apiKey, displayFilter),
+        rows: applyKeywordFilters(
+          await semrushQuery(domain, db, apiKey, displayFilter),
+          params.filters.includeTerms,
+          params.filters.excludeTerms
+        ),
       }))
     )
 
-    // Merge: find keywords competitors rank for but client doesn't (or ranks >20)
-    const gapMap = new Map<string, GapKeyword>()
+    // Build master keyword matrix — ALL keywords from all domains
+    const matrixMap = new Map<string, MatrixKeyword>()
+
+    for (const row of clientRows) {
+      const kw = row.Ph.toLowerCase()
+      matrixMap.set(kw, {
+        keyword: row.Ph,
+        volume: row.Nq,
+        competition: row.Co,
+        positions: { [clientDomain]: { position: row.Po, url: row.Ur } },
+      })
+    }
 
     for (const { domain, rows } of competitorResults) {
       for (const row of rows) {
         const kw = row.Ph.toLowerCase()
-        const clientEntry = clientMap.get(kw) ?? null
-        if (clientEntry !== null && clientEntry.position <= 20) continue
-
-        const existing = gapMap.get(kw)
+        const existing = matrixMap.get(kw)
         if (existing) {
-          existing.competitorPositions.push({ domain, position: row.Po, url: row.Ur })
+          existing.positions[domain] = { position: row.Po, url: row.Ur }
           if (row.Nq > existing.volume) existing.volume = row.Nq
           if (row.Co > existing.competition) existing.competition = row.Co
         } else {
-          gapMap.set(kw, {
+          matrixMap.set(kw, {
             keyword: row.Ph,
             volume: row.Nq,
             competition: row.Co,
-            competitorPositions: [{ domain, position: row.Po, url: row.Ur }],
-            clientPosition: clientEntry?.position ?? null,
-            clientUrl: clientEntry?.url ?? null,
-            relevance: 0,
+            positions: { [domain]: { position: row.Po, url: row.Ur } },
           })
         }
       }
     }
 
-    const gaps = Array.from(gapMap.values())
-      .sort((a, b) => b.volume - a.volume)
-      .slice(0, 250)
+    const matrix = Array.from(matrixMap.values()).sort((a, b) => b.volume - a.volume)
 
-    await scoreRelevance(gaps, clientDomain)
+    // Identify gap keywords (client position null or >20), top 500 for scoring
+    const gapKeywords = matrix
+      .filter((m) => {
+        const cp = m.positions[clientDomain]
+        return !cp || cp.position > 20
+      })
+      .slice(0, 500)
+      .map((m) => m.keyword)
 
-    return { gaps, clientKeywordCount: clientRows.length }
+    const relevanceScores = await scoreRelevance(gapKeywords, clientDomain)
+
+    // Persist report
+    const service = await createServiceClient()
+    const { data: report } = await service
+      .from('semrush_reports')
+      .insert({
+        client_id: params.clientId,
+        client_domain: clientDomain,
+        competitors,
+        database: db,
+        page_section: params.pageSection,
+        filters: params.filters,
+        matrix_data: matrix,
+        relevance_scores: relevanceScores,
+        client_keyword_count: clientRows.length,
+        keyword_count: matrix.length,
+      })
+      .select('id')
+      .single()
+
+    // Clean up old reports (>30 days)
+    await service
+      .from('semrush_reports')
+      .delete()
+      .eq('client_id', params.clientId)
+      .lt('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+
+    return {
+      reportId: report?.id,
+      matrix,
+      relevanceScores,
+      clientKeywordCount: clientRows.length,
+      clientDomain,
+    }
   } catch (err) {
-    return { gaps: [], clientKeywordCount: 0, error: err instanceof Error ? err.message : 'Failed to run gap analysis' }
+    return { error: err instanceof Error ? err.message : 'Failed to run gap analysis' }
   }
 }
 
