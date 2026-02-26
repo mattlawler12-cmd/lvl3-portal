@@ -19,8 +19,15 @@ const DATABASES = [
   { value: 'au', label: 'AU' },
 ]
 
-type SortKey = 'keyword' | 'volume' | 'competition' | 'clientPosition' | string
+type SortKey = 'keyword' | 'volume' | 'competition' | 'clientPosition' | 'relevance' | string
 type SortDir = 'asc' | 'desc'
+
+const RELEVANCE_OPTIONS = [
+  { value: 0, label: 'All' },
+  { value: 3, label: '3+' },
+  { value: 4, label: '4+' },
+  { value: 5, label: '5 only' },
+]
 
 export default function SemrushGapClient({
   clientName,
@@ -39,7 +46,8 @@ export default function SemrushGapClient({
   const [hasRun, setHasRun] = useState(false)
   const [clientKeywordCount, setClientKeywordCount] = useState(0)
   const [search, setSearch] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('volume')
+  const [minRelevance, setMinRelevance] = useState(3)
+  const [sortKey, setSortKey] = useState<SortKey>('relevance')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   const allCompetitorDomains = useMemo(() => {
@@ -54,6 +62,9 @@ export default function SemrushGapClient({
 
   const filteredGaps = useMemo(() => {
     let result = gaps
+    if (minRelevance > 0) {
+      result = result.filter((g) => g.relevance >= minRelevance)
+    }
     if (search) {
       const q = search.toLowerCase()
       result = result.filter((g) => g.keyword.toLowerCase().includes(q))
@@ -61,6 +72,11 @@ export default function SemrushGapClient({
     return [...result].sort((a, b) => {
       const dir = sortDir === 'asc' ? 1 : -1
       if (sortKey === 'keyword') return dir * a.keyword.localeCompare(b.keyword)
+      if (sortKey === 'relevance') {
+        const diff = a.relevance - b.relevance
+        if (diff !== 0) return dir * diff
+        return b.volume - a.volume
+      }
       if (sortKey === 'volume') return dir * (a.volume - b.volume)
       if (sortKey === 'competition') return dir * (a.competition - b.competition)
       if (sortKey === 'clientPosition') {
@@ -68,12 +84,11 @@ export default function SemrushGapClient({
         const bPos = b.clientPosition ?? 999
         return dir * (aPos - bPos)
       }
-      // Competitor column sort
       const getPos = (g: GapKeyword) =>
         g.competitorPositions.find((cp) => cp.domain === sortKey)?.position ?? 999
       return dir * (getPos(a) - getPos(b))
     })
-  }, [gaps, search, sortKey, sortDir])
+  }, [gaps, search, minRelevance, sortKey, sortDir])
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) {
@@ -108,7 +123,8 @@ export default function SemrushGapClient({
       setError(result.error ?? null)
       setHasRun(true)
       setSearch('')
-      setSortKey('volume')
+      setMinRelevance(3)
+      setSortKey('relevance')
       setSortDir('desc')
     })
   }
@@ -251,15 +267,29 @@ export default function SemrushGapClient({
                 </span>
               )}
             </div>
-            <div className="relative" style={{ maxWidth: 260 }}>
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-surface-500" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Filter keywords…"
-                className={`${inputClass} pl-8`}
-              />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs text-surface-400 whitespace-nowrap">Min Relevance</label>
+                <select
+                  value={minRelevance}
+                  onChange={(e) => setMinRelevance(Number(e.target.value))}
+                  className={selectClass}
+                >
+                  {RELEVANCE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="relative" style={{ maxWidth: 260 }}>
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-surface-500" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Filter keywords…"
+                  className={`${inputClass} pl-8`}
+                />
+              </div>
             </div>
           </div>
 
@@ -270,6 +300,7 @@ export default function SemrushGapClient({
                   <SortHeader label="Keyword" sortKey="keyword" current={sortKey} dir={sortDir} onSort={toggleSort} align="left" />
                   <SortHeader label="Volume" sortKey="volume" current={sortKey} dir={sortDir} onSort={toggleSort} />
                   <SortHeader label="Comp" sortKey="competition" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                  <SortHeader label="Relevance" sortKey="relevance" current={sortKey} dir={sortDir} onSort={toggleSort} />
                   <SortHeader label={clientName || 'Client'} sortKey="clientPosition" current={sortKey} dir={sortDir} onSort={toggleSort} />
                   {allCompetitorDomains.map((d) => (
                     <SortHeader key={d} label={d} sortKey={d} current={sortKey} dir={sortDir} onSort={toggleSort} />
@@ -286,18 +317,31 @@ export default function SemrushGapClient({
                     <td className="py-2 px-3 text-right tabular-nums text-surface-400">
                       {g.competition.toFixed(2)}
                     </td>
-                    <td className="py-2 px-3 text-right tabular-nums">
+                    <td className="py-2 px-3 text-right">
+                      <RelevanceBadge score={g.relevance} />
+                    </td>
+                    <td className="py-2 px-3 text-right">
                       {g.clientPosition === null ? (
                         <span className="text-amber-400">–</span>
                       ) : (
-                        <span className="text-surface-500">{g.clientPosition}</span>
+                        <div className="flex flex-col items-end">
+                          <span className="text-surface-500 tabular-nums">{g.clientPosition}</span>
+                          {g.clientUrl && <UrlLink url={g.clientUrl} />}
+                        </div>
                       )}
                     </td>
                     {allCompetitorDomains.map((d) => {
                       const cp = g.competitorPositions.find((p) => p.domain === d)
                       return (
-                        <td key={d} className="py-2 px-3 text-right tabular-nums text-surface-300">
-                          {cp ? cp.position : <span className="text-surface-600">–</span>}
+                        <td key={d} className="py-2 px-3 text-right text-surface-300">
+                          {cp ? (
+                            <div className="flex flex-col items-end">
+                              <span className="tabular-nums">{cp.position}</span>
+                              {cp.url && <UrlLink url={cp.url} />}
+                            </div>
+                          ) : (
+                            <span className="text-surface-600">–</span>
+                          )}
                         </td>
                       )
                     })}
@@ -307,12 +351,48 @@ export default function SemrushGapClient({
             </table>
           </div>
 
-          {filteredGaps.length === 0 && search && (
-            <p className="text-xs text-surface-500 text-center py-4">No keywords match &ldquo;{search}&rdquo;</p>
+          {filteredGaps.length === 0 && (search || minRelevance > 0) && (
+            <p className="text-xs text-surface-500 text-center py-4">
+              No keywords match the current filters.{' '}
+              {minRelevance > 0 && (
+                <button className="underline hover:text-surface-300" onClick={() => setMinRelevance(0)}>Show all relevance levels</button>
+              )}
+            </p>
           )}
         </div>
       )}
     </div>
+  )
+}
+
+function UrlLink({ url }: { url: string }) {
+  const path = url.replace(/^https?:\/\/[^/]+/, '')
+  const display = path.length > 35 ? path.slice(0, 32) + '…' : path
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[10px] text-surface-500 hover:text-brand-400 truncate max-w-[180px] block"
+      title={url}
+    >
+      {display || '/'}
+    </a>
+  )
+}
+
+function RelevanceBadge({ score }: { score: number }) {
+  if (score === 0) return <span className="text-surface-600 text-xs">&ndash;</span>
+  const colors =
+    score >= 4
+      ? 'bg-emerald-900/50 text-emerald-400 border-emerald-700'
+      : score === 3
+        ? 'bg-yellow-900/50 text-yellow-400 border-yellow-700'
+        : 'bg-red-900/50 text-red-400 border-red-700'
+  return (
+    <span className={`inline-block text-xs font-medium tabular-nums px-1.5 py-0.5 rounded border ${colors}`}>
+      {score}
+    </span>
   )
 }
 

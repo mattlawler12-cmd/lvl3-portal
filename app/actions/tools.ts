@@ -3,6 +3,7 @@
 import { requireAdmin } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
 import { fetchGSCRows } from '@/lib/tools-gsc'
+import Anthropic from '@anthropic-ai/sdk'
 
 // ── Shared helper ─────────────────────────────────────────────────────────────
 
@@ -185,8 +186,10 @@ export type GapKeyword = {
   keyword: string
   volume: number
   competition: number
-  competitorPositions: { domain: string; position: number }[]
+  competitorPositions: { domain: string; position: number; url: string }[]
   clientPosition: number | null
+  clientUrl: string | null
+  relevance: number
 }
 
 function normalizeDomain(raw: string): string {
@@ -212,14 +215,14 @@ async function semrushQuery(
   database: string,
   apiKey: string,
   displayFilter?: string | null
-): Promise<{ Ph: string; Po: number; Nq: number; Co: number }[]> {
+): Promise<{ Ph: string; Po: number; Nq: number; Co: number; Ur: string }[]> {
   const params = new URLSearchParams({
     type: 'domain_organic',
     key: apiKey,
     domain,
     database,
     display_limit: '10000',
-    export_columns: 'Ph,Po,Nq,Co',
+    export_columns: 'Ph,Po,Nq,Co,Ur',
   })
   if (displayFilter) {
     params.set('display_filter', displayFilter)
@@ -249,8 +252,40 @@ async function semrushQuery(
       Po: parseInt(row['Position'] ?? row['Po'] ?? '0', 10),
       Nq: parseInt(row['Search Volume'] ?? row['Nq'] ?? '0', 10),
       Co: parseFloat(row['Competition'] ?? row['Co'] ?? '0'),
+      Ur: row['Url'] ?? row['Ur'] ?? '',
     }
   }).filter((r) => r.Ph)
+}
+
+async function scoreRelevance(gaps: GapKeyword[], clientDomain: string): Promise<void> {
+  if (gaps.length === 0) return
+  try {
+    const anthropic = new Anthropic()
+    const keywords = gaps.map((g) => g.keyword)
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
+      system: 'You are an SEO relevance scorer. Respond with valid JSON only, no markdown fences.',
+      messages: [
+        {
+          role: 'user',
+          content: `Given the domain "${clientDomain}", score each keyword for business relevance on a 1-5 scale:\n1 = completely irrelevant to the domain's likely business\n2 = tangentially related\n3 = somewhat relevant\n4 = clearly relevant\n5 = highly relevant / core topic\n\nKeywords:\n${JSON.stringify(keywords)}\n\nRespond with exactly: {"scores":{"keyword1":3,"keyword2":5,...}} covering every keyword.`,
+        },
+      ],
+    })
+    const textBlock = response.content.find((b) => b.type === 'text')
+    if (!textBlock || textBlock.type !== 'text') return
+    const parsed = JSON.parse(textBlock.text) as { scores: Record<string, number> }
+    if (!parsed.scores) return
+    for (const gap of gaps) {
+      const score = parsed.scores[gap.keyword]
+      if (typeof score === 'number' && score >= 1 && score <= 5) {
+        gap.relevance = score
+      }
+    }
+  } catch (err) {
+    console.error('Relevance scoring failed (scores will be 0):', err)
+  }
 }
 
 export async function fetchSemrushGap(params: {
@@ -285,9 +320,9 @@ export async function fetchSemrushGap(params: {
 
     // Fetch client keywords (no URL filter)
     const clientRows = await semrushQuery(clientDomain, db, apiKey)
-    const clientMap = new Map<string, number>()
+    const clientMap = new Map<string, { position: number; url: string }>()
     for (const row of clientRows) {
-      clientMap.set(row.Ph.toLowerCase(), row.Po)
+      clientMap.set(row.Ph.toLowerCase(), { position: row.Po, url: row.Ur })
     }
 
     if (clientRows.length === 0) {
@@ -312,12 +347,12 @@ export async function fetchSemrushGap(params: {
     for (const { domain, rows } of competitorResults) {
       for (const row of rows) {
         const kw = row.Ph.toLowerCase()
-        const clientPos = clientMap.get(kw) ?? null
-        if (clientPos !== null && clientPos <= 20) continue
+        const clientEntry = clientMap.get(kw) ?? null
+        if (clientEntry !== null && clientEntry.position <= 20) continue
 
         const existing = gapMap.get(kw)
         if (existing) {
-          existing.competitorPositions.push({ domain, position: row.Po })
+          existing.competitorPositions.push({ domain, position: row.Po, url: row.Ur })
           if (row.Nq > existing.volume) existing.volume = row.Nq
           if (row.Co > existing.competition) existing.competition = row.Co
         } else {
@@ -325,8 +360,10 @@ export async function fetchSemrushGap(params: {
             keyword: row.Ph,
             volume: row.Nq,
             competition: row.Co,
-            competitorPositions: [{ domain, position: row.Po }],
-            clientPosition: clientPos,
+            competitorPositions: [{ domain, position: row.Po, url: row.Ur }],
+            clientPosition: clientEntry?.position ?? null,
+            clientUrl: clientEntry?.url ?? null,
+            relevance: 0,
           })
         }
       }
@@ -334,7 +371,9 @@ export async function fetchSemrushGap(params: {
 
     const gaps = Array.from(gapMap.values())
       .sort((a, b) => b.volume - a.volume)
-      .slice(0, 100)
+      .slice(0, 250)
+
+    await scoreRelevance(gaps, clientDomain)
 
     return { gaps, clientKeywordCount: clientRows.length }
   } catch (err) {
