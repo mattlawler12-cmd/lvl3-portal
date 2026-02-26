@@ -3,6 +3,8 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 import OpenAI from 'openai'
 import sharp from 'sharp'
 
+export const maxDuration = 300
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
 interface ParsedRow {

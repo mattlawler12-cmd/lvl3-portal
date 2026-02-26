@@ -19,7 +19,7 @@ const DATABASES = [
   { value: 'au', label: 'AU' },
 ]
 
-type SortKey = 'keyword' | 'volume' | 'difficulty' | 'clientPosition' | string
+type SortKey = 'keyword' | 'volume' | 'competition' | 'clientPosition' | string
 type SortDir = 'asc' | 'desc'
 
 export default function SemrushGapClient({
@@ -37,6 +37,7 @@ export default function SemrushGapClient({
   const [gaps, setGaps] = useState<GapKeyword[]>([])
   const [error, setError] = useState<string | null>(null)
   const [hasRun, setHasRun] = useState(false)
+  const [clientKeywordCount, setClientKeywordCount] = useState(0)
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('volume')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
@@ -61,7 +62,7 @@ export default function SemrushGapClient({
       const dir = sortDir === 'asc' ? 1 : -1
       if (sortKey === 'keyword') return dir * a.keyword.localeCompare(b.keyword)
       if (sortKey === 'volume') return dir * (a.volume - b.volume)
-      if (sortKey === 'difficulty') return dir * (a.difficulty - b.difficulty)
+      if (sortKey === 'competition') return dir * (a.competition - b.competition)
       if (sortKey === 'clientPosition') {
         const aPos = a.clientPosition ?? 999
         const bPos = b.clientPosition ?? 999
@@ -103,6 +104,7 @@ export default function SemrushGapClient({
         database,
       })
       setGaps(result.gaps)
+      setClientKeywordCount(result.clientKeywordCount)
       setError(result.error ?? null)
       setHasRun(true)
       setSearch('')
@@ -239,6 +241,9 @@ export default function SemrushGapClient({
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-surface-100">
                 {gaps.length} gap keyword{gaps.length !== 1 ? 's' : ''} found
+                <span className="ml-2 text-xs font-normal text-surface-500">
+                  ({clientKeywordCount.toLocaleString()} client keywords indexed)
+                </span>
               </h2>
               {pageSection !== 'all' && (
                 <span className="text-[10px] font-medium uppercase tracking-wide px-2 py-0.5 rounded-full bg-surface-800 text-surface-400 border border-surface-600">
@@ -264,7 +269,7 @@ export default function SemrushGapClient({
                 <tr className="border-b border-surface-700">
                   <SortHeader label="Keyword" sortKey="keyword" current={sortKey} dir={sortDir} onSort={toggleSort} align="left" />
                   <SortHeader label="Volume" sortKey="volume" current={sortKey} dir={sortDir} onSort={toggleSort} />
-                  <SortHeader label="KD" sortKey="difficulty" current={sortKey} dir={sortDir} onSort={toggleSort} />
+                  <SortHeader label="Comp" sortKey="competition" current={sortKey} dir={sortDir} onSort={toggleSort} />
                   <SortHeader label={clientName || 'Client'} sortKey="clientPosition" current={sortKey} dir={sortDir} onSort={toggleSort} />
                   {allCompetitorDomains.map((d) => (
                     <SortHeader key={d} label={d} sortKey={d} current={sortKey} dir={sortDir} onSort={toggleSort} />
@@ -279,7 +284,7 @@ export default function SemrushGapClient({
                       {g.volume.toLocaleString()}
                     </td>
                     <td className="py-2 px-3 text-right tabular-nums text-surface-400">
-                      {Math.round(g.difficulty)}
+                      {g.competition.toFixed(2)}
                     </td>
                     <td className="py-2 px-3 text-right tabular-nums">
                       {g.clientPosition === null ? (

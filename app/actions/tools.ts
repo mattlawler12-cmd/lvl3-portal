@@ -184,7 +184,7 @@ export async function checkAIVisibility(clientId: string): Promise<{
 export type GapKeyword = {
   keyword: string
   volume: number
-  difficulty: number
+  competition: number
   competitorPositions: { domain: string; position: number }[]
   clientPosition: number | null
 }
@@ -212,43 +212,43 @@ async function semrushQuery(
   database: string,
   apiKey: string,
   displayFilter?: string | null
-): Promise<{ Ph: string; Po: number; Nq: number; Kd: number }[]> {
+): Promise<{ Ph: string; Po: number; Nq: number; Co: number }[]> {
   const params = new URLSearchParams({
     type: 'domain_organic',
     key: apiKey,
     domain,
     database,
     display_limit: '10000',
-    export_columns: 'Ph,Po,Nq,Kd',
-    export_decode: '1',
+    export_columns: 'Ph,Po,Nq,Co',
   })
   if (displayFilter) {
     params.set('display_filter', displayFilter)
   }
 
-  const res = await fetch(`https://api.semrush.com/?${params.toString()}`)
-  if (!res.ok) {
-    const body = await res.text()
-    console.error(`Semrush API error for ${domain}:`, res.status, body)
+  const url = `https://api.semrush.com/?${params.toString()}`
+  const res = await fetch(url)
+  const text = await res.text()
+
+  if (!res.ok || text.startsWith('ERROR')) {
+    console.error(`Semrush API error for ${domain}:`, res.status, text.slice(0, 300))
     return []
   }
 
-  const text = await res.text()
   if (!text.trim()) return []
 
   const lines = text.trim().split('\n')
   if (lines.length < 2) return []
 
-  const headers = lines[0].split(';')
+  const headers = lines[0].split(';').map((h) => h.trim())
   return lines.slice(1).map((line) => {
     const cols = line.split(';')
     const row: Record<string, string> = {}
-    headers.forEach((h, i) => { row[h.trim()] = cols[i]?.trim() ?? '' })
+    headers.forEach((h, i) => { row[h] = cols[i]?.trim() ?? '' })
     return {
       Ph: row['Keyword'] ?? row['Ph'] ?? '',
       Po: parseInt(row['Position'] ?? row['Po'] ?? '0', 10),
       Nq: parseInt(row['Search Volume'] ?? row['Nq'] ?? '0', 10),
-      Kd: parseFloat(row['Keyword Difficulty'] ?? row['Kd'] ?? '0'),
+      Co: parseFloat(row['Competition'] ?? row['Co'] ?? '0'),
     }
   }).filter((r) => r.Ph)
 }
@@ -258,13 +258,13 @@ export async function fetchSemrushGap(params: {
   competitors: string[]
   pageSection: string
   database: string
-}): Promise<{ gaps: GapKeyword[]; error?: string }> {
+}): Promise<{ gaps: GapKeyword[]; clientKeywordCount: number; error?: string }> {
   try {
     await requireAdmin()
 
     const apiKey = process.env.SEMRUSH_API_KEY
     if (!apiKey) {
-      return { gaps: [], error: 'SEMRUSH_API_KEY is not configured. Add it to your environment variables.' }
+      return { gaps: [], clientKeywordCount: 0, error: 'SEMRUSH_API_KEY is not configured. Add it to your environment variables.' }
     }
 
     const competitors = params.competitors
@@ -272,12 +272,12 @@ export async function fetchSemrushGap(params: {
       .filter(Boolean)
 
     if (competitors.length === 0 || competitors.length > 4) {
-      return { gaps: [], error: 'Provide between 1 and 4 competitor domains.' }
+      return { gaps: [], clientKeywordCount: 0, error: 'Provide between 1 and 4 competitor domains.' }
     }
 
     const clientDomain = normalizeDomain(params.clientDomain)
     if (!clientDomain) {
-      return { gaps: [], error: 'Client domain is required.' }
+      return { gaps: [], clientKeywordCount: 0, error: 'Client domain is required.' }
     }
 
     const db = params.database || 'us'
@@ -288,6 +288,14 @@ export async function fetchSemrushGap(params: {
     const clientMap = new Map<string, number>()
     for (const row of clientRows) {
       clientMap.set(row.Ph.toLowerCase(), row.Po)
+    }
+
+    if (clientRows.length === 0) {
+      return {
+        gaps: [],
+        clientKeywordCount: 0,
+        error: `No organic keywords found for "${clientDomain}" in the ${db.toUpperCase()} database. Check that the domain is correct.`,
+      }
     }
 
     // Fetch competitor keywords in parallel
@@ -311,12 +319,12 @@ export async function fetchSemrushGap(params: {
         if (existing) {
           existing.competitorPositions.push({ domain, position: row.Po })
           if (row.Nq > existing.volume) existing.volume = row.Nq
-          if (row.Kd > existing.difficulty) existing.difficulty = row.Kd
+          if (row.Co > existing.competition) existing.competition = row.Co
         } else {
           gapMap.set(kw, {
             keyword: row.Ph,
             volume: row.Nq,
-            difficulty: row.Kd,
+            competition: row.Co,
             competitorPositions: [{ domain, position: row.Po }],
             clientPosition: clientPos,
           })
@@ -328,9 +336,9 @@ export async function fetchSemrushGap(params: {
       .sort((a, b) => b.volume - a.volume)
       .slice(0, 100)
 
-    return { gaps }
+    return { gaps, clientKeywordCount: clientRows.length }
   } catch (err) {
-    return { gaps: [], error: err instanceof Error ? err.message : 'Failed to run gap analysis' }
+    return { gaps: [], clientKeywordCount: 0, error: err instanceof Error ? err.message : 'Failed to run gap analysis' }
   }
 }
 
