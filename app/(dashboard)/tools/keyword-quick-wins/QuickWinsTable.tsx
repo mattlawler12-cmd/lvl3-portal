@@ -45,8 +45,8 @@ export default function QuickWinsTable({ wins }: { wins: QuickWin[] }) {
                     <span
                       className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full"
                       style={{
-                        backgroundColor: w.position <= 10 ? 'rgba(254,199,124,0.15)' : 'rgba(255,255,255,0.05)',
-                        color: w.position <= 10 ? 'var(--color-marigold)' : '#9ca3af',
+                        backgroundColor: w.position <= 10 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)',
+                        color: w.position <= 10 ? 'var(--color-accent)' : '#9ca3af',
                       }}
                     >
                       #{w.position}
@@ -55,7 +55,7 @@ export default function QuickWinsTable({ wins }: { wins: QuickWin[] }) {
                   <td className="px-4 py-3 text-right text-surface-300">{w.impressions.toLocaleString()}</td>
                   <td className="px-4 py-3 text-right text-surface-300">{w.clicks.toLocaleString()}</td>
                   <td className="px-4 py-3 text-right text-surface-400">{w.ctr}%</td>
-                  <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--color-marigold)' }}>
+                  <td className="px-4 py-3 text-right font-medium" style={{ color: 'var(--color-accent)' }}>
                     +{(w.estimatedClicksAt3 - w.clicks).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-right">

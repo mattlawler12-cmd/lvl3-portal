@@ -3,34 +3,34 @@
 @tailwind utilities;
 
 :root {
-  /* ── Marigold & Ink palette ───────────────────────────── */
-  --background:       #1a1408;
-  --foreground:       #fdf6e3;
+  /* ── OLED Dark + Blue/Amber palette ────────────────────── */
+  --background:       #020617;
+  --foreground:       #F1F5F9;
 
-  --color-ink:        #1a1408;
-  --color-cream:      #fdf6e3;
-  --color-cream-alt:  #f5ead0;
-  --color-card:       #252010;
-  --color-marigold:   #FEC77C;
-  --color-gold-deep:  #B07E09;
-  --color-muted:      #c4ae84;
-  --color-border:     #e0c878;
+  --color-ink:        #020617;
+  --color-cream:      #F1F5F9;
+  --color-cream-alt:  #E2E8F0;
+  --color-card:       #0F172A;
+  --color-accent:     #F59E0B;
+  --color-primary:    #3B82F6;
+  --color-muted:      #64748B;
+  --color-border:     #1E293B;
 
-  /* Top nav — cream bar */
-  --nav-bg:           #fdf6e3;
-  --nav-hover:        #f0e4c2;
-  --nav-text:         #7A6540;
-  --nav-text-bright:  #1a1408;
-  --nav-active:       #B07E09;
-  --nav-border:       #e0c878;
+  /* Top nav — dark bar */
+  --nav-bg:           #0F172A;
+  --nav-hover:        #1E293B;
+  --nav-text:         #94A3B8;
+  --nav-text-bright:  #F1F5F9;
+  --nav-active:       #F59E0B;
+  --nav-border:       #1E293B;
 
-  /* Sidebar — stays dark */
-  --sidebar-bg:           #1a1408;
-  --sidebar-hover:        #251c0d;
-  --sidebar-text:         #d4c098;
-  --sidebar-text-bright:  #fdf6e3;
-  --sidebar-active:       #FEC77C;
-  --sidebar-border:       #2e2815;
+  /* Sidebar — OLED dark */
+  --sidebar-bg:           #020617;
+  --sidebar-hover:        #0F172A;
+  --sidebar-text:         #94A3B8;
+  --sidebar-text-bright:  #F1F5F9;
+  --sidebar-active:       #F59E0B;
+  --sidebar-border:       #1E293B;
 }
 
 * {
@@ -40,14 +40,14 @@
 body {
   color:       var(--foreground);
   background:  var(--background);
-  font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-fira-sans), system-ui, -apple-system, sans-serif;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Headings use the serif */
+/* Headings use monospace */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-playfair), Georgia, serif;
+  font-family: var(--font-fira-code), monospace;
   font-weight: 700;
   color: var(--foreground);
 }
@@ -59,7 +59,7 @@ h1, h2, h3, h4, h5, h6 {
   background:    var(--color-border);
   border-radius: 3px;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--color-gold-deep); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-primary); }
 
 /* ── Utilities ──────────────────────────────────────────── */
 @layer utilities {
@@ -67,11 +67,11 @@ h1, h2, h3, h4, h5, h6 {
 
   /* Eyebrow labels — uppercase small caps above headings */
   .eyebrow {
-    font-family:    var(--font-dm-sans), sans-serif;
+    font-family:    var(--font-fira-sans), sans-serif;
     font-size:      11px;
     font-weight:    500;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color:          var(--color-gold-deep);
+    color:          var(--color-primary);
   }
 }

@@ -58,15 +58,15 @@ export default function SerpDistributionChart({ distribution }: Props) {
       </div>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#3a2e18" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="#283548" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fill: '#c4ae84', fontSize: 11 }}
+            tick={{ fill: '#94A3B8', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#c4ae84', fontSize: 11 }}
+            tick={{ fill: '#94A3B8', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             allowDecimals={false}

@@ -386,7 +386,7 @@ export default function AskLvl3Chat({
             onClick={() => handleSend()}
             disabled={!input.trim() || !clientId || loading}
             className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ backgroundColor: 'var(--color-marigold)' }}
+            style={{ backgroundColor: 'var(--color-accent)' }}
           >
             <Send className="w-4 h-4 text-surface-950" />
           </button>

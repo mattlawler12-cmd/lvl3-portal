@@ -11,50 +11,50 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // Warm dark scale — body, cards, panels, borders
+        // Cool dark scale — backgrounds, cards, borders, text
         surface: {
-          950: '#0f0c05', // deepest dark bg
-          900: '#252010', // card / panel bg
-          850: '#2e2815', // card hover
-          800: '#382f1c', // alternate/input bg
-          700: '#e0c878', // border (gold)
-          600: '#cbb567', // border hover
-          500: '#B07E09', // deep gold — eyebrow labels, section accents
-          400: '#c4ae84', // muted text on dark
-          300: '#d4c098', // medium muted on dark
-          200: '#e8d8b4', // lighter muted on dark
-          100: '#fdf6e3', // primary text (cream, on dark backgrounds)
+          950: '#020617', // OLED dark body bg
+          900: '#0F172A', // card / panel bg
+          850: '#162032', // card hover
+          800: '#1E293B', // input bg / elevated surface
+          700: '#283548', // border
+          600: '#334155', // border hover
+          500: '#475569', // placeholder / disabled
+          400: '#64748B', // muted text
+          300: '#94A3B8', // secondary text
+          200: '#CBD5E1', // lighter text
+          100: '#F1F5F9', // primary text
         },
-        // Marigold gold scale
+        // Amber accent scale
         brand: {
-          50:  '#FFF9EC',
-          100: '#FFF3CC',
-          200: '#FFE49A',
-          300: '#FFD26B',
-          400: '#FEC77C', // main marigold accent
-          500: '#F5AD3A',
-          600: '#D4950A',
-          700: '#B07E09', // deep gold
-          800: '#7A5807',
-          900: '#1a1408', // ink
+          50:  '#FFFBEB',
+          100: '#FEF3C7',
+          200: '#FDE68A',
+          300: '#FCD34D',
+          400: '#F59E0B', // main amber accent
+          500: '#D97706',
+          600: '#B45309',
+          700: '#92400E', // deep amber
+          800: '#78350F',
+          900: '#451A03',
         },
-        // Warm gold scale — used for positive indicators and chart accents
+        // Blue accent scale — primary interactive color
         accent: {
-          50:  '#FFF9EC',
-          100: '#FFF3CC',
-          200: '#FFE49A',
-          300: '#FFD26B',
-          400: '#B07E09', // deep gold (positive/up indicator)
-          500: '#8A6007',
-          600: '#6A4807',
-          700: '#4A3005',
-          800: '#2C1C04',
-          900: '#1a1008',
+          50:  '#EFF6FF',
+          100: '#DBEAFE',
+          200: '#BFDBFE',
+          300: '#93C5FD',
+          400: '#3B82F6', // primary blue
+          500: '#2563EB',
+          600: '#1D4ED8',
+          700: '#1E40AF',
+          800: '#1E3A8A',
+          900: '#172554',
         },
       },
       fontFamily: {
-        sans:  ['var(--font-dm-sans)', 'system-ui', '-apple-system', 'sans-serif'],
-        serif: ['var(--font-playfair)', 'Georgia', 'serif'],
+        sans:  ['var(--font-fira-sans)', 'system-ui', '-apple-system', 'sans-serif'],
+        mono:  ['var(--font-fira-code)', 'monospace'],
       },
       animation: {
         "fade-in":        "fadeIn 0.15s ease-out",

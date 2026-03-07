@@ -43,19 +43,19 @@ export default async function BacklinkOverviewPage() {
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <p className="text-xs text-surface-400">Organic Keywords</p>
-                  <p className="text-xl font-bold" style={{ color: 'var(--color-marigold)' }}>
+                  <p className="text-xl font-bold" style={{ color: 'var(--color-accent)' }}>
                     {data.ranks.organic_keywords.toLocaleString()}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-surface-400">Organic Traffic</p>
-                  <p className="text-xl font-bold" style={{ color: 'var(--color-marigold)' }}>
+                  <p className="text-xl font-bold" style={{ color: 'var(--color-accent)' }}>
                     {data.ranks.organic_traffic.toLocaleString()}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-surface-400">Traffic Cost</p>
-                  <p className="text-xl font-bold" style={{ color: 'var(--color-marigold)' }}>
+                  <p className="text-xl font-bold" style={{ color: 'var(--color-accent)' }}>
                     ${data.ranks.organic_cost.toLocaleString()}
                   </p>
                 </div>
@@ -82,7 +82,7 @@ export default async function BacklinkOverviewPage() {
                 </div>
                 <div>
                   <p className="text-xs text-surface-400">Authority Score</p>
-                  <p className="text-lg font-bold" style={{ color: 'var(--color-marigold)' }}>
+                  <p className="text-lg font-bold" style={{ color: 'var(--color-accent)' }}>
                     {data.backlinks.authority_score}
                   </p>
                 </div>

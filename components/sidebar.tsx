@@ -26,11 +26,11 @@ interface SidebarProps {
 }
 
 // Sidebar uses its own CSS variables so nav-* (cream topbar) doesn't bleed in.
-const NAV_TEXT        = 'var(--sidebar-text)'        // #d4c098 warm tan
-const NAV_TEXT_BRIGHT = 'var(--sidebar-text-bright)' // #fdf6e3 cream
-const NAV_HOVER_BG    = 'var(--sidebar-hover)'        // #251c0d
-const NAV_ACTIVE      = 'var(--sidebar-active)'       // #FEC77C marigold
-const NAV_ACTIVE_BG   = 'rgba(254,199,124,0.12)'
+const NAV_TEXT        = 'var(--sidebar-text)'        // #94A3B8 slate
+const NAV_TEXT_BRIGHT = 'var(--sidebar-text-bright)' // #F1F5F9
+const NAV_HOVER_BG    = 'var(--sidebar-hover)'        // #0F172A
+const NAV_ACTIVE      = 'var(--sidebar-active)'       // #F59E0B amber
+const NAV_ACTIVE_BG   = 'rgba(245,158,11,0.12)'
 
 export default function Sidebar({
   isAdmin, collapsed, onToggle,

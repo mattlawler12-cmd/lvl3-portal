@@ -125,16 +125,16 @@ export default async function ToolsPage() {
             >
               <div
                 className="w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(254,199,124,0.1)' }}
+                style={{ backgroundColor: 'rgba(245,158,11,0.1)' }}
               >
-                <Icon className="w-4 h-4" style={{ color: 'var(--color-marigold)' }} />
+                <Icon className="w-4 h-4" style={{ color: 'var(--color-accent)' }} />
               </div>
               <div>
                 <p className="text-sm font-semibold text-surface-100 mb-1">{label}</p>
                 <p className="text-xs text-surface-400 leading-relaxed">{description}</p>
               </div>
               {enabled && (
-                <p className="text-xs font-medium" style={{ color: 'var(--color-marigold)' }}>
+                <p className="text-xs font-medium" style={{ color: 'var(--color-accent)' }}>
                   Run →
                 </p>
               )}

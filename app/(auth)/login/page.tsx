@@ -50,7 +50,7 @@ export default function LoginPage() {
     // Full-page dark-ink hero — mirrors the editorial dark sections in the design system
     <div
       className="min-h-screen flex items-center justify-center px-4 py-16"
-      style={{ backgroundColor: 'var(--color-ink)' }}
+      style={{ backgroundColor: 'var(--background)' }}
     >
       {/* Subtle warm texture overlay */}
       <div className="w-full max-w-sm">
@@ -59,7 +59,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <span
             className="text-5xl font-bold tracking-tight"
-            style={{ color: 'var(--color-marigold)', fontFamily: 'var(--font-playfair), Georgia, serif' }}
+            style={{ color: 'var(--color-accent)', fontFamily: 'var(--font-fira-code), monospace' }}
           >
             LVL3
           </span>
@@ -81,11 +81,11 @@ export default function LoginPage() {
               {/* Marigold check circle */}
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-2xl"
-                style={{ backgroundColor: 'rgba(254,199,124,0.15)', color: 'var(--color-marigold)' }}
+                style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: 'var(--color-accent)' }}
               >
                 ✓
               </div>
-              <p className="font-semibold text-surface-100" style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}>
+              <p className="font-semibold text-surface-100" style={{ fontFamily: 'var(--font-fira-code), monospace' }}>
                 Check your email
               </p>
               <p className="text-sm text-surface-400 leading-relaxed">
@@ -106,7 +106,7 @@ export default function LoginPage() {
               <div>
                 <h1
                   className="text-xl font-bold text-surface-100 mb-1"
-                  style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}
+                  style={{ fontFamily: 'var(--font-fira-code), monospace' }}
                 >
                   Sign in
                 </h1>
@@ -130,9 +130,9 @@ export default function LoginPage() {
                     style={{
                       backgroundColor: 'var(--color-cream)',
                       border: '1px solid var(--color-border)',
-                      color: 'var(--color-ink)',
+                      color: 'var(--background)',
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-gold-deep)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(176,126,9,0.12)' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.15)' }}
                     onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
                   />
                 </div>
@@ -153,9 +153,9 @@ export default function LoginPage() {
                     style={{
                       backgroundColor: 'var(--color-cream)',
                       border: '1px solid var(--color-border)',
-                      color: 'var(--color-ink)',
+                      color: 'var(--background)',
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-gold-deep)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(176,126,9,0.12)' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.15)' }}
                     onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
                   />
                 </div>
@@ -170,9 +170,9 @@ export default function LoginPage() {
                 type="submit"
                 disabled={loading}
                 className="w-full rounded-[4px] px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: 'var(--color-ink)', color: 'var(--color-cream)' }}
+                style={{ backgroundColor: 'var(--background)', color: 'var(--color-cream)' }}
                 onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#2e2510' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-ink)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--background)' }}
               >
                 {loading ? 'Signing in…' : 'Sign in'}
               </button>
@@ -190,7 +190,7 @@ export default function LoginPage() {
               <div>
                 <h1
                   className="text-xl font-bold text-surface-100 mb-1"
-                  style={{ fontFamily: 'var(--font-playfair), Georgia, serif' }}
+                  style={{ fontFamily: 'var(--font-fira-code), monospace' }}
                 >
                   Welcome back
                 </h1>
@@ -213,9 +213,9 @@ export default function LoginPage() {
                   style={{
                     backgroundColor: 'var(--color-cream)',
                     border: '1px solid var(--color-border)',
-                    color: 'var(--color-ink)',
+                    color: 'var(--background)',
                   }}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-gold-deep)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(176,126,9,0.12)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.15)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </div>
@@ -229,9 +229,9 @@ export default function LoginPage() {
                 type="submit"
                 disabled={loading}
                 className="w-full rounded-[4px] px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: 'var(--color-marigold)', color: 'var(--color-ink)' }}
+                style={{ backgroundColor: 'var(--color-accent)', color: 'var(--background)' }}
                 onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#F5B53A' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-marigold)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-accent)' }}
               >
                 {loading ? 'Sending…' : 'Send magic link'}
               </button>

@@ -50,7 +50,7 @@ export default async function AIVisibilityPage() {
               <div key={label} className="bg-surface-900 border border-surface-700 rounded-xl p-5">
                 <p
                   className="text-3xl font-bold leading-none mb-2"
-                  style={{ color: 'var(--color-marigold)', fontFamily: 'var(--font-playfair), Georgia, serif' }}
+                  style={{ color: 'var(--color-accent)', fontFamily: 'var(--font-fira-code), monospace' }}
                 >
                   {value}
                 </p>

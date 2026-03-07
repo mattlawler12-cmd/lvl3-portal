@@ -472,7 +472,7 @@ export default function SemrushGapClient({
               type="button"
               onClick={() => setCompetitors([...competitors, ''])}
               className="mt-2 text-xs font-medium flex items-center gap-1 hover:opacity-80"
-              style={{ color: 'var(--color-marigold)' }}
+              style={{ color: 'var(--color-accent)' }}
             >
               <Plus className="w-3 h-3" /> Add competitor
             </button>
@@ -750,7 +750,7 @@ export default function SemrushGapClient({
                   {filteredMatrix.map((m) => (
                     <tr key={m.keyword} className="border-b border-surface-800 hover:bg-surface-850">
                       <td className="py-2 pr-4 text-surface-200 font-medium whitespace-nowrap">{m.keyword}</td>
-                      <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-marigold)' }}>
+                      <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-accent)' }}>
                         {m.volume.toLocaleString()}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums text-surface-400">
@@ -812,7 +812,7 @@ export default function SemrushGapClient({
                   {filteredGaps.map((g) => (
                     <tr key={g.keyword} className="border-b border-surface-800 hover:bg-surface-850">
                       <td className="py-2 pr-4 text-surface-200 font-medium whitespace-nowrap">{g.keyword}</td>
-                      <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-marigold)' }}>
+                      <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-accent)' }}>
                         {g.volume.toLocaleString()}
                       </td>
                       <td className="py-2 px-3 text-right tabular-nums text-surface-400">
@@ -897,7 +897,7 @@ export default function SemrushGapClient({
                           </a>
                         </td>
                         <td className="py-2 pr-4 text-surface-400 text-xs whitespace-nowrap">{row.domain}</td>
-                        <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-marigold)' }}>
+                        <td className="py-2 px-3 text-right tabular-nums" style={{ color: 'var(--color-accent)' }}>
                           {row.totalKeywords}
                         </td>
                         <td className="py-2 px-3 text-right tabular-nums text-surface-300">{row.top10Keywords}</td>
@@ -910,7 +910,7 @@ export default function SemrushGapClient({
                             {row.domainOverlap[d] ?? 0}
                           </td>
                         ))}
-                        <td className="py-2 px-3 text-right tabular-nums font-medium" style={{ color: 'var(--color-marigold)' }}>
+                        <td className="py-2 px-3 text-right tabular-nums font-medium" style={{ color: 'var(--color-accent)' }}>
                           {row.gapScore}
                         </td>
                       </tr>

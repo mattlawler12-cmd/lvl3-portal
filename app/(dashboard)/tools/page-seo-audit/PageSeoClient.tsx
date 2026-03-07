@@ -159,7 +159,7 @@ export default function PageSeoClient() {
               <ul className="space-y-1">
                 {result.structuredData.map((sd, i) => (
                   <li key={i} className="text-sm text-surface-200">
-                    <span className="font-medium" style={{ color: 'var(--color-marigold)' }}>{sd.type}</span>
+                    <span className="font-medium" style={{ color: 'var(--color-accent)' }}>{sd.type}</span>
                   </li>
                 ))}
               </ul>

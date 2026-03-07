@@ -1,18 +1,18 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, DM_Sans } from 'next/font/google'
+import { Fira_Code, Fira_Sans } from 'next/font/google'
 import './globals.css'
 
-const playfair = Playfair_Display({
+const firaCode = Fira_Code({
   subsets: ['latin'],
-  variable: '--font-playfair',
-  weight: ['700'],
+  variable: '--font-fira-code',
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 })
 
-const dmSans = DM_Sans({
+const firaSans = Fira_Sans({
   subsets: ['latin'],
-  variable: '--font-dm-sans',
-  weight: ['300', '400', '500'],
+  variable: '--font-fira-sans',
+  weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
 })
 
@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfair.variable} ${dmSans.variable} antialiased`}>
+      <body className={`${firaCode.variable} ${firaSans.variable} antialiased`}>
         {children}
       </body>
     </html>

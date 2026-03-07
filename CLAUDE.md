@@ -306,51 +306,13 @@ Dashboard period and comparison are URL params: `?period=28d&compare=prior&tab=w
 
 ## Design System
 
-**Dark warm theme** — body background #1a1408 (ink), cards #252010, primary text #fdf6e3 (cream).
-
-### Key CSS variables
-```css
---background: #1a1408        /* body */
---foreground: #fdf6e3        /* primary text */
---color-card: #252010        /* card bg */
---color-marigold: #FEC77C    /* main accent — buttons, active states, KPI numbers */
---color-gold-deep: #B07E09   /* eyebrow labels, deep accent */
---color-muted: #c4ae84       /* secondary text */
---color-border: #e0c878      /* borders */
-
-/* Topbar (cream) */
---nav-bg: #fdf6e3
---nav-text: #7A6540
-
-/* Sidebar (dark) */
---sidebar-bg: #1a1408
---sidebar-active: #FEC77C
-```
-
-### Tailwind color tokens
-- `surface-950/900/850/800` — backgrounds (darkest → card)
-- `surface-700/600` — borders
-- `surface-500/400/300/200/100` — text (muted → primary cream)
-- `brand-400` — marigold (#FEC77C) — primary accent
-- `brand-700` — deep gold (#B07E09)
-
-### Typography
-- Body: DM Sans (`var(--font-dm-sans)`)
-- Headings (h1-h6): Playfair Display (`var(--font-playfair)`) — bold serif
-- Eyebrow labels: `.eyebrow` utility class — 11px, 500 weight, 0.14em tracking, uppercase, `--color-gold-deep`
-
-### Component conventions
-- Cards: `bg-surface-900 border border-surface-700 rounded-xl`
-- Input fields: `bg-surface-800 border border-surface-600 text-surface-100 rounded-lg px-3 py-2`
-- KPI numbers: `style={{ color: 'var(--color-marigold)' }}`
-- Primary buttons: `bg-blue-600 hover:bg-blue-500 text-surface-100`
-- Section headings in cards: `text-surface-100 font-semibold text-sm uppercase tracking-wide`
+Design system specs (colors, tokens, typography, component conventions) live in **`design-system/DESIGN.md`**.
 
 ---
 
 ## Navigation
 
-**TopBar** (`components/nav/TopBar.tsx`) — cream bar, 56px tall, contains:
+**TopBar** (`components/nav/TopBar.tsx`) — dark bar, 56px tall, contains:
 - LVL3 logo/wordmark
 - Client selector dropdown (admin/member only, sets `selected_client` cookie)
 - Notifications bell

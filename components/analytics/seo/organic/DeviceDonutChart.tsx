@@ -39,13 +39,13 @@ export default function DeviceDonutChart({ mobile, desktop, tablet }: Props) {
           </Pie>
           <Tooltip
             formatter={(v) => [Number(v ?? 0).toLocaleString(), 'Sessions']}
-            contentStyle={{ background: '#252010', border: '1px solid #3a2e18', borderRadius: 8 }}
-            itemStyle={{ color: '#c4ae84' }}
+            contentStyle={{ background: '#0F172A', border: '1px solid #283548', borderRadius: 8 }}
+            itemStyle={{ color: '#94A3B8' }}
           />
           <Legend
             iconType="circle"
             iconSize={8}
-            formatter={(value) => <span style={{ color: '#c4ae84', fontSize: 12 }}>{value}</span>}
+            formatter={(value) => <span style={{ color: '#94A3B8', fontSize: 12 }}>{value}</span>}
           />
         </PieChart>
       </ResponsiveContainer>

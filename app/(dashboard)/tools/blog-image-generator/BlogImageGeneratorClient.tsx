@@ -386,7 +386,7 @@ export default function BlogImageGeneratorClient() {
           <button
             onClick={handleDownload}
             className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
-            style={{ backgroundColor: 'var(--color-marigold)', color: '#1a1408' }}
+            style={{ backgroundColor: 'var(--color-accent)', color: '#020617' }}
           >
             <Download className="w-4 h-4" />
             Download ZIP ({successCount} image{successCount !== 1 ? 's' : ''})
@@ -413,7 +413,7 @@ export default function BlogImageGeneratorClient() {
             <div className="w-full h-1.5 bg-surface-700 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-300"
-                style={{ width: `${progress}%`, backgroundColor: 'var(--color-marigold)' }}
+                style={{ width: `${progress}%`, backgroundColor: 'var(--color-accent)' }}
               />
             </div>
           </div>

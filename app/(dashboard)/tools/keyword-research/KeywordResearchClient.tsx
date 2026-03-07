@@ -96,7 +96,7 @@ export default function KeywordResearchClient() {
                 {rows.map((row, i) => (
                   <tr key={i} className="hover:bg-surface-800/40 transition-colors">
                     <td className="px-4 py-3 text-surface-100 font-medium max-w-xs truncate">{row.keyword}</td>
-                    <td className="px-4 py-3 text-right" style={{ color: 'var(--color-marigold)' }}>
+                    <td className="px-4 py-3 text-right" style={{ color: 'var(--color-accent)' }}>
                       {row.vol.toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-right text-surface-300">${row.cpc.toFixed(2)}</td>
@@ -113,7 +113,7 @@ export default function KeywordResearchClient() {
                                 className="w-1.5 rounded-sm"
                                 style={{
                                   height: `${height}px`,
-                                  backgroundColor: 'var(--color-marigold)',
+                                  backgroundColor: 'var(--color-accent)',
                                   opacity: 0.4 + (j / row.trend.length) * 0.6,
                                 }}
                               />

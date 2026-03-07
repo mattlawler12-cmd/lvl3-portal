@@ -81,7 +81,7 @@ export default function ContentQualityClient() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-xs text-surface-400">Word Count</p>
-                <p className="text-lg font-bold" style={{ color: 'var(--color-marigold)' }}>
+                <p className="text-lg font-bold" style={{ color: 'var(--color-accent)' }}>
                   {result.wordCount.toLocaleString()}
                 </p>
               </div>

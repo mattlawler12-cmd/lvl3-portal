@@ -21,11 +21,11 @@ export default function ChannelBarChart({ channels }: Props) {
       <p className="text-sm font-semibold text-surface-100 mb-4">Sessions by Channel</p>
       <ResponsiveContainer width="100%" height={240}>
         <BarChart layout="vertical" data={data} margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="#3a2e18" strokeDasharray="3 3" horizontal={false} />
+          <CartesianGrid stroke="#283548" strokeDasharray="3 3" horizontal={false} />
           <XAxis
             type="number"
             tickFormatter={fmtNum}
-            tick={{ fill: '#c4ae84', fontSize: 11 }}
+            tick={{ fill: '#94A3B8', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
@@ -33,19 +33,19 @@ export default function ChannelBarChart({ channels }: Props) {
             type="category"
             dataKey="channel"
             width={120}
-            tick={{ fill: '#c4ae84', fontSize: 11 }}
+            tick={{ fill: '#94A3B8', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <Tooltip
             formatter={(v) => [Number(v ?? 0).toLocaleString(), 'Sessions']}
-            contentStyle={{ background: '#252010', border: '1px solid #3a2e18', borderRadius: 8 }}
-            labelStyle={{ color: '#e8d8b4' }}
-            itemStyle={{ color: '#c4ae84' }}
+            contentStyle={{ background: '#0F172A', border: '1px solid #283548', borderRadius: 8 }}
+            labelStyle={{ color: '#CBD5E1' }}
+            itemStyle={{ color: '#94A3B8' }}
           />
           <Bar dataKey="sessions" radius={[0, 4, 4, 0]}>
             {data.map((_, i) => (
-              <Cell key={i} fill={i === 0 ? '#fb923c' : '#3a3020'} />
+              <Cell key={i} fill={i === 0 ? '#fb923c' : '#1E293B'} />
             ))}
           </Bar>
         </BarChart>
