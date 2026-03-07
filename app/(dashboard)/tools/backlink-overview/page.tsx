@@ -1,0 +1,100 @@
+import { requireAdmin } from '@/lib/auth'
+import { resolveSelectedClientId, getClientById } from '@/lib/client-resolution'
+import { fetchBacklinkOverview } from '@/app/actions/tools-extended'
+import { Link2 } from 'lucide-react'
+
+export default async function BacklinkOverviewPage() {
+  const { user } = await requireAdmin()
+  const selectedClientId = await resolveSelectedClientId(user)
+
+  if (!selectedClientId) {
+    return (
+      <div className="max-w-7xl mx-auto p-6">
+        <p className="text-sm text-surface-400">Select a client from the top bar to run this tool.</p>
+      </div>
+    )
+  }
+
+  const client = await getClientById<{ id: string; name: string }>(selectedClientId, 'id, name')
+  const { data, error } = await fetchBacklinkOverview(selectedClientId)
+
+  return (
+    <div className="max-w-7xl mx-auto p-6 space-y-6 pb-8">
+      <div className="flex items-center gap-3">
+        <Link2 className="w-5 h-5 text-surface-400" />
+        <div>
+          <h1 className="text-xl font-semibold text-surface-100">Backlink Overview</h1>
+          <p className="mt-0.5 text-sm text-surface-400">
+            {client?.name} — domain authority, traffic, and backlink profile via Semrush.
+          </p>
+        </div>
+      </div>
+
+      {error ? (
+        <div className="bg-surface-900 border border-surface-700 rounded-xl px-5 py-4">
+          <p className="text-sm text-red-400">{error}</p>
+        </div>
+      ) : data ? (
+        <div className="space-y-4">
+          <div className="bg-surface-900 border border-surface-700 rounded-xl p-5">
+            <p className="text-xs text-surface-400 mb-3 uppercase tracking-wide">Domain: {data.domain}</p>
+
+            {data.ranks && (
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                  <p className="text-xs text-surface-400">Organic Keywords</p>
+                  <p className="text-xl font-bold" style={{ color: 'var(--color-marigold)' }}>
+                    {data.ranks.organic_keywords.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Organic Traffic</p>
+                  <p className="text-xl font-bold" style={{ color: 'var(--color-marigold)' }}>
+                    {data.ranks.organic_traffic.toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Traffic Cost</p>
+                  <p className="text-xl font-bold" style={{ color: 'var(--color-marigold)' }}>
+                    ${data.ranks.organic_cost.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {data.backlinks && (
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-surface-700">
+                <div>
+                  <p className="text-xs text-surface-400">Total Backlinks</p>
+                  <p className="text-lg font-bold text-surface-100">{data.backlinks.total_backlinks.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Referring Domains</p>
+                  <p className="text-lg font-bold text-surface-100">{data.backlinks.referring_domains.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Follow Links</p>
+                  <p className="text-lg font-bold text-surface-100">{data.backlinks.follow_links.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Nofollow Links</p>
+                  <p className="text-lg font-bold text-surface-100">{data.backlinks.nofollow_links.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-surface-400">Authority Score</p>
+                  <p className="text-lg font-bold" style={{ color: 'var(--color-marigold)' }}>
+                    {data.backlinks.authority_score}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!data.ranks && !data.backlinks && (
+              <p className="text-sm text-surface-400">No Semrush data available for this domain.</p>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}

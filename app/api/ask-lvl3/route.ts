@@ -4,6 +4,10 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { getAdminOAuthClient } from '@/lib/google-auth'
 import { google } from 'googleapis'
 import Anthropic from '@anthropic-ai/sdk'
+import { fetchKEKeywordData, fetchKERelatedKeywords } from '@/lib/connectors/keywords-everywhere'
+import { fetchPageSpeedInsights } from '@/lib/connectors/pagespeed'
+import { fetchAndParse } from '@/lib/connectors/crawler'
+import { fetchSemrushDomainOrganic, fetchSemrushDomainRanks, fetchSemrushBacklinksOverview } from '@/lib/connectors/semrush-portal'
 
 export type ChatMessage = {
   role: 'user' | 'assistant'
@@ -83,6 +87,105 @@ Examples:
       required: ['metrics', 'startDate', 'endDate'],
     },
   },
+  {
+    name: 'get_keyword_data',
+    description: `Get search volume, CPC, competition, and 12-month trend data for specific keywords via Keywords Everywhere.
+Use this when the user asks about keyword search volume, CPC, keyword difficulty, or monthly trends for specific terms.
+Returns data for up to 100 keywords at once.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        keywords: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of keywords to look up (max 100)',
+        },
+        country: { type: 'string', description: 'Country code (default: us)' },
+      },
+      required: ['keywords'],
+    },
+  },
+  {
+    name: 'get_related_keywords',
+    description: `Find related keywords for a seed keyword via Keywords Everywhere.
+Use this for keyword research, content ideation, or finding long-tail variations of a topic.
+Returns related terms with search volume, CPC, and competition.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        keyword: { type: 'string', description: 'Seed keyword' },
+        country: { type: 'string', description: 'Country code (default: us)' },
+        limit: { type: 'number', description: 'Max results (default 50, max 1000)' },
+      },
+      required: ['keyword'],
+    },
+  },
+  {
+    name: 'get_domain_visibility',
+    description: `Analyze a domain's organic search visibility via Semrush.
+Returns organic keyword count, estimated organic traffic, organic traffic cost, and top ranking keywords.
+Defaults to the current client's domain if no domain is specified.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        domain: { type: 'string', description: 'Domain to analyze (defaults to client domain)' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'get_competitor_gap',
+    description: `Find keywords where a competitor ranks in the top 100 but you don't, using Semrush domain_organic.
+Compares the competitor's keyword set against the client's, surfacing gap keywords sorted by volume.
+Use this when the user asks about competitor keywords, keyword gaps, or competitive analysis.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        competitor: { type: 'string', description: 'Competitor domain to compare against' },
+        domain: { type: 'string', description: 'Your domain (defaults to client domain)' },
+        limit: { type: 'number', description: 'Max keywords per domain (default 500)' },
+      },
+      required: ['competitor'],
+    },
+  },
+  {
+    name: 'crawl_page_seo',
+    description: `Crawl a single web page and extract SEO elements: title, meta description, headings (H1-H6), canonical, robots meta, images (alt text audit), structured data, word count, Open Graph tags, and hreflang.
+Use this when the user asks about on-page SEO for a specific URL, or wants a page audit.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: { type: 'string', description: 'Full URL to crawl (e.g., https://example.com/page)' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'get_core_web_vitals',
+    description: `Measure Core Web Vitals and Lighthouse performance for a URL via PageSpeed Insights API.
+Returns CrUX field data (LCP, CLS, INP, FCP, TTFB) and Lighthouse lab metrics, with pass/fail assessment.
+Use this when the user asks about page speed, performance, or Core Web Vitals.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: { type: 'string', description: 'Full URL to analyze' },
+        strategy: { type: 'string', enum: ['mobile', 'desktop'], description: 'Device (default: mobile)' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'get_backlink_overview',
+    description: `Get backlink profile overview for a domain via Semrush: total backlinks, referring domains, follow/nofollow ratio, and authority score.
+Defaults to the current client's domain if no domain is specified.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        domain: { type: 'string', description: 'Domain to analyze (defaults to client domain)' },
+      },
+      required: [],
+    },
+  },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -92,6 +195,17 @@ function today(): string {
 }
 
 type OAuthClient = Awaited<ReturnType<typeof getAdminOAuthClient>>
+
+function deriveClientDomain(gscSiteUrl: string | null): string {
+  if (!gscSiteUrl) return ''
+  return gscSiteUrl
+    .replace(/^sc-domain:/, '')
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/.*$/, '')
+    .toLowerCase()
+    .trim()
+}
 
 // Uses a pre-built OAuth client so cookies() is never called inside the stream
 async function executeTool(
@@ -153,6 +267,90 @@ async function executeTool(
       }))
       if (rows.length === 0) return 'No data found for this date range and dimensions.'
       return JSON.stringify(rows)
+    }
+
+    if (name === 'get_keyword_data') {
+      const keKey = process.env.KEYWORDS_EVERYWHERE_API_KEY
+      if (!keKey) return 'Error: KEYWORDS_EVERYWHERE_API_KEY is not configured.'
+      const keywords = input.keywords as string[]
+      const country = (input.country as string) ?? 'us'
+      const rows = await fetchKEKeywordData(keywords, keKey, country)
+      return JSON.stringify(rows)
+    }
+
+    if (name === 'get_related_keywords') {
+      const keKey = process.env.KEYWORDS_EVERYWHERE_API_KEY
+      if (!keKey) return 'Error: KEYWORDS_EVERYWHERE_API_KEY is not configured.'
+      const keyword = input.keyword as string
+      const country = (input.country as string) ?? 'us'
+      const limit = (input.limit as number) ?? 50
+      const rows = await fetchKERelatedKeywords(keyword, keKey, country, limit)
+      return JSON.stringify(rows)
+    }
+
+    if (name === 'get_domain_visibility') {
+      const apiKey = process.env.SEMRUSH_API_KEY
+      if (!apiKey) return 'Error: SEMRUSH_API_KEY is not configured.'
+      const domain = (input.domain as string) || deriveClientDomain(client.gsc_site_url)
+      if (!domain) return 'Error: No domain specified and no client GSC site configured.'
+      const [ranks, keywords] = await Promise.all([
+        fetchSemrushDomainRanks(domain, apiKey),
+        fetchSemrushDomainOrganic(domain, apiKey, 'us', 50),
+      ])
+      return JSON.stringify({ ranks, top_keywords: keywords })
+    }
+
+    if (name === 'get_competitor_gap') {
+      const apiKey = process.env.SEMRUSH_API_KEY
+      if (!apiKey) return 'Error: SEMRUSH_API_KEY is not configured.'
+      const competitor = input.competitor as string
+      const domain = (input.domain as string) || deriveClientDomain(client.gsc_site_url)
+      if (!domain) return 'Error: No domain specified and no client GSC site configured.'
+      const limit = (input.limit as number) ?? 500
+      const [clientKws, competitorKws] = await Promise.all([
+        fetchSemrushDomainOrganic(domain, apiKey, 'us', limit),
+        fetchSemrushDomainOrganic(competitor, apiKey, 'us', limit),
+      ])
+      const clientSet = new Set(clientKws.map((r) => r.keyword.toLowerCase()))
+      const gaps = competitorKws
+        .filter((r) => !clientSet.has(r.keyword.toLowerCase()))
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, 100)
+      return JSON.stringify({ client_keywords: clientKws.length, competitor_keywords: competitorKws.length, gaps })
+    }
+
+    if (name === 'crawl_page_seo') {
+      const url = input.url as string
+      const page = await fetchAndParse(url)
+      const issues: string[] = []
+      if (!page.title) issues.push('Missing title tag')
+      if (!page.metaDescription) issues.push('Missing meta description')
+      if (page.title.length > 60) issues.push('Title too long (>60 chars)')
+      if (page.metaDescription.length > 160) issues.push('Meta description too long (>160 chars)')
+      const h1s = page.headings.filter((h) => h.level === 1)
+      if (h1s.length === 0) issues.push('Missing H1')
+      if (h1s.length > 1) issues.push(`Multiple H1 tags (${h1s.length})`)
+      const missingAlt = page.images.filter((i) => !i.hasAlt).length
+      if (missingAlt > 0) issues.push(`${missingAlt} images missing alt text`)
+      return JSON.stringify({ ...page, issues })
+    }
+
+    if (name === 'get_core_web_vitals') {
+      const url = input.url as string
+      const strategy = (input.strategy as 'mobile' | 'desktop') ?? 'mobile'
+      const apiKey = process.env.PAGESPEED_API_KEY
+      const result = await fetchPageSpeedInsights(url, strategy, apiKey)
+      return JSON.stringify(result)
+    }
+
+    if (name === 'get_backlink_overview') {
+      const apiKey = process.env.SEMRUSH_API_KEY
+      if (!apiKey) return 'Error: SEMRUSH_API_KEY is not configured.'
+      const domain = (input.domain as string) || deriveClientDomain(client.gsc_site_url)
+      if (!domain) return 'Error: No domain specified and no client GSC site configured.'
+      const overview = await fetchSemrushBacklinksOverview(domain, apiKey)
+      if (!overview) return 'No backlink data found for this domain.'
+      return JSON.stringify(overview)
     }
 
     return `Unknown tool: ${name}`
@@ -261,16 +459,28 @@ export async function POST(req: NextRequest) {
           if (si.opportunities) contextParts.push(`Opportunities: ${si.opportunities}`)
         }
 
+        const clientDomain = deriveClientDomain(client.gsc_site_url)
+
         const systemPrompt = `You are Ask LVL3, an expert SEO and digital marketing strategist for the agency LVL3, advising the internal team on a specific client.
 
 ${contextParts.join('\n\n')}
 
-You have two tools available to fetch live data:
+Client domain: ${clientDomain || 'not configured'}
+
+You have 9 tools available to fetch live data:
 - get_gsc_data: Query Google Search Console (keywords, pages, clicks, impressions, rankings)
 - get_ga4_data: Query Google Analytics 4 (sessions, users, traffic, revenue, landing pages)
+- get_keyword_data: Look up search volume, CPC, competition, and trends for specific keywords
+- get_related_keywords: Find related/long-tail keywords for a seed term
+- get_domain_visibility: Semrush organic visibility (keyword count, traffic estimate, top keywords)
+- get_competitor_gap: Find keywords a competitor ranks for that this client doesn't
+- crawl_page_seo: On-page SEO audit of a URL (title, meta, headings, images, structured data)
+- get_core_web_vitals: PageSpeed Insights + Core Web Vitals for a URL
+- get_backlink_overview: Semrush backlink profile (total backlinks, referring domains, authority score)
 
 When a question requires data, use the tools to fetch it rather than saying you don't have it.
 For trend or comparison questions, call the tool twice — once for the current period and once for the prior period — then calculate the delta yourself.
+Tools that accept a domain default to "${clientDomain || 'the client domain'}" when not specified.
 Be specific and direct. Skip preamble. Lead with the actual answer, then support it with data.`
 
         // Upsert conversation
@@ -373,12 +583,20 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
             const toolBlocks = finalMsg.content.filter((b) => b.type === 'tool_use')
 
             // Emit status before executing tools
+            const STATUS_MAP: Record<string, string> = {
+              get_gsc_data: 'Querying Search Console\u2026',
+              get_ga4_data: 'Querying Google Analytics\u2026',
+              get_keyword_data: 'Looking up keyword data\u2026',
+              get_related_keywords: 'Finding related keywords\u2026',
+              get_domain_visibility: 'Analyzing domain visibility\u2026',
+              get_competitor_gap: 'Comparing competitor keywords\u2026',
+              crawl_page_seo: 'Crawling page for SEO audit\u2026',
+              get_core_web_vitals: 'Running PageSpeed analysis\u2026',
+              get_backlink_overview: 'Fetching backlink profile\u2026',
+            }
             for (const block of toolBlocks) {
               if (block.type !== 'tool_use') continue
-              const statusText =
-                block.name === 'get_gsc_data'
-                  ? 'Querying Search Console…'
-                  : 'Querying Google Analytics…'
+              const statusText = STATUS_MAP[block.name] ?? `Running ${block.name}\u2026`
               emit(controller, { type: 'status', text: statusText })
             }
 

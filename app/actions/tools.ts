@@ -222,15 +222,7 @@ export type GapKeyword = {
   relevance: number
 }
 
-function normalizeDomain(raw: string): string {
-  return raw
-    .replace(/^sc-domain:/, '')
-    .replace(/^https?:\/\//, '')
-    .replace(/^www\./, '')
-    .replace(/\/.*$/, '')
-    .toLowerCase()
-    .trim()
-}
+import { normalizeDomain } from '@/lib/normalize-domain'
 
 const PAGE_SECTION_FILTERS: Record<string, string | null> = {
   all: null,

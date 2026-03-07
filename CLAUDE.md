@@ -1,4 +1,6 @@
-# LVL3 Portal — CLAUDE.md
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 Internal client portal for LVL3 digital marketing agency. Admins manage clients, view analytics, deliver work, and run SEO tools. Clients log in to view deliverables, a project tracker, and their dashboard.
 
@@ -25,6 +27,22 @@ No ORM. All DB queries are raw Supabase client calls.
 
 ---
 
+## Development Commands
+
+```bash
+npm run dev          # Start dev server (localhost:3000)
+npm run build        # Production build (runs next build)
+npm run lint         # ESLint
+npx tsc --noEmit     # Type-check — run after every set of changes
+vercel --prod        # Deploy to production (always follow with git push)
+```
+
+No test framework is configured. Validate changes with `npx tsc --noEmit` and `npm run build`.
+
+Database migrations live in `supabase/migrations/`. Push with `supabase db push --include-all` to handle out-of-order files.
+
+---
+
 ## Environment Variables
 
 These must be set in `.env.local` (dev) and Vercel dashboard (prod):
@@ -40,6 +58,8 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=
 
 GOOGLE_SERVICE_ACCOUNT_KEY=  # JSON string — used for Google Sheets ONLY
 ANTHROPIC_API_KEY=
+OPENAI_API_KEY=            # DALL-E image generation (blog image tool only)
+SEMRUSH_API_KEY=           # Semrush gap analysis tool
 ```
 
 ---
@@ -184,6 +204,16 @@ admin_google_token          -- single row (id=1)
 
 user_client_access          -- member ↔ client many-to-many
   user_id, client_id
+
+ask_lvl3_conversations      -- chat threads per client
+  id uuid PK, client_id FK, title, created_at, updated_at
+
+ask_lvl3_messages           -- messages within a thread
+  id uuid PK, conversation_id FK, role, content, created_at
+
+semrush_reports             -- persisted gap analysis results
+  id uuid PK, client_id FK, client_domain, competitors, database,
+  page_section, filters, keywords jsonb, client_keyword_count, keyword_count, created_at
 ```
 
 ---
@@ -201,6 +231,8 @@ user_client_access          -- member ↔ client many-to-many
 /tools/keyword-quick-wins → GSC positions 4-20 opportunity table
 /tools/ai-visibility      → Branded vs non-branded search share
 /tools/content-gaps       → High-impression low-CTR query finder
+/tools/semrush-gap        → Semrush competitor keyword gap analysis
+/tools/blog-image-generator → Batch AI blog image generation (OpenAI DALL-E)
 /ask-lvl3                 → Claude-powered chat with client analytics context
 /clients                  → Client list (admin only)
 /clients/[id]             → Client detail + settings form merged (admin only)
@@ -210,6 +242,15 @@ user_client_access          -- member ↔ client many-to-many
 /auth/callback            → Supabase OAuth callback
 /auth/google-callback     → Google OAuth callback (stores token in admin_google_token)
 ```
+
+### Route Handlers (`app/api/`)
+
+| Route | Purpose |
+|-------|---------|
+| `app/api/ask-lvl3/route.ts` | Streaming NDJSON endpoint for Ask LVL3 chat. Agentic loop with Claude tool_use (GSC/GA4 queries). Manual auth check (no `requireAdmin()` — it uses `redirect()` which throws inside ReadableStream). |
+| `app/api/generate-blog-images/route.ts` | Batch blog image generation via OpenAI DALL-E + sharp for resizing. Uploads to Supabase Storage. `maxDuration = 300`. |
+
+Route Handlers do NOT use `'use server'`. They use manual auth via `supabase.auth.getUser()` + profile role check.
 
 ---
 
@@ -228,6 +269,8 @@ All files must have `'use server'` at the top. No `'use server'` in `lib/` files
 | `client-selection.ts` | `setSelectedClient` (sets the `selected_client` cookie) |
 | `summaries.ts` | `generateClientSummary` (AI project summary) |
 | `deliverables.ts` | CRUD + comment actions |
+| `ask-lvl3-conversations.ts` | `listConversations`, `loadConversation`, `deleteConversation` — thread persistence |
+| `semrush-reports.ts` | `listSemrushReports`, `loadSemrushReport`, `saveSemrushReport` — gap analysis persistence |
 
 ---
 
@@ -246,6 +289,7 @@ No `'use server'` in any lib file — they are plain async functions.
 | `tools-gsc.ts` | `fetchGSCRows` — raw 25k-row GSC dump for tools + Ask LVL3 |
 | `date-range.ts` | `buildDateRange(period, compare)` — periods: 7d/28d/90d/180d/365d, compare: prior/yoy |
 | `queries.ts` | Shared Supabase query helpers |
+| `ask-tools.ts` | `gscQuery` — flexible GSC search analytics query used by Ask LVL3 agentic tools |
 
 ---
 
@@ -332,14 +376,16 @@ To add a nav item: edit `components/sidebar.tsx` only — add the icon import an
 
 ## Ask LVL3 Chat
 
-`/ask-lvl3` — Claude-powered chat with client-specific context.
+`/ask-lvl3` — Claude-powered agentic chat with client-specific context.
+
+**Architecture:** Streaming NDJSON via Route Handler (`app/api/ask-lvl3/route.ts`). Agentic loop — Claude can call tools (`get_gsc_data`, `get_ga4_data`) autonomously, iterating until it has enough data to answer. Text deltas are suppressed during tool_use iterations; status events (`{ type: 'status', text: '...' }`) are emitted instead.
+
+**Persistence:** Conversations stored in `ask_lvl3_conversations` + `ask_lvl3_messages` tables. Thread picker UI with select dropdown + delete.
 
 Context injected into system prompt:
 1. Client name
 2. `analytics_summary` (stored narrative from last insight refresh)
 3. `snapshot_insights` (takeaways, anomalies, opportunities)
-4. **Live GSC data** — triggered if message contains: keyword, ranking, query, search, position, impression, click, page, url, trending, organic, traffic, gsc, search console → fetches 90 days of query+page rows, pushes top queries + top pages by clicks
-5. **Live GA4 landing page data** — triggered if message contains: page, session, traffic, landing, trending, organic, ga4, analytics → calls `fetchGA4Report`, pushes top organic landing pages with session deltas
 
 Model: `claude-sonnet-4-6`, max_tokens: 1024.
 
@@ -354,6 +400,8 @@ All tools are admin-only, require a client selected in the top bar, and call `fe
 | Keyword Quick Wins | Position 4–20, 100+ impressions. Opportunity score = (est clicks at #3 − actual clicks) × (1/position) × 100 |
 | AI Visibility Check | Branded vs non-branded split. Brand terms = client name + slug + domain hostname prefix |
 | Content Gap Finder | Three gap types: high-impression-no-clicks (200+ imp, <1% CTR, pos ≤30), near-page-one (pos 11-20, 150+ imp), ranking-but-weak (pos ≤10, CTR below position benchmark) |
+| Semrush Gap Analysis | Competitor keyword gap analysis via Semrush API. Matrix view, pre-filters, relevance scoring. Reports persisted in `semrush_reports` table. |
+| Blog Image Generator | Batch DALL-E image generation from CSV input. Uses OpenAI API (`OPENAI_API_KEY`) + sharp for resizing. Uploads to Supabase Storage. |
 
 ---
 

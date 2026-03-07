@@ -1,0 +1,97 @@
+export interface CruxMetric {
+  category: 'FAST' | 'AVERAGE' | 'SLOW' | 'NONE'
+  percentile: number
+}
+
+export interface PageSpeedResult {
+  url: string
+  strategy: string
+  lighthouse_score: number
+  crux: {
+    lcp: CruxMetric | null
+    cls: CruxMetric | null
+    inp: CruxMetric | null
+    fid: CruxMetric | null
+    fcp: CruxMetric | null
+    ttfb: CruxMetric | null
+  }
+  lighthouse: {
+    fcp_ms: number
+    lcp_ms: number
+    tbt_ms: number
+    cls: number
+    si_ms: number
+    tti_ms: number
+  }
+  cwv_pass: boolean
+}
+
+export async function fetchPageSpeedInsights(
+  url: string,
+  strategy: 'mobile' | 'desktop' = 'mobile',
+  apiKey?: string,
+): Promise<PageSpeedResult> {
+  const params = new URLSearchParams({
+    url,
+    strategy,
+    category: 'performance',
+  })
+  if (apiKey) params.set('key', apiKey)
+
+  const endpoint = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${params}`
+  const res = await fetch(endpoint)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const json: any = await res.json()
+
+  if (!res.ok) {
+    throw new Error(`PageSpeed API error: ${json?.error?.message ?? res.status}`)
+  }
+
+  const cruxMetrics = json.loadingExperience?.metrics ?? {}
+
+  function extractCrux(key: string): CruxMetric | null {
+    const m = cruxMetrics[key]
+    if (!m) return null
+    return {
+      category: m.category ?? 'NONE',
+      percentile: m.percentile ?? 0,
+    }
+  }
+
+  const audits = json.lighthouseResult?.audits ?? {}
+  const lighthouseScore = Math.round(
+    (json.lighthouseResult?.categories?.performance?.score ?? 0) * 100,
+  )
+
+  const lcp = extractCrux('LARGEST_CONTENTFUL_PAINT_MS')
+  const cls = extractCrux('CUMULATIVE_LAYOUT_SHIFT_SCORE')
+  const inp = extractCrux('INTERACTION_TO_NEXT_PAINT')
+
+  const cwvPass =
+    (lcp === null || lcp.category === 'FAST' || lcp.category === 'AVERAGE') &&
+    (cls === null || cls.category === 'FAST' || cls.category === 'AVERAGE') &&
+    (inp === null || inp.category === 'FAST' || inp.category === 'AVERAGE')
+
+  return {
+    url,
+    strategy,
+    lighthouse_score: lighthouseScore,
+    crux: {
+      lcp,
+      cls,
+      inp,
+      fid: extractCrux('FIRST_INPUT_DELAY_MS'),
+      fcp: extractCrux('FIRST_CONTENTFUL_PAINT_MS'),
+      ttfb: extractCrux('EXPERIMENTAL_TIME_TO_FIRST_BYTE'),
+    },
+    lighthouse: {
+      fcp_ms: parseFloat(audits['first-contentful-paint']?.numericValue ?? '0'),
+      lcp_ms: parseFloat(audits['largest-contentful-paint']?.numericValue ?? '0'),
+      tbt_ms: parseFloat(audits['total-blocking-time']?.numericValue ?? '0'),
+      cls: parseFloat(audits['cumulative-layout-shift']?.numericValue ?? '0'),
+      si_ms: parseFloat(audits['speed-index']?.numericValue ?? '0'),
+      tti_ms: parseFloat(audits['interactive']?.numericValue ?? '0'),
+    },
+    cwv_pass: cwvPass,
+  }
+}

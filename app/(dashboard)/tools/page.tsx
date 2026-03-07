@@ -1,7 +1,7 @@
 import { requireAdmin } from '@/lib/auth'
 import { resolveSelectedClientId } from '@/lib/client-resolution'
 import Link from 'next/link'
-import { Wrench, TrendingUp, Eye, FileSearch, ImageIcon, GitCompare } from 'lucide-react'
+import { Wrench, TrendingUp, Eye, FileSearch, ImageIcon, GitCompare, Gauge, FileCode, BookOpen, Link2, FileText } from 'lucide-react'
 
 const TOOLS = [
   {
@@ -42,6 +42,46 @@ const TOOLS = [
     label: 'Blog Image Generator',
     description:
       'Upload a CSV or TSV of post titles and prompts. Generates 1500×1000 WebP images via OpenAI and bundles them into a ZIP.',
+    requiresClient: false,
+  },
+  {
+    href: '/tools/core-web-vitals',
+    icon: Gauge,
+    label: 'Core Web Vitals',
+    description:
+      'Measure CrUX field data (LCP, CLS, INP) and Lighthouse performance scores for any URL.',
+    requiresClient: false,
+  },
+  {
+    href: '/tools/page-seo-audit',
+    icon: FileCode,
+    label: 'Page SEO Audit',
+    description:
+      'Crawl a page and check title, meta description, headings, images, structured data, and canonical tags.',
+    requiresClient: false,
+  },
+  {
+    href: '/tools/keyword-research',
+    icon: BookOpen,
+    label: 'Keyword Research',
+    description:
+      'Get search volume, CPC, competition, and 12-month trend data for up to 100 keywords via Keywords Everywhere.',
+    requiresClient: false,
+  },
+  {
+    href: '/tools/backlink-overview',
+    icon: Link2,
+    label: 'Backlink Overview',
+    description:
+      'View domain authority, organic traffic, backlink count, and referring domains via Semrush.',
+    requiresClient: true,
+  },
+  {
+    href: '/tools/content-quality',
+    icon: FileText,
+    label: 'Content Quality',
+    description:
+      'Analyze word count, reading level, heading structure, image alt coverage, and internal linking density.',
     requiresClient: false,
   },
 ]
