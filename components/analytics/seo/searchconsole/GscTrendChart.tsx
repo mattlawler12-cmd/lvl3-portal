@@ -27,17 +27,17 @@ export default function GscTrendChart({ data }: Props) {
       <p className="text-sm font-semibold text-surface-100 mb-4">Clicks & Impressions Trend</p>
       <ResponsiveContainer width="100%" height={240}>
         <ComposedChart data={data} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="#283548" strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fill: '#94A3B8', fontSize: 11 }}
+            tick={{ fill: 'var(--chart-tick)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             yAxisId="left"
             tickFormatter={fmtNum}
-            tick={{ fill: '#94A3B8', fontSize: 11 }}
+            tick={{ fill: 'var(--chart-tick)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={40}
@@ -46,30 +46,30 @@ export default function GscTrendChart({ data }: Props) {
             yAxisId="right"
             orientation="right"
             tickFormatter={fmtNum}
-            tick={{ fill: '#94A3B8', fontSize: 11 }}
+            tick={{ fill: 'var(--chart-tick)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={40}
           />
           <Tooltip
             formatter={(v, name) => [Number(v ?? 0).toLocaleString(), name ?? '']}
-            contentStyle={{ background: '#0F172A', border: '1px solid #283548', borderRadius: 8 }}
-            labelStyle={{ color: '#CBD5E1' }}
-            itemStyle={{ color: '#94A3B8' }}
+            contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8 }}
+            labelStyle={{ color: 'var(--chart-label)' }}
+            itemStyle={{ color: 'var(--chart-tick)' }}
           />
           <Legend
             iconType="circle"
             iconSize={8}
-            formatter={(value) => <span style={{ color: '#94A3B8', fontSize: 12 }}>{value}</span>}
+            formatter={(value) => <span style={{ color: 'var(--chart-tick)', fontSize: 12 }}>{value}</span>}
           />
           <Area
             yAxisId="left"
             type="monotone"
             dataKey="clicks"
-            stroke="#fb923c"
-            fill="#fb923c22"
+            stroke="var(--chart-line)"
+            fill="var(--chart-line)22"
             strokeWidth={2}
-            dot={{ fill: '#fb923c', r: 3 }}
+            dot={{ fill: 'var(--chart-line)', r: 3 }}
             name="Clicks"
           />
           <Area

@@ -55,7 +55,7 @@ function StatPills({
 
   const defs = [
     { status: 'Completed', active: 'bg-green-700/60 text-green-300 ring-1 ring-green-500/50', inactive: 'bg-green-900/30 text-green-400/70 border-green-800/50' },
-    { status: 'In Progress', active: 'bg-blue-700/60 text-blue-300 ring-1 ring-blue-500/50', inactive: 'bg-blue-900/30 text-blue-400/70 border-blue-800/50' },
+    { status: 'In Progress', active: 'bg-brand-700/60 text-brand-300 ring-1 ring-brand-500/50', inactive: 'bg-brand-900/30 text-brand-400/70 border-brand-800/50' },
     { status: 'Blocked', active: 'bg-red-700/60 text-red-300 ring-1 ring-red-500/50', inactive: 'bg-red-900/30 text-red-400/70 border-red-800/50' },
     { status: 'Not Started', active: 'bg-surface-700 text-surface-300 ring-1 ring-surface-500/50', inactive: 'bg-surface-800 text-surface-500 border-surface-600/50' },
   ]

@@ -61,7 +61,7 @@ export default function ProjectsView({
   // Status breakdown
   const statusCounts: { label: string; color: string; count: number }[] = [
     { label: "Completed", color: "text-accent-400", count: rows.filter((r) => r.status === "Completed").length },
-    { label: "In Progress", color: "text-blue-400", count: rows.filter((r) => r.status === "In Progress").length },
+    { label: "In Progress", color: "text-brand-400", count: rows.filter((r) => r.status === "In Progress").length },
     { label: "Blocked", color: "text-amber-400", count: rows.filter((r) => r.status === "Blocked").length },
     { label: "Not Started", color: "text-surface-500", count: rows.filter((r) => !["Completed", "In Progress", "Blocked"].includes(r.status)).length },
   ].filter((s) => s.count > 0);

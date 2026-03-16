@@ -18,32 +18,32 @@ export default function MonthlySessionsChart({ data }: Props) {
       <p className="text-sm font-semibold text-surface-100 mb-4">Monthly Sessions Trend</p>
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={data} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
-          <CartesianGrid stroke="#283548" strokeDasharray="3 3" vertical={false} />
+          <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="month"
-            tick={{ fill: '#94A3B8', fontSize: 11 }}
+            tick={{ fill: 'var(--chart-tick)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
             tickFormatter={fmtNum}
-            tick={{ fill: '#94A3B8', fontSize: 11 }}
+            tick={{ fill: 'var(--chart-tick)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={40}
           />
           <Tooltip
             formatter={(v) => [Number(v ?? 0).toLocaleString(), 'Sessions']}
-            contentStyle={{ background: '#0F172A', border: '1px solid #283548', borderRadius: 8 }}
-            labelStyle={{ color: '#CBD5E1' }}
-            itemStyle={{ color: '#94A3B8' }}
+            contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8 }}
+            labelStyle={{ color: 'var(--chart-label)' }}
+            itemStyle={{ color: 'var(--chart-tick)' }}
           />
           <Line
             type="monotone"
             dataKey="sessions"
-            stroke="#fb923c"
+            stroke="var(--chart-line)"
             strokeWidth={2}
-            dot={{ fill: '#fb923c', r: 3 }}
+            dot={{ fill: 'var(--chart-line)', r: 3 }}
             activeDot={{ r: 5 }}
           />
         </LineChart>

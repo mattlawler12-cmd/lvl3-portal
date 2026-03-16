@@ -84,7 +84,7 @@ export default async function ProjectsPage() {
               Set the Google Sheet ID in{" "}
               <a
                 href={`/clients/${selectedClient.id}/settings`}
-                className="text-blue-400 hover:underline"
+                className="text-brand-400 hover:underline"
               >
                 Client Settings
               </a>

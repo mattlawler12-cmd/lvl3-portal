@@ -2,7 +2,7 @@
 
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
-const COLORS = ['#fb923c', '#2dd4bf', '#60a5fa']
+const COLORS = ['var(--chart-line)', '#2dd4bf', '#60a5fa']
 
 interface Props {
   mobile: number
@@ -39,13 +39,13 @@ export default function DeviceDonutChart({ mobile, desktop, tablet }: Props) {
           </Pie>
           <Tooltip
             formatter={(v) => [Number(v ?? 0).toLocaleString(), 'Sessions']}
-            contentStyle={{ background: '#0F172A', border: '1px solid #283548', borderRadius: 8 }}
-            itemStyle={{ color: '#94A3B8' }}
+            contentStyle={{ background: 'var(--chart-tooltip-bg)', border: '1px solid var(--chart-tooltip-border)', borderRadius: 8 }}
+            itemStyle={{ color: 'var(--chart-tick)' }}
           />
           <Legend
             iconType="circle"
             iconSize={8}
-            formatter={(value) => <span style={{ color: '#94A3B8', fontSize: 12 }}>{value}</span>}
+            formatter={(value) => <span style={{ color: 'var(--chart-tick)', fontSize: 12 }}>{value}</span>}
           />
         </PieChart>
       </ResponsiveContainer>

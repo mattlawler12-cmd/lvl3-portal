@@ -1,18 +1,18 @@
 import type { Metadata } from 'next'
-import { Fira_Code, Fira_Sans } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 
-const firaCode = Fira_Code({
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-fira-code',
-  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
 })
 
-const firaSans = Fira_Sans({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
-  variable: '--font-fira-sans',
-  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-jetbrains-mono',
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
 })
 
@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${firaCode.variable} ${firaSans.variable} antialiased`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
         {children}
       </body>
     </html>

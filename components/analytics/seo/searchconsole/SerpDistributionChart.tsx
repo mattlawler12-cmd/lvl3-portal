@@ -17,7 +17,7 @@ interface Props {
 }
 
 const BUCKETS = [
-  { key: 'top3' as keyof SerpDistribution, label: 'Top 3', color: '#fb923c', range: 'positions 1–3' },
+  { key: 'top3' as keyof SerpDistribution, label: 'Top 3', color: 'var(--chart-line)', range: 'positions 1–3' },
   { key: 'top10' as keyof SerpDistribution, label: 'Page 1 (4–10)', color: '#2dd4bf', range: 'positions 4–10' },
   { key: 'page2' as keyof SerpDistribution, label: 'Page 2 (11–20)', color: '#6b7280', range: 'positions 11–20' },
   { key: 'page3to5' as keyof SerpDistribution, label: 'Pages 3–5 (21–50)', color: '#4e5569', range: 'positions 21–50' },
@@ -58,15 +58,15 @@ export default function SerpDistributionChart({ distribution }: Props) {
       </div>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} margin={{ top: 4, right: 8, left: -20, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#283548" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
           <XAxis
             dataKey="label"
-            tick={{ fill: '#94A3B8', fontSize: 11 }}
+            tick={{ fill: 'var(--chart-tick)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#94A3B8', fontSize: 11 }}
+            tick={{ fill: 'var(--chart-tick)', fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             allowDecimals={false}

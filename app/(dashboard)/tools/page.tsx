@@ -125,7 +125,7 @@ export default async function ToolsPage() {
             >
               <div
                 className="w-9 h-9 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(245,158,11,0.1)' }}
+                style={{ backgroundColor: 'var(--active-bg)' }}
               >
                 <Icon className="w-4 h-4" style={{ color: 'var(--color-accent)' }} />
               </div>

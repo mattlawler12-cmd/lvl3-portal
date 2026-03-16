@@ -218,7 +218,7 @@ export default function ClientSettingsForm({ client }: Props) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
 
@@ -229,7 +229,7 @@ export default function ClientSettingsForm({ client }: Props) {
             required
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
           />
         </div>
 
@@ -241,7 +241,7 @@ export default function ClientSettingsForm({ client }: Props) {
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
               placeholder="acme.com"
-              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
+              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-surface-500"
             />
             <button
               type="button"
@@ -263,7 +263,7 @@ export default function ClientSettingsForm({ client }: Props) {
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
               placeholder="https://..."
-              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
+              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-surface-500"
             />
             {logoUrl && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -291,7 +291,7 @@ export default function ClientSettingsForm({ client }: Props) {
             value={sheetIdOrUrl}
             onChange={(e) => setSheetIdOrUrl(e.target.value)}
             placeholder="https://docs.google.com/spreadsheets/d/SHEET_ID/edit"
-            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
+            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-surface-500"
           />
           <p className="text-surface-500 text-xs mt-1.5">
             Paste the full URL or just the Sheet ID — both work.
@@ -306,7 +306,7 @@ export default function ClientSettingsForm({ client }: Props) {
               min={1}
               value={headerRow}
               onChange={(e) => setHeaderRow(parseInt(e.target.value) || 1)}
-              className="w-24 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-24 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
             <button
               type="button"
@@ -353,7 +353,7 @@ export default function ClientSettingsForm({ client }: Props) {
                         return next
                       })
                     }
-                    className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
                   >
                     <option value="">— not mapped —</option>
                     {headers.map((h) => (
@@ -388,7 +388,7 @@ export default function ClientSettingsForm({ client }: Props) {
             value={lookerUrl}
             onChange={(e) => setLookerUrl(e.target.value)}
             placeholder="https://lookerstudio.google.com/embed/reporting/..."
-            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-surface-500"
+            className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-surface-500"
           />
         </div>
       </div>
@@ -403,7 +403,7 @@ export default function ClientSettingsForm({ client }: Props) {
             <select
               value={ga4PropertyId}
               onChange={(e) => setGa4PropertyId(e.target.value)}
-              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">— select a property —</option>
               {ga4Properties.map((p) => (
@@ -434,7 +434,7 @@ export default function ClientSettingsForm({ client }: Props) {
             <select
               value={gscSiteUrl}
               onChange={(e) => setGscSiteUrl(e.target.value)}
-              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">— select a site —</option>
               {gscSiteOptions.map((s) => (
@@ -480,7 +480,7 @@ export default function ClientSettingsForm({ client }: Props) {
         <button
           type="submit"
           disabled={isPending}
-          className="bg-blue-600 hover:bg-blue-500 text-surface-100 text-sm font-medium px-5 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-brand-500 hover:bg-brand-400 text-surface-100 text-sm font-medium px-5 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isPending ? 'Saving…' : 'Save Changes'}
         </button>

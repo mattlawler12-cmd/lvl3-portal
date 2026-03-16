@@ -59,7 +59,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <span
             className="text-5xl font-bold tracking-tight"
-            style={{ color: 'var(--color-accent)', fontFamily: 'var(--font-fira-code), monospace' }}
+            style={{ color: 'var(--color-accent)', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
           >
             LVL3
           </span>
@@ -81,11 +81,11 @@ export default function LoginPage() {
               {/* Marigold check circle */}
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center mx-auto text-2xl"
-                style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: 'var(--color-accent)' }}
+                style={{ backgroundColor: 'var(--active-bg-bold)', color: 'var(--color-accent)' }}
               >
                 ✓
               </div>
-              <p className="font-semibold text-surface-100" style={{ fontFamily: 'var(--font-fira-code), monospace' }}>
+              <p className="font-semibold text-surface-100" style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
                 Check your email
               </p>
               <p className="text-sm text-surface-400 leading-relaxed">
@@ -106,7 +106,7 @@ export default function LoginPage() {
               <div>
                 <h1
                   className="text-xl font-bold text-surface-100 mb-1"
-                  style={{ fontFamily: 'var(--font-fira-code), monospace' }}
+                  style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
                 >
                   Sign in
                 </h1>
@@ -132,7 +132,7 @@ export default function LoginPage() {
                       border: '1px solid var(--color-border)',
                       color: 'var(--background)',
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.15)' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--active-bg-bold)' }}
                     onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
                   />
                 </div>
@@ -155,7 +155,7 @@ export default function LoginPage() {
                       border: '1px solid var(--color-border)',
                       color: 'var(--background)',
                     }}
-                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.15)' }}
+                    onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--active-bg-bold)' }}
                     onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
                   />
                 </div>
@@ -190,7 +190,7 @@ export default function LoginPage() {
               <div>
                 <h1
                   className="text-xl font-bold text-surface-100 mb-1"
-                  style={{ fontFamily: 'var(--font-fira-code), monospace' }}
+                  style={{ fontFamily: 'var(--font-jetbrains-mono), monospace' }}
                 >
                   Welcome back
                 </h1>
@@ -215,7 +215,7 @@ export default function LoginPage() {
                     border: '1px solid var(--color-border)',
                     color: 'var(--background)',
                   }}
-                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.15)' }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--active-bg-bold)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
               </div>
@@ -230,7 +230,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full rounded-[4px] px-4 py-2.5 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: 'var(--color-accent)', color: 'var(--background)' }}
-                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#F5B53A' }}
+                onMouseEnter={e => { if (!loading) (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#9D7AE8' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-accent)' }}
               >
                 {loading ? 'Sending…' : 'Send magic link'}

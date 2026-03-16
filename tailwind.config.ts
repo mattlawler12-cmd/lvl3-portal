@@ -11,50 +11,50 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
-        // Cool dark scale — backgrounds, cards, borders, text
+        // Zinc neutral scale — references CSS variables in globals.css
         surface: {
-          950: '#020617', // OLED dark body bg
-          900: '#0F172A', // card / panel bg
-          850: '#162032', // card hover
-          800: '#1E293B', // input bg / elevated surface
-          700: '#283548', // border
-          600: '#334155', // border hover
-          500: '#475569', // placeholder / disabled
-          400: '#64748B', // muted text
-          300: '#94A3B8', // secondary text
-          200: '#CBD5E1', // lighter text
-          100: '#F1F5F9', // primary text
+          950: 'rgb(var(--surface-950) / <alpha-value>)',
+          900: 'rgb(var(--surface-900) / <alpha-value>)',
+          850: 'rgb(var(--surface-850) / <alpha-value>)',
+          800: 'rgb(var(--surface-800) / <alpha-value>)',
+          700: 'rgb(var(--surface-700) / <alpha-value>)',
+          600: 'rgb(var(--surface-600) / <alpha-value>)',
+          500: 'rgb(var(--surface-500) / <alpha-value>)',
+          400: 'rgb(var(--surface-400) / <alpha-value>)',
+          300: 'rgb(var(--surface-300) / <alpha-value>)',
+          200: 'rgb(var(--surface-200) / <alpha-value>)',
+          100: 'rgb(var(--surface-100) / <alpha-value>)',
         },
-        // Amber accent scale
+        // Violet accent scale — references CSS variables in globals.css
         brand: {
-          50:  '#FFFBEB',
-          100: '#FEF3C7',
-          200: '#FDE68A',
-          300: '#FCD34D',
-          400: '#F59E0B', // main amber accent
-          500: '#D97706',
-          600: '#B45309',
-          700: '#92400E', // deep amber
-          800: '#78350F',
-          900: '#451A03',
+          50:  'rgb(var(--brand-50) / <alpha-value>)',
+          100: 'rgb(var(--brand-100) / <alpha-value>)',
+          200: 'rgb(var(--brand-200) / <alpha-value>)',
+          300: 'rgb(var(--brand-300) / <alpha-value>)',
+          400: 'rgb(var(--brand-400) / <alpha-value>)',
+          500: 'rgb(var(--brand-500) / <alpha-value>)',
+          600: 'rgb(var(--brand-600) / <alpha-value>)',
+          700: 'rgb(var(--brand-700) / <alpha-value>)',
+          800: 'rgb(var(--brand-800) / <alpha-value>)',
+          900: 'rgb(var(--brand-900) / <alpha-value>)',
         },
-        // Blue accent scale — primary interactive color
+        // Accent mirrors brand for interactive elements
         accent: {
-          50:  '#EFF6FF',
-          100: '#DBEAFE',
-          200: '#BFDBFE',
-          300: '#93C5FD',
-          400: '#3B82F6', // primary blue
-          500: '#2563EB',
-          600: '#1D4ED8',
-          700: '#1E40AF',
-          800: '#1E3A8A',
-          900: '#172554',
+          50:  'rgb(var(--brand-50) / <alpha-value>)',
+          100: 'rgb(var(--brand-100) / <alpha-value>)',
+          200: 'rgb(var(--brand-200) / <alpha-value>)',
+          300: 'rgb(var(--brand-300) / <alpha-value>)',
+          400: 'rgb(var(--brand-500) / <alpha-value>)',
+          500: 'rgb(var(--brand-600) / <alpha-value>)',
+          600: 'rgb(var(--brand-700) / <alpha-value>)',
+          700: 'rgb(var(--brand-800) / <alpha-value>)',
+          800: 'rgb(var(--brand-900) / <alpha-value>)',
+          900: 'rgb(var(--brand-900) / <alpha-value>)',
         },
       },
       fontFamily: {
-        sans:  ['var(--font-fira-sans)', 'system-ui', '-apple-system', 'sans-serif'],
-        mono:  ['var(--font-fira-code)', 'monospace'],
+        sans:  ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
+        mono:  ['var(--font-jetbrains-mono)', 'monospace'],
       },
       animation: {
         "fade-in":        "fadeIn 0.15s ease-out",

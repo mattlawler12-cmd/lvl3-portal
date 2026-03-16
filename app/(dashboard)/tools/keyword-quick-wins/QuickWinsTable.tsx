@@ -45,7 +45,7 @@ export default function QuickWinsTable({ wins }: { wins: QuickWin[] }) {
                     <span
                       className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full"
                       style={{
-                        backgroundColor: w.position <= 10 ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.05)',
+                        backgroundColor: w.position <= 10 ? 'var(--active-bg-bold)' : 'rgba(255,255,255,0.05)',
                         color: w.position <= 10 ? 'var(--color-accent)' : '#9ca3af',
                       }}
                     >

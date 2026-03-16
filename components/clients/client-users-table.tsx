@@ -9,7 +9,7 @@ import InviteUserModal from './invite-user-modal'
 
 const ROLE_BADGE: Record<string, string> = {
   admin: 'bg-brand-400/10 text-brand-400',
-  member: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+  member: 'bg-brand-500/15 text-brand-400 border border-brand-500/30',
   client: 'bg-surface-700 text-surface-300',
 }
 

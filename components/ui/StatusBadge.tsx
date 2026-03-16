@@ -33,7 +33,7 @@ const STATUS_CONFIG: Record<
   "in-progress": {
     label: "In progress",
     icon: RefreshCw,
-    className: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+    className: "bg-brand-500/15 text-brand-400 border-brand-500/20",
   },
   blocked: {
     label: "Blocked",

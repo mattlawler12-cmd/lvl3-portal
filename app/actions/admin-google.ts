@@ -1,7 +1,7 @@
 'use server'
 
 import { requireAdmin } from '@/lib/auth'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { google } from 'googleapis'
 
 export async function getAdminGoogleStatus(): Promise<{
@@ -27,7 +27,20 @@ export async function connectAdminGoogle(
   redirectUri: string
 ): Promise<{ error?: string }> {
   try {
-    await requireAdmin()
+    // Manual auth check — requireAdmin() uses redirect() which throws
+    // NEXT_REDIRECT errors that get caught by this try/catch, silently
+    // failing the OAuth flow instead of storing the token.
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return { error: 'Not authenticated' }
+
+    const service = await createServiceClient()
+    const { data: profile } = await service
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (!profile || profile.role !== 'admin') return { error: 'Admin access required' }
 
     const oauth2 = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -48,7 +61,6 @@ export async function connectAdminGoogle(
     const oauth2Api = google.oauth2({ version: 'v2', auth: oauth2 })
     const { data: userInfo } = await oauth2Api.userinfo.get()
 
-    const service = await createServiceClient()
     const { error } = await service.from('admin_google_token').upsert(
       {
         id: 1,

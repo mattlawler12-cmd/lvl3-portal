@@ -9,14 +9,14 @@ export type CategoryGroup = { category: string; rows: SheetRow[] }
 
 export const STATUS_STYLES: Record<string, string> = {
   'Completed': 'bg-green-900/40 text-green-400 border border-green-700/50',
-  'In Progress': 'bg-blue-900/40 text-blue-400 border border-blue-700/50',
+  'In Progress': 'bg-brand-900/40 text-brand-400 border border-brand-700/50',
   'Not Started': 'bg-surface-800 text-surface-400 border border-surface-600/50',
   'Blocked': 'bg-red-900/40 text-red-400 border border-red-700/50',
 }
 
 export const SEGMENT_DEFS = [
   { status: 'Completed', color: 'bg-green-500', label: 'Done' },
-  { status: 'In Progress', color: 'bg-blue-500', label: 'Active' },
+  { status: 'In Progress', color: 'bg-brand-500', label: 'Active' },
   { status: 'Blocked', color: 'bg-red-500', label: 'Blocked' },
   { status: 'Not Started', color: 'bg-surface-600', label: 'Todo' },
 ] as const

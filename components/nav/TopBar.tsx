@@ -77,7 +77,7 @@ export default function TopBar({
         href="/"
         className="flex items-center gap-1.5 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
       >
-        <span className="font-bold tracking-tight text-base" style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-fira-code), monospace' }}>LVL3</span>
+        <span className="font-bold tracking-tight text-base" style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>LVL3</span>
         <span className="hidden sm:inline text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--nav-text)', letterSpacing: '0.06em' }}>
           Portal
         </span>
@@ -95,7 +95,7 @@ export default function TopBar({
             value={selectedClientId ?? ""}
             onChange={handleClientChange}
             className="bg-transparent border-none text-sm focus:outline-none cursor-pointer truncate"
-            style={{ color: 'var(--nav-text-bright)', fontFamily: 'var(--font-fira-sans)' }}
+            style={{ color: 'var(--nav-text-bright)', fontFamily: 'var(--font-inter)' }}
           >
             <option value="" style={{ backgroundColor: 'var(--nav-bg)' }}>Select a client</option>
             {clientList.map((c) => (
@@ -240,7 +240,7 @@ export default function TopBar({
                 <p className="text-sm font-medium truncate" style={{ color: 'var(--nav-text-bright)' }}>{userEmail}</p>
                 <span
                   className="inline-flex items-center text-xs px-2 py-0.5 rounded-full mt-1"
-                  style={{ backgroundColor: 'rgba(245,158,11,0.15)', color: 'var(--color-accent)' }}
+                  style={{ backgroundColor: 'var(--active-bg-bold)', color: 'var(--color-accent)' }}
                 >
                   {ROLE_LABELS[userRole] ?? userRole}
                 </span>

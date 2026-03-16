@@ -3,34 +3,77 @@
 @tailwind utilities;
 
 :root {
-  /* ── OLED Dark + Blue/Amber palette ────────────────────── */
-  --background:       #020617;
-  --foreground:       #F1F5F9;
+  /* ═══════════════════════════════════════════════════════════
+     SINGLE SOURCE OF TRUTH — Zinc + Violet palette
+     Change colors here → everything updates automatically.
+     RGB channels (R G B) enable Tailwind opacity modifiers.
+     ═══════════════════════════════════════════════════════════ */
 
-  --color-ink:        #020617;
-  --color-cream:      #F1F5F9;
-  --color-cream-alt:  #E2E8F0;
-  --color-card:       #0F172A;
-  --color-accent:     #F59E0B;
-  --color-primary:    #3B82F6;
-  --color-muted:      #64748B;
-  --color-border:     #1E293B;
+  /* ── Surface scale (zinc neutrals) ─────────────────────── */
+  --surface-950: 9 9 11;         /* #09090B  body bg */
+  --surface-900: 24 24 27;       /* #18181B  card / panel */
+  --surface-850: 31 31 35;       /* #1F1F23  card hover */
+  --surface-800: 39 39 42;       /* #27272A  input bg / elevated */
+  --surface-700: 63 63 70;       /* #3F3F46  border */
+  --surface-600: 82 82 91;       /* #52525B  border hover */
+  --surface-500: 113 113 122;    /* #71717A  placeholder */
+  --surface-400: 161 161 170;    /* #A1A1AA  muted text */
+  --surface-300: 212 212 216;    /* #D4D4D8  secondary text */
+  --surface-200: 228 228 231;    /* #E4E4E7  lighter text */
+  --surface-100: 250 250 250;    /* #FAFAFA  primary text */
 
-  /* Top nav — dark bar */
-  --nav-bg:           #0F172A;
-  --nav-hover:        #1E293B;
-  --nav-text:         #94A3B8;
-  --nav-text-bright:  #F1F5F9;
-  --nav-active:       #F59E0B;
-  --nav-border:       #1E293B;
+  /* ── Brand scale (violet) ──────────────────────────────── */
+  --brand-50:  245 243 255;      /* #F5F3FF */
+  --brand-100: 237 233 254;      /* #EDE9FE */
+  --brand-200: 221 214 254;      /* #DDD6FE */
+  --brand-300: 196 181 253;      /* #C4B5FD */
+  --brand-400: 167 139 250;      /* #A78BFA  main accent */
+  --brand-500: 139 92 246;       /* #8B5CF6  interactive */
+  --brand-600: 124 58 237;       /* #7C3AED */
+  --brand-700: 109 40 217;       /* #6D28D9  deep violet */
+  --brand-800: 91 33 182;        /* #5B21B6 */
+  --brand-900: 76 29 149;        /* #4C1D95 */
 
-  /* Sidebar — OLED dark */
-  --sidebar-bg:           #020617;
-  --sidebar-hover:        #0F172A;
-  --sidebar-text:         #94A3B8;
-  --sidebar-text-bright:  #F1F5F9;
-  --sidebar-active:       #F59E0B;
-  --sidebar-border:       #1E293B;
+  /* ── Semantic aliases ──────────────────────────────────── */
+  --background:      rgb(var(--surface-950));
+  --foreground:      rgb(var(--surface-100));
+  --color-ink:       rgb(var(--surface-950));
+  --color-cream:     rgb(var(--surface-100));
+  --color-cream-alt: rgb(var(--surface-200));
+  --color-card:      rgb(var(--surface-900));
+  --color-accent:    rgb(var(--brand-400));
+  --color-primary:   rgb(var(--brand-500));
+  --color-muted:     rgb(var(--surface-400));
+  --color-border:    rgb(var(--surface-800));
+
+  /* ── Nav tokens ────────────────────────────────────────── */
+  --nav-bg:          rgb(var(--surface-900));
+  --nav-hover:       rgb(var(--surface-800));
+  --nav-text:        rgb(var(--surface-400));
+  --nav-text-bright: rgb(var(--surface-100));
+  --nav-active:      rgb(var(--brand-400));
+  --nav-border:      rgb(var(--surface-800));
+
+  /* ── Sidebar tokens ────────────────────────────────────── */
+  --sidebar-bg:          rgb(var(--surface-950));
+  --sidebar-hover:       rgb(var(--surface-900));
+  --sidebar-text:        rgb(var(--surface-400));
+  --sidebar-text-bright: rgb(var(--surface-100));
+  --sidebar-active:      rgb(var(--brand-400));
+  --sidebar-border:      rgb(var(--surface-800));
+
+  /* ── Chart tokens ──────────────────────────────────────── */
+  --chart-tooltip-bg:     rgb(var(--surface-900));
+  --chart-tooltip-border: rgb(var(--surface-700));
+  --chart-grid:           rgb(var(--surface-700));
+  --chart-tick:           rgb(var(--surface-400));
+  --chart-label:          rgb(var(--surface-300));
+  --chart-line:           rgb(var(--brand-400));
+  --chart-bar-secondary:  rgb(var(--surface-800));
+
+  /* ── Active-state backgrounds (with alpha) ─────────────── */
+  --active-bg:       rgb(var(--brand-400) / 0.12);
+  --active-bg-bold:  rgb(var(--brand-400) / 0.15);
 }
 
 * {
@@ -40,14 +83,14 @@
 body {
   color:       var(--foreground);
   background:  var(--background);
-  font-family: var(--font-fira-sans), system-ui, -apple-system, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Headings use monospace */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-fira-code), monospace;
+  font-family: var(--font-jetbrains-mono), monospace;
   font-weight: 700;
   color: var(--foreground);
 }
@@ -67,7 +110,7 @@ h1, h2, h3, h4, h5, h6 {
 
   /* Eyebrow labels — uppercase small caps above headings */
   .eyebrow {
-    font-family:    var(--font-fira-sans), sans-serif;
+    font-family:    var(--font-inter), sans-serif;
     font-size:      11px;
     font-weight:    500;
     letter-spacing: 0.14em;

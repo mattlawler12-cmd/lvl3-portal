@@ -8,7 +8,7 @@ const FILE_TYPE_CONFIG = {
   pdf: { icon: FileText, color: "text-red-400", bg: "bg-red-400/10" },
   slides: { icon: Monitor, color: "text-orange-400", bg: "bg-orange-400/10" },
   sheets: { icon: Table2, color: "text-green-400", bg: "bg-green-400/10" },
-  link: { icon: ExternalLink, color: "text-blue-400", bg: "bg-blue-400/10" },
+  link: { icon: ExternalLink, color: "text-brand-400", bg: "bg-brand-400/10" },
 } as const;
 
 interface Props {
