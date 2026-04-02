@@ -47,16 +47,16 @@ export class KeywordEngine {
 
   async run(topic: TopicInput): Promise<KeywordPlan> {
     // K1 — Generate candidates
-    this.progress('K1', 'Gathering data + generating keyword candidates', 0.05)
+    this.progress('Generating Keywords', 'Gathering data + generating keyword candidates', 0.05)
     let { primary, secondary, supporting, questions } = await this.k1Generate(topic)
     this.progress(
-      'K1',
+      'Generating Keywords',
       `Generated ${primary.length} primary, ${secondary.length} secondary, ${supporting.length} supporting, ${questions.length} questions`,
       0.2,
     )
 
     // K2 — Score + classify
-    this.progress('K2', 'Scoring and classifying keywords (reject-first)', 0.25)
+    this.progress('Scoring Keywords', 'Scoring and classifying keywords (reject-first)', 0.25)
     const scored = await this.k2Score(topic, primary, secondary, supporting, questions)
     primary = scored.primary
     secondary = scored.secondary
@@ -65,31 +65,31 @@ export class KeywordEngine {
     const rejected = scored.rejected
     const rationale = scored.rationale
     const total = primary.length + secondary.length + supporting.length + questions.length
-    this.progress('K2', `Kept ${total} keywords, rejected ${rejected.length}`, 0.4)
+    this.progress('Scoring Keywords', `Kept ${total} keywords, rejected ${rejected.length}`, 0.4)
 
     // K4 — Replace if needed
-    this.progress('K4', 'Checking category minimums', 0.45)
+    this.progress('Replacing Keywords', 'Checking category minimums', 0.45)
     const replaced = await this.k4Replace(topic, primary, secondary, supporting, questions, rejected)
     primary = replaced.primary
     secondary = replaced.secondary
     supporting = replaced.supporting
     questions = replaced.questions
-    this.progress('K4', `Post-replacement: ${primary.length}P / ${secondary.length}S / ${supporting.length}Sp / ${questions.length}Q`, 0.55)
+    this.progress('Replacing Keywords', `Post-replacement: ${primary.length}P / ${secondary.length}S / ${supporting.length}Sp / ${questions.length}Q`, 0.55)
 
     // K5 — Enrich with metrics
     const allCount = primary.length + secondary.length + supporting.length + questions.length
-    this.progress('K5', `Enriching ${allCount} keywords with metrics`, 0.6)
+    this.progress('Enriching Metrics', `Enriching ${allCount} keywords with metrics`, 0.6)
     const metrics = await this.k5Enrich(primary, secondary, supporting, questions)
     const enriched = Object.values(metrics).filter(Boolean).length
-    this.progress('K5', `Metrics for ${enriched}/${allCount} keywords`, 0.7)
+    this.progress('Enriching Metrics', `Metrics for ${enriched}/${allCount} keywords`, 0.7)
 
     // K5.5 — Semantic clustering
-    this.progress('K5.5', `Clustering ${allCount} keywords semantically`, 0.75)
+    this.progress('Clustering Keywords', `Clustering ${allCount} keywords semantically`, 0.75)
     const { clusters, orphans } = await this.k55Cluster(topic, primary, secondary, supporting, questions)
-    this.progress('K5.5', `${clusters.length} clusters formed, ${orphans.length} orphans`, 0.85)
+    this.progress('Clustering Keywords', `${clusters.length} clusters formed, ${orphans.length} orphans`, 0.85)
 
     // K6 — Finalize
-    this.progress('K6', 'Finalizing keyword plan', 0.9)
+    this.progress('Finalizing Plan', 'Finalizing keyword plan', 0.9)
     const plan: KeywordPlan = {
       primary,
       secondary,
@@ -101,7 +101,7 @@ export class KeywordEngine {
       metrics,
     }
     this.progress(
-      'K6',
+      'Finalizing Plan',
       `Final: ${plan.primary.length}P / ${plan.secondary.length}S / ${plan.supporting.length}Sp / ${plan.questions.length}Q / ${plan.clusters.length} clusters`,
       1.0,
     )
@@ -168,7 +168,7 @@ export class KeywordEngine {
       'keyword_gen',
       'You are a senior SEO keyword strategist.',
       userPrompt,
-      () => this.onHeartbeat('K1'),
+      () => this.onHeartbeat('Generating Keywords'),
     )) as Record<string, unknown> | null
 
     if (!response) throw new Error('K1 — LLM returned no parseable JSON')
@@ -232,7 +232,7 @@ export class KeywordEngine {
       'keyword_scoring',
       'You are a senior SEO keyword strategist. Apply reject-first methodology.',
       userPrompt,
-      () => this.onHeartbeat('K2'),
+      () => this.onHeartbeat('Scoring Keywords'),
     )) as Record<string, unknown> | null
 
     // Non-fatal — if scoring fails, pass through the original candidates unscored
@@ -293,7 +293,7 @@ export class KeywordEngine {
       'keyword_replacement',
       'You are a senior SEO keyword strategist. Generate replacement keywords for categories below minimum counts.',
       userPrompt,
-      () => this.onHeartbeat('K4'),
+      () => this.onHeartbeat('Replacing Keywords'),
     )
 
     if (!response) throw new Error('K4 — LLM returned no parseable JSON')
@@ -367,7 +367,7 @@ export class KeywordEngine {
       'keyword_clustering',
       'You are an SEO strategist. Group these keywords into semantic clusters.',
       userPrompt,
-      () => this.onHeartbeat('K5.5'),
+      () => this.onHeartbeat('Clustering Keywords'),
     )
 
     // Non-fatal — if clustering fails, treat all keywords as orphans

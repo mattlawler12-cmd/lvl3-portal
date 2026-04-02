@@ -278,6 +278,30 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
     }
   }, [isRunning, topics, clientId, mode, brandContext, updateTopicState])
 
+  const stopRun = useCallback(() => {
+    if (abortRef.current) {
+      abortRef.current.abort()
+      abortRef.current = null
+    }
+    setIsRunning(false)
+    // Mark any running topics as failed
+    setTopicStates((prev) => {
+      const next = new Map(prev)
+      Array.from(next.entries()).forEach(([idx, state]) => {
+        if (state.status === 'running' || state.status === 'pending') {
+          next.set(idx, {
+            ...state,
+            status: 'failed',
+            currentStep: 'Stopped by user',
+            lastEventAt: Date.now(),
+            logs: [...state.logs, 'Stopped by user'],
+          })
+        }
+      })
+      return next
+    })
+  }, [])
+
   // ── Completed topic indices ─────────────────────────────
 
   const completedTopics = Array.from(topicStates.entries())
@@ -366,18 +390,28 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
             />
           </div>
 
-          {/* Start button */}
-          <button
-            onClick={startRun}
-            disabled={isRunning || topics.length === 0}
-            className="w-full rounded-lg bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {isRunning
-              ? 'Pipeline Running...'
-              : topics.length === 0
-                ? 'Add Topics to Start'
-                : `Start Pipeline — ${topics.length} topic${topics.length === 1 ? '' : 's'}`}
-          </button>
+          {/* Start / Stop buttons */}
+          <div className="flex gap-3">
+            <button
+              onClick={startRun}
+              disabled={isRunning || topics.length === 0}
+              className="flex-1 rounded-lg bg-brand-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isRunning
+                ? 'Pipeline Running...'
+                : topics.length === 0
+                  ? 'Add Topics to Start'
+                  : `Start Pipeline — ${topics.length} topic${topics.length === 1 ? '' : 's'}`}
+            </button>
+            {isRunning && (
+              <button
+                onClick={stopRun}
+                className="rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+              >
+                Stop
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -392,6 +426,16 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
             </div>
           ) : (
             <>
+              {isRunning && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={stopRun}
+                    className="rounded-lg bg-red-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700"
+                  >
+                    Stop Pipeline
+                  </button>
+                </div>
+              )}
               <PipelineProgress
                 topicTitles={topics.map((t) => t.title)}
                 topicStates={topicStates}

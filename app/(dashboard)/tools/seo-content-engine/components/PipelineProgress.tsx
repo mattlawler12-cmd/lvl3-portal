@@ -25,14 +25,15 @@ function StatusIcon({ status }: { status: TopicState['status'] }) {
 
 function stagePillColor(step: string): string {
   if (!step) return 'bg-surface-800 text-surface-500'
-  const s = step.toUpperCase()
-  if (s.startsWith('K')) return 'bg-violet-900/60 text-violet-300'
-  if (s.startsWith('A')) return 'bg-sky-900/60 text-sky-300'
-  if (s.startsWith('B')) return 'bg-amber-900/60 text-amber-300'
-  if (s.startsWith('C')) return 'bg-emerald-900/60 text-emerald-300'
-  if (s.startsWith('D')) return 'bg-orange-900/60 text-orange-300'
-  if (s.startsWith('E')) return 'bg-rose-900/60 text-rose-300'
-  if (s.startsWith('F')) return 'bg-teal-900/60 text-teal-300'
+  const s = step.toLowerCase()
+  if (s.includes('keyword') || s.includes('metric') || s.includes('cluster') || s.includes('finaliz'))
+    return 'bg-violet-900/60 text-violet-300'
+  if (s.includes('analyz')) return 'bg-sky-900/60 text-sky-300'
+  if (s.includes('brief')) return 'bg-amber-900/60 text-amber-300'
+  if (s.includes('writing draft')) return 'bg-emerald-900/60 text-emerald-300'
+  if (s.includes('reviewing')) return 'bg-orange-900/60 text-orange-300'
+  if (s.includes('revis')) return 'bg-rose-900/60 text-rose-300'
+  if (s.includes('validat')) return 'bg-teal-900/60 text-teal-300'
   return 'bg-surface-800 text-surface-400'
 }
 

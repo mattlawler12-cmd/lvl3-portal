@@ -3,7 +3,7 @@
  * Wraps @anthropic-ai/sdk with stage-based routing, retries, JSON mode.
  */
 import Anthropic from '@anthropic-ai/sdk'
-import { MODELS, TEMPERATURES, MAX_TOKENS } from './config'
+import { MODELS, TEMPERATURES, MAX_TOKENS, STAGE_TIMEOUTS } from './config'
 import { parseJsonResponse } from './utils'
 
 const MAX_RETRIES = 3
@@ -44,8 +44,9 @@ export class SeoAnthropicClient {
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
+        const timeout = STAGE_TIMEOUTS[stage] ?? 120_000
         const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), 120_000)
+        const timer = setTimeout(() => controller.abort(), timeout)
 
         let lastHeartbeat = 0
         const stream = this.client.messages.stream(

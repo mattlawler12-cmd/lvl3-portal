@@ -84,7 +84,7 @@ export class ContentEngine {
     if (mode === 'keywords_only') return result
 
     // ── Phase A: SERP data + pre-brief analysis in parallel ────
-    this.progress('A', 'Gathering SERP data + building analysis layers in parallel', 0.05)
+    this.progress('Analyzing Topic', 'Gathering SERP data + building analysis layers in parallel', 0.05)
 
     const [serpData, preBriefData] = await Promise.all([
       this.safePhase('serp_data', result, () =>
@@ -100,10 +100,10 @@ export class ContentEngine {
     const competitiveDiff = (preBriefData as Record<string, unknown> | null)?.competitive_diff as Record<string, unknown> ?? {}
     const contentStrategy = (preBriefData as Record<string, unknown> | null)?.content_strategy as Record<string, unknown> ?? {}
 
-    this.progress('A', 'Analysis layers complete', 0.35)
+    this.progress('Analyzing Topic', 'Analysis layers complete', 0.35)
 
     // ── Phase B: Generate brief ────────────────────────────────
-    this.progress('B', 'Generating content brief from all data layers', 0.4)
+    this.progress('Generating Brief', 'Generating content brief from all data layers', 0.4)
     const brief = await this.safePhase('brief', result, () =>
       this.generateBrief(
         topic,
@@ -117,7 +117,7 @@ export class ContentEngine {
     )
 
     if (!brief) {
-      this.progress('B', 'Brief generation failed', 0.45)
+      this.progress('Generating Brief', 'Brief generation failed', 0.45)
       result.error = result.error ?? 'Brief generation failed'
       return result
     }
@@ -128,28 +128,28 @@ export class ContentEngine {
     const geoCount = (brief as Record<string, unknown>).geo_targets
       ? ((brief as Record<string, unknown>).geo_targets as unknown[]).length
       : 0
-    this.progress('B', `Brief complete — ${outlineCount} outline sections, ${geoCount} GEO targets`, 0.5)
+    this.progress('Generating Brief', `Brief complete — ${outlineCount} outline sections, ${geoCount} GEO targets`, 0.5)
 
     if (mode === 'brief') return result
 
     // ── Phase C: Generate draft ────────────────────────────────
-    this.progress('C', 'Writing full draft article from brief', 0.55)
+    this.progress('Writing Draft', 'Writing full draft article from brief', 0.55)
     const draft = await this.safePhase('draft', result, () =>
       this.generateDraft(brief),
     )
     if (!draft) {
-      this.progress('C', 'Draft generation failed', 0.6)
+      this.progress('Writing Draft', 'Draft generation failed', 0.6)
       result.error = result.error ?? 'Draft generation failed'
       return result
     }
     result.draft = draft as string
     const wc = (draft as string).split(/\s+/).length
     result.wordCount = wc
-    this.progress('C', `Draft complete — ${wc.toLocaleString()} words`, 0.7)
+    this.progress('Writing Draft', `Draft complete — ${wc.toLocaleString()} words`, 0.7)
 
     // ── Phase D: Review draft ──────────────────────────────────
     if (DRAFT_REVIEW_ENABLED) {
-      this.progress('D', 'Reviewing draft against brief', 0.72)
+      this.progress('Reviewing Draft', 'Reviewing draft against brief', 0.72)
       const review = await this.safePhase('draft_review', result, () =>
         this.reviewDraft(brief, draft as string),
       )
@@ -158,27 +158,27 @@ export class ContentEngine {
         const r = review as DraftReview
         const critCount = r.issues.filter((i) => i.severity === 'critical').length
         const statusLabel = r.passed ? 'PASS' : `FAIL — ${critCount} critical issues`
-        this.progress('D', `Review: ${statusLabel}, GEO score: ${r.geo_score}`, 0.78)
+        this.progress('Reviewing Draft', `Review: ${statusLabel}, GEO score: ${r.geo_score}`, 0.78)
 
         // ── Phase E: Revise if critical ────────────────────────
         const hasCritical = r.issues.some((i) => i.severity === 'critical')
         if (hasCritical && MAX_REVISION_ATTEMPTS > 0) {
-          this.progress('E', 'Revising draft to fix critical issues', 0.8)
+          this.progress('Revising Draft', 'Revising draft to fix critical issues', 0.8)
           const revised = await this.reviseLoop(brief, draft as string, r, result)
           if (revised) {
             result.revisedDraft = revised
             const rwc = revised.split(/\s+/).length
             result.wordCount = rwc
-            this.progress('E', `Revision complete — ${rwc.toLocaleString()} words`, 0.88)
+            this.progress('Revising Draft', `Revision complete — ${rwc.toLocaleString()} words`, 0.88)
           } else {
-            this.progress('E', 'Revision could not resolve all issues', 0.88)
+            this.progress('Revising Draft', 'Revision could not resolve all issues', 0.88)
           }
         }
       }
     }
 
     // ── Phase F: Validation ────────────────────────────────────
-    this.progress('F', 'Running validation checks', 0.9)
+    this.progress('Validating', 'Running validation checks', 0.9)
     if (topic.existing_url) {
       const crawl = await this.dataSources.crawlPage(topic.existing_url)
       if (crawl) {
@@ -193,7 +193,7 @@ export class ContentEngine {
         `Final draft is ${finalWc} words — below minimum of ${MIN_WORD_COUNT}`,
       )
     }
-    this.progress('F', `Pipeline complete — ${finalWc.toLocaleString()} words final`, 1.0)
+    this.progress('Validating', `Pipeline complete — ${finalWc.toLocaleString()} words final`, 1.0)
 
     return result
   }
@@ -210,7 +210,7 @@ export class ContentEngine {
       'pre_brief_analysis',
       'You are a senior SEO strategist. Return all four analysis objects as a single JSON response.',
       userMsg,
-      () => this.onHeartbeat('A'),
+      () => this.onHeartbeat('Analyzing Topic'),
     )
     if (!raw || Array.isArray(raw)) throw new Error('LLM returned no parseable JSON for pre-brief analysis')
     return raw as Record<string, unknown>
@@ -278,7 +278,7 @@ export class ContentEngine {
       'brief',
       'You are a senior SEO content director. Produce a comprehensive content brief as a single JSON object.',
       userMsg,
-      () => this.onHeartbeat('B'),
+      () => this.onHeartbeat('Generating Brief'),
     )
     if (!raw || Array.isArray(raw)) throw new Error('LLM returned no parseable JSON for brief')
 
@@ -301,7 +301,7 @@ export class ContentEngine {
       'draft',
       'You are an expert SEO content writer. Produce a publication-ready article in Markdown based on the brief provided.',
       userMsg,
-      () => this.onHeartbeat('C'),
+      () => this.onHeartbeat('Writing Draft'),
     )
     if (!draft?.trim()) throw new Error('LLM returned empty draft')
     return draft.trim()
@@ -318,7 +318,7 @@ export class ContentEngine {
       'draft_review',
       'You are an SEO editorial reviewer. Evaluate the draft against the brief and return structured feedback as JSON.',
       userMsg,
-      () => this.onHeartbeat('D'),
+      () => this.onHeartbeat('Reviewing Draft'),
     )) as Record<string, unknown> | null
 
     if (!raw) throw new Error('LLM returned no parseable JSON for draft review')
@@ -346,7 +346,7 @@ export class ContentEngine {
       'draft_revision',
       'You are revising a blog draft based on editorial feedback. Fix ONLY the critical issues listed.',
       userMsg,
-      () => this.onHeartbeat('E'),
+      () => this.onHeartbeat('Revising Draft'),
     )
     if (!revised?.trim()) throw new Error('LLM returned empty revision')
     return revised.trim()

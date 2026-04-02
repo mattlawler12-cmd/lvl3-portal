@@ -42,6 +42,20 @@ export const MAX_TOKENS: Record<string, number> = {
   draft_revision: 16384,
 }
 
+// ── Per-Stage Timeout (ms) ────────────────────────────────────
+// Long-output stages (brief, draft) need more time, especially under concurrency
+export const STAGE_TIMEOUTS: Record<string, number> = {
+  keyword_gen: 120_000,
+  keyword_scoring: 120_000,
+  keyword_replacement: 90_000,
+  keyword_clustering: 90_000,
+  pre_brief_analysis: 180_000,
+  brief: 240_000,
+  draft: 300_000,
+  draft_review: 120_000,
+  draft_revision: 300_000,
+}
+
 // ── Keyword Count Targets ──────────────────────────────────────
 export const KEYWORD_TARGETS: Record<string, { min: number; max: number }> = {
   primary: { min: 8, max: 12 },

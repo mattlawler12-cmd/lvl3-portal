@@ -66,7 +66,7 @@ export function parseXlsx(data: ArrayBuffer): TopicInput[] {
 
   // Match keywords to topics
   for (const row of keywordsData) {
-    const topicName = String(row.topic ?? row.Topic ?? '').trim()
+    const topicName = String(row.topic ?? row.Topic ?? row.title ?? row.Title ?? '').trim()
     const keyword = String(row.keyword ?? row.Keyword ?? '').trim()
     if (!topicName || !keyword) continue
 
