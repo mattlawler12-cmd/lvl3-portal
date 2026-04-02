@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { Download } from 'lucide-react'
+import { Download, RefreshCw } from 'lucide-react'
 import type {
   TopicInput,
   RunMode,
@@ -11,7 +11,7 @@ import type {
   ContentBrief,
   DraftReview,
 } from '@/lib/seo-content-engine/types'
-import { loadRun, getDocxUrl } from '@/app/actions/seo-content-engine'
+import { loadRun, getDocxUrl, regenerateDocx } from '@/app/actions/seo-content-engine'
 import TopicForm from './components/TopicForm'
 import XlsxUploader from './components/XlsxUploader'
 import PipelineProgress from './components/PipelineProgress'
@@ -39,6 +39,7 @@ export interface TopicState {
   lastEventAt: number | null
   stageLog: StageLogEntry[]
   dataAvailability: DataAvailability
+  topicDbId?: string // DB row id — set when loading historical runs
   result: {
     keywordPlan: KeywordPlan | null
     brief: ContentBrief | Record<string, unknown> | null
@@ -372,6 +373,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
         lastEventAt: null,
         stageLog: [],
         dataAvailability: (t.data_availability ?? {}) as DataAvailability,
+        topicDbId: t.id,
         result: (t.keyword_plan || t.brief || t.draft || t.error) ? {
           keywordPlan: (t.keyword_plan as KeywordPlan | null) ?? null,
           brief: (t.brief as ContentBrief | Record<string, unknown> | null) ?? null,
@@ -413,6 +415,45 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
     a.click()
     return true
   }, [])
+
+  const [regenerating, setRegenerating] = useState<Set<number>>(new Set())
+
+  const handleRegenerateDocx = useCallback(async (topicIndex: number) => {
+    const state = topicStates.get(topicIndex)
+    if (!state?.topicDbId) return
+
+    setRegenerating((prev) => new Set(prev).add(topicIndex))
+    setDownloadError(null)
+
+    const result = await regenerateDocx(state.topicDbId)
+
+    setRegenerating((prev) => {
+      const next = new Set(prev)
+      next.delete(topicIndex)
+      return next
+    })
+
+    if (result.error) {
+      setDownloadError(`Regenerate failed for "${topics[topicIndex]?.title}": ${result.error}`)
+      return
+    }
+
+    // Update state with the new storage path
+    setTopicStates((prev) => {
+      const next = new Map(prev)
+      const existing = next.get(topicIndex)
+      if (existing?.result) {
+        next.set(topicIndex, {
+          ...existing,
+          result: { ...existing.result, docxStoragePath: result.data!.storagePath },
+        })
+      }
+      return next
+    })
+
+    // Auto-download the newly generated file
+    await downloadDocx(result.data!.storagePath, topics[topicIndex]?.title ?? `Topic ${topicIndex + 1}`)
+  }, [topicStates, topics, downloadDocx])
 
   // ── Render ──────────────────────────────────────────────
 
@@ -619,39 +660,61 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
                 </div>
               )}
 
-              {/* Download All button */}
-              {completedTopics.some((idx) => topicStates.get(idx)?.result?.docxStoragePath) && (
-                <div className="flex justify-end">
-                  <button
-                    onClick={async () => {
-                      setDownloadError(null)
-                      let ok = 0
-                      let fail = 0
-                      for (const idx of completedTopics) {
-                        const path = topicStates.get(idx)?.result?.docxStoragePath
-                        const title = topics[idx]?.title ?? `Topic ${idx + 1}`
-                        if (path) {
-                          const success = await downloadDocx(path, title)
-                          if (success) {
-                            ok++
-                            // Small delay between downloads to avoid browser blocking
-                            await new Promise((r) => setTimeout(r, 300))
-                          } else {
-                            fail++
+              {/* Download / Regenerate buttons */}
+              {completedTopics.length > 0 && (() => {
+                const withDocx = completedTopics.filter((idx) => topicStates.get(idx)?.result?.docxStoragePath)
+                const missingDocx = completedTopics.filter(
+                  (idx) => !topicStates.get(idx)?.result?.docxStoragePath && topicStates.get(idx)?.result?.draft && topicStates.get(idx)?.topicDbId
+                )
+                return (
+                  <div className="flex justify-end gap-2">
+                    {missingDocx.length > 0 && (
+                      <button
+                        onClick={async () => {
+                          setDownloadError(null)
+                          for (const idx of missingDocx) {
+                            await handleRegenerateDocx(idx)
                           }
-                        }
-                      }
-                      if (fail > 0) {
-                        setDownloadError(`Downloaded ${ok} of ${ok + fail} files. ${fail} file${fail > 1 ? 's' : ''} not found in storage (DOCX generation may have failed during the run).`)
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download All DOCX ({completedTopics.filter((idx) => topicStates.get(idx)?.result?.docxStoragePath).length})
-                  </button>
-                </div>
-              )}
+                        }}
+                        disabled={regenerating.size > 0}
+                        className="inline-flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-900/20 px-4 py-2 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-900/30 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${regenerating.size > 0 ? 'animate-spin' : ''}`} />
+                        {regenerating.size > 0 ? 'Generating...' : `Generate Missing DOCX (${missingDocx.length})`}
+                      </button>
+                    )}
+                    {withDocx.length > 0 && (
+                      <button
+                        onClick={async () => {
+                          setDownloadError(null)
+                          let ok = 0
+                          let fail = 0
+                          for (const idx of withDocx) {
+                            const path = topicStates.get(idx)?.result?.docxStoragePath
+                            const title = topics[idx]?.title ?? `Topic ${idx + 1}`
+                            if (path) {
+                              const success = await downloadDocx(path, title)
+                              if (success) {
+                                ok++
+                                await new Promise((r) => setTimeout(r, 300))
+                              } else {
+                                fail++
+                              }
+                            }
+                          }
+                          if (fail > 0) {
+                            setDownloadError(`Downloaded ${ok} of ${ok + fail} files. ${fail} file${fail > 1 ? 's' : ''} not found in storage.`)
+                          }
+                        }}
+                        className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download All DOCX ({withDocx.length})
+                      </button>
+                    )}
+                  </div>
+                )
+              })()}
               {completedTopics.map((idx) => {
                 const state = topicStates.get(idx)!
                 const result = state.result
@@ -664,18 +727,29 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
                       <h3 className="text-base font-semibold text-surface-100">
                         {topics[idx]?.title ?? `Topic ${idx + 1}`}
                       </h3>
-                      {result?.docxStoragePath && (
-                        <button
-                          onClick={() => {
-                            setDownloadError(null)
-                            downloadDocx(result.docxStoragePath!, topics[idx]?.title ?? `Topic ${idx + 1}`)
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-surface-700 bg-surface-800 px-3 py-1.5 text-xs font-medium text-surface-300 transition-colors hover:border-surface-600 hover:text-surface-100"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          DOCX
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {result?.docxStoragePath ? (
+                          <button
+                            onClick={() => {
+                              setDownloadError(null)
+                              downloadDocx(result.docxStoragePath!, topics[idx]?.title ?? `Topic ${idx + 1}`)
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-surface-700 bg-surface-800 px-3 py-1.5 text-xs font-medium text-surface-300 transition-colors hover:border-surface-600 hover:text-surface-100"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            DOCX
+                          </button>
+                        ) : result?.draft && state.topicDbId ? (
+                          <button
+                            onClick={() => handleRegenerateDocx(idx)}
+                            disabled={regenerating.has(idx)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-900/20 px-3 py-1.5 text-xs font-medium text-amber-300 transition-colors hover:bg-amber-900/30 disabled:opacity-50"
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 ${regenerating.has(idx) ? 'animate-spin' : ''}`} />
+                            {regenerating.has(idx) ? 'Generating...' : 'Generate DOCX'}
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
 
                     {result?.keywordPlan && (
