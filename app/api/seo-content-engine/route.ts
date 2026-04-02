@@ -336,6 +336,8 @@ export async function POST(request: Request) {
               topicIndex: index,
               status: topicStatus as 'complete' | 'partial',
               wordCount: contentResult.wordCount,
+              error: contentResult.error ?? null,
+              warnings: contentResult.warnings,
             })
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err)

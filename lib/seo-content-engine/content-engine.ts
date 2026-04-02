@@ -264,11 +264,23 @@ export class ContentEngine {
     competitiveDiff: Record<string, unknown>,
     contentStrategy: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
+    // Trim keyword plan to reduce input tokens — brief doesn't need all 60+ keywords
+    const trimmedPlan: KeywordPlan = {
+      primary: keywordPlan.primary.slice(0, 25),
+      secondary: keywordPlan.secondary.slice(0, 25),
+      supporting: keywordPlan.supporting.slice(0, 25),
+      questions: keywordPlan.questions.slice(0, 25),
+      clusters: keywordPlan.clusters,
+      rejected: [],
+      rationale: keywordPlan.rationale,
+      metrics: keywordPlan.metrics,
+    }
+
     const userMsg = briefPrompt({
       topic,
       entityMap,
       intentMap,
-      keywordPlan,
+      keywordPlan: trimmedPlan,
       serpData,
       competitiveDiff,
       contentStrategy,

@@ -45,6 +45,8 @@ export interface TopicState {
     draftReview: DraftReview | null
     revisedDraft: string | null
     wordCount: number
+    error?: string | null
+    warnings?: string[]
   } | null
 }
 
@@ -231,12 +233,18 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
                 ...prev,
                 status: event.status === 'complete' ? 'complete' : 'failed',
                 pct: 100,
-                currentStep: 'Complete',
+                currentStep: event.status === 'complete' ? 'Complete' : 'Partial — some phases failed',
                 lastEventAt: Date.now(),
                 logs: [
                   ...prev.logs,
                   `Topic ${event.status}${event.wordCount ? ` (${event.wordCount} words)` : ''}`,
                 ],
+                result: {
+                  ...(prev.result ?? { keywordPlan: null, brief: null, draft: null, draftReview: null, revisedDraft: null, wordCount: 0 }),
+                  wordCount: event.wordCount ?? prev.result?.wordCount ?? 0,
+                  error: event.error ?? null,
+                  warnings: event.warnings ?? [],
+                },
               }))
               break
 
@@ -354,13 +362,15 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
         lastEventAt: null,
         stageLog: [],
         dataAvailability: (t.data_availability ?? {}) as DataAvailability,
-        result: (t.keyword_plan || t.brief || t.draft) ? {
+        result: (t.keyword_plan || t.brief || t.draft || t.error) ? {
           keywordPlan: (t.keyword_plan as KeywordPlan | null) ?? null,
           brief: (t.brief as ContentBrief | Record<string, unknown> | null) ?? null,
           draft: t.revised_draft ?? t.draft ?? null,
           draftReview: (t.draft_review as DraftReview | null) ?? null,
           revisedDraft: t.revised_draft ?? null,
           wordCount: t.word_count ?? 0,
+          error: t.error ?? null,
+          warnings: t.warnings ?? [],
         } : null,
       })
     })

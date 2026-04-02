@@ -297,7 +297,7 @@ REQUIREMENTS:
 - keyword_rationale must reference actual MSV/CPC/competition data when available. Do not say "high volume" without a number.
 - serp_insights: summarize SERP features present (featured snippets, PAA boxes, etc.) based on the SERP Data input. If SERP data is empty or unavailable, set serp_insights to null — do NOT write explanations about missing data or API errors.
 - outline must be a real editorial structure, not just H2 labels. Each section needs: heading, key points to cover, keywords to include, estimated word count.
-- faq_set must contain questions from the keyword plan + answers written as complete, standalone sentences (GEO-optimized).
+- faq_set must contain exactly 3 questions from the keyword plan + answers written as complete, standalone sentences (GEO-optimized).
 - geo_targets: 3–5 specific questions this content should be cited for in AI overviews.
 - citation_hooks: 3–5 standalone factual statements designed to be extractable by AI engines. These must be specific and citable, not vague.
 - entity_definitions: 1-sentence definition for each core entity. AI engines use these.

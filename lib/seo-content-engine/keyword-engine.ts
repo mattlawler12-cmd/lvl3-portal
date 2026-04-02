@@ -76,17 +76,15 @@ export class KeywordEngine {
     questions = replaced.questions
     this.progress('Replacing Keywords', `Post-replacement: ${primary.length}P / ${secondary.length}S / ${supporting.length}Sp / ${questions.length}Q`, 0.55)
 
-    // K5 — Enrich with metrics
+    // K5 + K5.5 — Enrich metrics + cluster in parallel (independent of each other)
     const allCount = primary.length + secondary.length + supporting.length + questions.length
-    this.progress('Enriching Metrics', `Enriching ${allCount} keywords with metrics`, 0.6)
-    const metrics = await this.k5Enrich(primary, secondary, supporting, questions)
+    this.progress('Enriching Metrics', `Enriching ${allCount} keywords + clustering in parallel`, 0.6)
+    const [metrics, { clusters, orphans }] = await Promise.all([
+      this.k5Enrich(primary, secondary, supporting, questions),
+      this.k55Cluster(topic, primary, secondary, supporting, questions),
+    ])
     const enriched = Object.values(metrics).filter(Boolean).length
-    this.progress('Enriching Metrics', `Metrics for ${enriched}/${allCount} keywords`, 0.7)
-
-    // K5.5 — Semantic clustering
-    this.progress('Clustering Keywords', `Clustering ${allCount} keywords semantically`, 0.75)
-    const { clusters, orphans } = await this.k55Cluster(topic, primary, secondary, supporting, questions)
-    this.progress('Clustering Keywords', `${clusters.length} clusters formed, ${orphans.length} orphans`, 0.85)
+    this.progress('Clustering Keywords', `${enriched}/${allCount} metrics, ${clusters.length} clusters, ${orphans.length} orphans`, 0.85)
 
     // K6 — Finalize
     this.progress('Finalizing Plan', 'Finalizing keyword plan', 0.9)

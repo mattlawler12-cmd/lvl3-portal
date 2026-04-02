@@ -115,6 +115,14 @@ function TopicCard({ title, state }: { title: string; state: TopicState }) {
         </div>
       )}
 
+      {/* Phase error */}
+      {(state.status === 'complete' || state.status === 'failed') && state.result?.error && (
+        <div className="flex items-start gap-1.5 rounded-lg border border-red-500/30 bg-red-900/20 px-2.5 py-1.5">
+          <XCircle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-px" />
+          <span className="text-[11px] text-red-300 leading-snug">{state.result.error}</span>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div>
         <div className="flex items-center justify-between mb-0.5">

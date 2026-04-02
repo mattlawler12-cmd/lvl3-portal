@@ -200,6 +200,8 @@ export type PipelineEvent =
       topicIndex: number
       status: RunStatus
       wordCount?: number
+      error?: string | null
+      warnings?: string[]
     }
   | { type: 'topic_error'; topicIndex: number; error: string }
   | {
