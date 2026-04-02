@@ -354,14 +354,89 @@ export class ContentEngine {
     review: DraftReview,
   ): Promise<string> {
     const userMsg = draftRevisionPrompt(brief, draftText, review)
-    const revised = await this.llm.call(
+    const patches = await this.llm.call(
       'draft_revision',
-      'You are revising a blog draft based on editorial feedback. Fix ONLY the critical issues listed.',
+      'You are making surgical fixes to a blog draft. Output ONLY the changed sections using :::fix blocks.',
       userMsg,
       () => this.onHeartbeat('Revising Draft'),
     )
-    if (!revised?.trim()) throw new Error('LLM returned empty revision')
-    return revised.trim()
+    if (!patches?.trim()) throw new Error('LLM returned empty revision')
+
+    // Stitch surgical patches back into the original draft
+    return this.applyPatches(draftText, patches.trim())
+  }
+
+  /**
+   * Apply :::fix <heading> blocks to the original draft.
+   * Each block replaces the content under the matching heading (up to the next heading of equal/higher level).
+   * Falls back to returning the patches as-is if no :::fix markers are found (model returned full draft).
+   */
+  private applyPatches(original: string, patches: string): string {
+    // Parse :::fix blocks from the patches
+    const fixRegex = /:::fix\s+(.+?)\n([\s\S]*?)(?=\n:::fix\s|$)/g
+    const fixes = new Map<string, string>()
+    let match: RegExpExecArray | null
+
+    while ((match = fixRegex.exec(patches)) !== null) {
+      const heading = match[1].trim().toLowerCase()
+      const content = match[2].trim()
+      fixes.set(heading, content)
+    }
+
+    // If no :::fix blocks found, model likely returned a full draft — use it directly
+    if (fixes.size === 0) {
+      // Strip any accidental :::fix wrappers and return
+      return patches.replace(/:::fix\s+.+?\n/g, '').replace(/:::/g, '').trim()
+    }
+
+    // Split original draft into sections by markdown headings
+    const lines = original.split('\n')
+    const sections: { heading: string; headingLine: string; level: number; startLine: number }[] = []
+
+    for (let i = 0; i < lines.length; i++) {
+      const hMatch = lines[i].match(/^(#{1,6})\s+(.+)/)
+      if (hMatch) {
+        sections.push({
+          heading: hMatch[2].trim().toLowerCase(),
+          headingLine: lines[i],
+          level: hMatch[1].length,
+          startLine: i,
+        })
+      }
+    }
+
+    // Build the revised draft by replacing matched sections
+    const result: string[] = []
+    let i = 0
+
+    while (i < lines.length) {
+      const section = sections.find((s) => s.startLine === i)
+
+      if (section && fixes.has(section.heading)) {
+        // Output the original heading line
+        result.push(section.headingLine)
+        // Replace the body with the fix content
+        result.push(fixes.get(section.heading)!)
+
+        // Skip original body lines until the next heading of equal/higher level
+        i++
+        while (i < lines.length) {
+          const nextSection = sections.find((s) => s.startLine === i)
+          if (nextSection && nextSection.level <= section.level) break
+          i++
+        }
+      } else if (!section && i === 0 && fixes.has('introduction')) {
+        // Handle introduction (content before the first heading)
+        const firstHeadingLine = sections.length > 0 ? sections[0].startLine : lines.length
+        result.push(fixes.get('introduction')!)
+        i = firstHeadingLine
+      } else {
+        result.push(lines[i])
+        i++
+      }
+    }
+
+    return result.join('\n').trim()
   }
 
   private async reviseLoop(

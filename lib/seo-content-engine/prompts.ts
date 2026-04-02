@@ -409,25 +409,39 @@ Return ONLY valid JSON. No commentary outside the JSON.`
 // ── Draft Revision (Phase E) ──────────────────────────────────
 
 export function draftRevisionPrompt(brief: unknown, draft: string, review: unknown): string {
-  return `You are a content writer revising a blog draft based on editorial review feedback.
-Fix ONLY the critical issues identified. Do not rewrite sections that passed review.
+  // Extract only critical issues + missing keywords from the review to reduce input tokens
+  const r = review as Record<string, unknown>
+  const allIssues = (r.issues as { type: string; detail: string; severity: string }[]) ?? []
+  const criticalIssues = allIssues.filter((i) => i.severity === 'critical')
+  const missingKeywords = (r.missing_keywords as string[]) ?? []
 
-BRIEF:
-${toJsonStr(brief)}
+  return `You are a content writer making surgical fixes to a blog draft based on editorial review feedback.
+Fix ONLY the critical issues listed below. Do NOT rewrite sections that are fine.
 
 CURRENT DRAFT:
 ${draft}
 
-REVIEW FEEDBACK:
-${toJsonStr(review)}
+CRITICAL ISSUES TO FIX (${criticalIssues.length}):
+${criticalIssues.map((i, idx) => `${idx + 1}. [${i.type}] ${i.detail}`).join('\n')}
+
+${missingKeywords.length > 0 ? `MISSING KEYWORDS TO ADD:\n${missingKeywords.join(', ')}\n` : ''}
+OUTPUT FORMAT:
+For each fix, output the revised section using this format:
+
+:::fix <section_heading>
+<revised content for this section only>
+:::
+
+Only output the sections that need changes. Do NOT output unchanged sections.
+If a fix applies to the introduction (before the first heading), use ":::fix Introduction".
 
 RULES:
-- Fix every issue with severity "critical"
-- Preserve all content that passed review — do not rewrite the entire article
-- Ensure all missing primary keywords are incorporated naturally
-- Maintain the same tone and voice
-- Keep word count >= 1800
-- Do not add new content that wasn't in the brief
+- Fix every critical issue listed above
+- Incorporate missing keywords naturally into relevant sections
+- Maintain the same tone, voice, and style as the original
+- Keep each section's word count similar to the original (do not truncate)
+- Do not add content that wasn't part of the original topic
+- Do not output the full article — only changed sections
 
-Output the full revised article as markdown. No preamble or meta-commentary.`
+No preamble or meta-commentary. Start directly with :::fix blocks.`
 }

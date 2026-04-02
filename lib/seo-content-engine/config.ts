@@ -39,7 +39,7 @@ export const MAX_TOKENS: Record<string, number> = {
   brief: 16_384,
   draft: 16384,
   draft_review: 2048,
-  draft_revision: 16384,
+  draft_revision: 8192,
 }
 
 // ── Per-Stage Timeout (ms) ────────────────────────────────────
