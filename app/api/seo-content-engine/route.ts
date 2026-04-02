@@ -438,6 +438,7 @@ export async function POST(request: Request) {
               wordCount: contentResult.wordCount,
               error: contentResult.error ?? null,
               warnings: contentResult.warnings,
+              docxStoragePath: docxPath,
             })
           } catch (err) {
             const msg = err instanceof Error ? err.message : String(err)

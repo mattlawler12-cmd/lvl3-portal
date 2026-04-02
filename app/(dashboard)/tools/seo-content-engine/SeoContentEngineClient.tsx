@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
+import { Download } from 'lucide-react'
 import type {
   TopicInput,
   RunMode,
@@ -10,7 +11,7 @@ import type {
   ContentBrief,
   DraftReview,
 } from '@/lib/seo-content-engine/types'
-import { loadRun } from '@/app/actions/seo-content-engine'
+import { loadRun, getDocxUrl } from '@/app/actions/seo-content-engine'
 import TopicForm from './components/TopicForm'
 import XlsxUploader from './components/XlsxUploader'
 import PipelineProgress from './components/PipelineProgress'
@@ -47,6 +48,7 @@ export interface TopicState {
     wordCount: number
     error?: string | null
     warnings?: string[]
+    docxStoragePath?: string | null
   } | null
 }
 
@@ -244,6 +246,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
                   wordCount: event.wordCount ?? prev.result?.wordCount ?? 0,
                   error: event.error ?? null,
                   warnings: event.warnings ?? [],
+                  docxStoragePath: event.docxStoragePath ?? prev.result?.docxStoragePath ?? null,
                 },
               }))
               break
@@ -371,6 +374,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
           wordCount: t.word_count ?? 0,
           error: t.error ?? null,
           warnings: t.warnings ?? [],
+          docxStoragePath: t.docx_storage_path ?? null,
         } : null,
       })
     })
@@ -387,6 +391,18 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
   const completedTopics = Array.from(topicStates.entries())
     .filter(([, s]) => s.status === 'complete')
     .map(([i]) => i)
+
+  const downloadDocx = useCallback(async (storagePath: string, title: string) => {
+    const result = await getDocxUrl(storagePath)
+    if (result.error || !result.data) {
+      console.error('Failed to get download URL:', result.error)
+      return
+    }
+    const a = document.createElement('a')
+    a.href = result.data
+    a.download = `${title.replace(/[^a-zA-Z0-9-_ ]/g, '')}.docx`
+    a.click()
+  }, [])
 
   // ── Render ──────────────────────────────────────────────
 
@@ -579,37 +595,72 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
               </p>
             </div>
           ) : (
-            completedTopics.map((idx) => {
-              const state = topicStates.get(idx)!
-              const result = state.result
-              return (
-                <div
-                  key={idx}
-                  className="rounded-xl border border-surface-700 bg-surface-900 p-5 space-y-6"
-                >
-                  <h3 className="text-base font-semibold text-surface-100">
-                    {topics[idx]?.title ?? `Topic ${idx + 1}`}
-                  </h3>
+            <>
+              {/* Download All button */}
+              {completedTopics.some((idx) => topicStates.get(idx)?.result?.docxStoragePath) && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={async () => {
+                      for (const idx of completedTopics) {
+                        const path = topicStates.get(idx)?.result?.docxStoragePath
+                        const title = topics[idx]?.title ?? `Topic ${idx + 1}`
+                        if (path) {
+                          await downloadDocx(path, title)
+                          // Small delay between downloads to avoid browser blocking
+                          await new Promise((r) => setTimeout(r, 300))
+                        }
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download All DOCX ({completedTopics.filter((idx) => topicStates.get(idx)?.result?.docxStoragePath).length})
+                  </button>
+                </div>
+              )}
+              {completedTopics.map((idx) => {
+                const state = topicStates.get(idx)!
+                const result = state.result
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-xl border border-surface-700 bg-surface-900 p-5 space-y-6"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-semibold text-surface-100">
+                        {topics[idx]?.title ?? `Topic ${idx + 1}`}
+                      </h3>
+                      {result?.docxStoragePath && (
+                        <button
+                          onClick={() => downloadDocx(result.docxStoragePath!, topics[idx]?.title ?? `Topic ${idx + 1}`)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-surface-700 bg-surface-800 px-3 py-1.5 text-xs font-medium text-surface-300 transition-colors hover:border-surface-600 hover:text-surface-100"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          DOCX
+                        </button>
+                      )}
+                    </div>
 
-                  {result?.keywordPlan && (
-                    <KeywordPlanView plan={result.keywordPlan} />
-                  )}
+                    {result?.keywordPlan && (
+                      <KeywordPlanView plan={result.keywordPlan} />
+                    )}
 
-                  {result?.brief && <BriefPreview brief={result.brief} />}
+                    {result?.brief && <BriefPreview brief={result.brief} />}
 
-                  {result?.draft && (
-                    <DraftPreview
-                      draft={result.revisedDraft ?? result.draft}
-                      wordCount={result.wordCount}
-                    />
-                  )}
+                    {result?.draft && (
+                      <DraftPreview
+                        draft={result.revisedDraft ?? result.draft}
+                        wordCount={result.wordCount}
+                      />
+                    )}
 
                   {result?.draftReview && (
                     <ReviewSummary review={result.draftReview} />
                   )}
-                </div>
-              )
-            })
+                  </div>
+                )
+              })}
+            </>
           )}
         </div>
       )}

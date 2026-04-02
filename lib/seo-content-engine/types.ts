@@ -202,6 +202,7 @@ export type PipelineEvent =
       wordCount?: number
       error?: string | null
       warnings?: string[]
+      docxStoragePath?: string | null
     }
   | { type: 'topic_error'; topicIndex: number; error: string }
   | {
