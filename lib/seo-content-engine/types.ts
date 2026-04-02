@@ -210,6 +210,7 @@ export type PipelineEvent =
     }
   | { type: 'error'; message: string }
   | { type: 'heartbeat'; topicIndex: number; stage: string }
+  | { type: 'preflight'; source: string; ok: boolean; detail: string }
 
 // ── Progress / DataSource Callbacks ──────────────────────────
 

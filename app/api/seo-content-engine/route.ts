@@ -124,6 +124,64 @@ export async function POST(request: Request) {
         const runId = run.id
         emit({ type: 'run_started', runId, topicCount: topics.length })
 
+        // ── Preflight: verify all connections before processing ──
+        const preflightResults = await Promise.allSettled([
+          // Anthropic — tiny completion
+          (async () => {
+            const client = new SeoAnthropicClient(anthropicApiKey)
+            await client.call('keyword_gen', 'Reply with OK.', 'ping')
+            return 'Connected'
+          })(),
+          // Keywords Everywhere — volume lookup for 1 test keyword
+          (async () => {
+            if (!keApiKey) throw new Error('API key not configured')
+            const { fetchKEKeywordData } = await import('@/lib/connectors/keywords-everywhere')
+            const rows = await fetchKEKeywordData(['seo'], keApiKey)
+            return `Connected (${rows.length} result${rows.length !== 1 ? 's' : ''})`
+          })(),
+          // Semrush
+          (async () => {
+            if (!semrushApiKey) throw new Error('API key not configured')
+            const { fetchSemrushDomainOrganic } = await import('@/lib/connectors/semrush-portal')
+            const rows = await fetchSemrushDomainOrganic('example.com', semrushApiKey)
+            return `Connected (${rows.length} keywords)`
+          })(),
+          // GSC
+          (async () => {
+            if (!gscSiteUrl) throw new Error('No GSC site URL configured for this client')
+            const { fetchGSCRows } = await import('@/lib/tools-gsc')
+            const rows = await fetchGSCRows(gscSiteUrl, 7)
+            return `Connected (${rows.length} queries)`
+          })(),
+        ])
+
+        const preflightNames = ['Anthropic', 'Keywords Everywhere', 'Semrush', 'GSC']
+        let anthropicOk = false
+
+        for (let i = 0; i < preflightResults.length; i++) {
+          const r = preflightResults[i]
+          const ok = r.status === 'fulfilled'
+          const detail = ok
+            ? (r as PromiseFulfilledResult<string>).value
+            : (r as PromiseRejectedResult).reason?.message ?? 'Unknown error'
+          emit({ type: 'preflight', source: preflightNames[i], ok, detail })
+          if (i === 0) anthropicOk = ok
+        }
+
+        // Anthropic is required — abort if it fails
+        if (!anthropicOk) {
+          const reason = preflightResults[0].status === 'rejected'
+            ? (preflightResults[0] as PromiseRejectedResult).reason?.message ?? 'Unknown error'
+            : 'Unknown error'
+          emit({ type: 'error', message: `Anthropic connection failed: ${reason}. Aborting run.` })
+          await service
+            .from('seo_content_engine_runs')
+            .update({ status: 'failed', error: `Preflight failed: Anthropic — ${reason}`, updated_at: new Date().toISOString() })
+            .eq('id', runId)
+          controller.close()
+          return
+        }
+
         // Insert topic rows
         const topicRows = topics.map((t) => ({
           run_id: runId,

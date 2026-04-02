@@ -90,6 +90,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
   const [isRunning, setIsRunning] = useState(false)
   const [, setRunId] = useState<string | null>(null)
   const [topicStates, setTopicStates] = useState<Map<number, TopicState>>(new Map())
+  const [preflightResults, setPreflightResults] = useState<{ source: string; ok: boolean; detail: string }[]>([])
   const [activeTab, setActiveTab] = useState<Tab>('New Run')
   const abortRef = useRef<AbortController | null>(null)
 
@@ -114,6 +115,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
 
     setIsRunning(true)
     setRunId(null)
+    setPreflightResults([])
 
     // Initialise topic states
     const initial = new Map<number, TopicState>()
@@ -171,6 +173,13 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
           switch (event.type) {
             case 'run_started':
               setRunId(event.runId)
+              break
+
+            case 'preflight':
+              setPreflightResults((prev) => [
+                ...prev,
+                { source: event.source, ok: event.ok, detail: event.detail },
+              ])
               break
 
             case 'topic_started': {
@@ -426,6 +435,30 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
             </div>
           ) : (
             <>
+              {/* Preflight results */}
+              {preflightResults.length > 0 && (
+                <div className="rounded-xl border border-surface-700 bg-surface-900 p-4 space-y-2">
+                  <h3 className="text-xs font-semibold text-surface-400 uppercase tracking-wider">
+                    Connection Preflight
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {preflightResults.map((r) => (
+                      <div
+                        key={r.source}
+                        className={`rounded-lg border px-3 py-2 text-xs ${
+                          r.ok
+                            ? 'border-emerald-500/30 bg-emerald-900/10 text-emerald-300'
+                            : 'border-red-500/30 bg-red-900/10 text-red-300'
+                        }`}
+                      >
+                        <div className="font-medium">{r.ok ? '\u2713' : '\u2717'} {r.source}</div>
+                        <div className="text-[10px] opacity-70 mt-0.5 truncate">{r.detail}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {isRunning && (
                 <div className="flex justify-end">
                   <button
