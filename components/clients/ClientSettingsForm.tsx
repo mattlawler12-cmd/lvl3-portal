@@ -27,6 +27,7 @@ interface ClientData {
   sheet_column_map: Record<string, string> | null
   ga4_property_id: string | null
   gsc_site_url: string | null
+  brand_context: string | null
 }
 
 interface Props {
@@ -55,6 +56,9 @@ export default function ClientSettingsForm({ client }: Props) {
   const [heroImageUrl, setHeroImageUrl] = useState(client.hero_image_url ?? '')
   const [heroUploading, setHeroUploading] = useState(false)
   const [website, setWebsite] = useState('')
+
+  // Brand Context
+  const [brandContext, setBrandContext] = useState(client.brand_context ?? '')
 
   // Google Sheet
   const [sheetIdOrUrl, setSheetIdOrUrl] = useState(client.google_sheet_id ?? '')
@@ -174,6 +178,7 @@ export default function ClientSettingsForm({ client }: Props) {
         )
         fd.set('ga4_property_id', ga4PropertyId)
         fd.set('gsc_site_url', gscSiteUrl)
+        fd.set('brand_context', brandContext)
         await updateClient(client.id, fd)
         router.refresh()
       } catch (err) {
@@ -278,6 +283,21 @@ export default function ClientSettingsForm({ client }: Props) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── Brand Context ────────────────────────────────────────────── */}
+      <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 space-y-4">
+        <h2 className="text-surface-100 font-semibold text-sm uppercase tracking-wide">Brand Context</h2>
+        <p className="text-surface-500 text-xs">
+          Brand voice, tone, and style instructions for AI content generation. This auto-populates in the SEO Content Engine.
+        </p>
+        <textarea
+          value={brandContext}
+          onChange={(e) => setBrandContext(e.target.value)}
+          placeholder="e.g., Professional, authoritative tone. Avoid first person. Focus on residential services. Emphasize 24/7 availability and licensed technicians..."
+          rows={6}
+          className="w-full bg-surface-800 border border-surface-600 text-surface-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500 placeholder-surface-500 resize-y"
+        />
       </div>
 
       {/* ── Google Sheet ───────────────────────────────────────────── */}

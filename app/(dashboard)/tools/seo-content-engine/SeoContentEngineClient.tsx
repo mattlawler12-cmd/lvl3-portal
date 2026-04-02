@@ -67,13 +67,14 @@ const MODE_OPTIONS: { value: RunMode; label: string }[] = [
 interface Props {
   clientId: string
   clientName: string
+  clientBrandContext?: string | null
 }
 
-export default function SeoContentEngineClient({ clientId, clientName }: Props) {
+export default function SeoContentEngineClient({ clientId, clientName, clientBrandContext }: Props) {
   // ── State ───────────────────────────────────────────────
   const [topics, setTopics] = useState<TopicInput[]>([])
   const [mode, setMode] = useState<RunMode>('full')
-  const [brandContext, setBrandContext] = useState('')
+  const [brandContext, setBrandContext] = useState(clientBrandContext ?? '')
   const [isRunning, setIsRunning] = useState(false)
   const [, setRunId] = useState<string | null>(null)
   const [topicStates, setTopicStates] = useState<Map<number, TopicState>>(new Map())
@@ -316,7 +317,9 @@ export default function SeoContentEngineClient({ clientId, clientName }: Props) 
               Brand Context
             </h2>
             <p className="text-xs text-surface-400">
-              Optional. Provide brand voice, tone, or style notes for {clientName}.
+              {clientBrandContext
+                ? `Pre-filled from ${clientName} client settings. Edit to override for this run.`
+                : `Optional. Provide brand voice, tone, or style notes for ${clientName}. Save in client settings for reuse.`}
             </p>
             <textarea
               value={brandContext}

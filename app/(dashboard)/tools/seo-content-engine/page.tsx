@@ -15,9 +15,9 @@ export default async function SeoContentEnginePage() {
     )
   }
 
-  const client = await getClientById<{ id: string; name: string }>(
+  const client = await getClientById<{ id: string; name: string; brand_context: string | null }>(
     selectedClientId,
-    'id, name'
+    'id, name, brand_context'
   )
 
   return (
@@ -35,6 +35,7 @@ export default async function SeoContentEnginePage() {
       <SeoContentEngineClient
         clientId={selectedClientId}
         clientName={client?.name ?? 'Client'}
+        clientBrandContext={client?.brand_context ?? null}
       />
     </div>
   )

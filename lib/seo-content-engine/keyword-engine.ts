@@ -196,11 +196,13 @@ export class KeywordEngine {
         )
       : []
 
-    // Get metrics for scoring context
+    // Get metrics for scoring context — merge seed metrics with live data
     const allCandidates = mergeDedup(primary, secondary, supporting, questions)
-    const candidateMetrics = await this.dataSources.getKeywordVolumeBatch(
+    const fetchedMetrics = await this.dataSources.getKeywordVolumeBatch(
       allCandidates.slice(0, 100), // Limit to avoid API overload
     )
+    // Seed metrics from XLSX take priority, then fill gaps with live data
+    const candidateMetrics = { ...fetchedMetrics, ...this.seedMetrics }
 
     const userPrompt = keywordScoringPrompt({
       topic: toJsonStr(topic),

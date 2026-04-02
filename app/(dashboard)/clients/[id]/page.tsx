@@ -102,6 +102,7 @@ export default async function ClientDetailPage({ params }: Props) {
             sheet_column_map: (client.sheet_column_map as Record<string, string> | null) ?? null,
             ga4_property_id: (client.ga4_property_id as string | null) ?? null,
             gsc_site_url: (client.gsc_site_url as string | null) ?? null,
+            brand_context: (client.brand_context as string | null) ?? null,
           }}
         />
       </div>

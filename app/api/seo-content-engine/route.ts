@@ -65,21 +65,23 @@ export async function POST(request: Request) {
     return new Response(JSON.stringify({ error: 'No topics provided' }), { status: 400 })
   }
 
-  // Apply brand context to all topics
-  if (brandContext) {
-    for (const t of topics) {
-      if (!t.brand_context) t.brand_context = brandContext
-    }
-  }
-
-  // Fetch client GSC site URL for data sources
+  // Fetch client GSC site URL + brand context
   const { data: client } = await service
     .from('clients')
-    .select('gsc_site_url')
+    .select('gsc_site_url, brand_context')
     .eq('id', clientId)
     .single()
 
   const gscSiteUrl = client?.gsc_site_url ?? null
+  const clientBrandContext = (client?.brand_context as string | null) ?? null
+
+  // Apply brand context: user input overrides client settings
+  const finalBrandContext = brandContext || clientBrandContext || ''
+  if (finalBrandContext) {
+    for (const t of topics) {
+      if (!t.brand_context) t.brand_context = finalBrandContext
+    }
+  }
 
   // Get API keys from environment
   const anthropicApiKey = process.env.ANTHROPIC_API_KEY ?? ''
@@ -107,7 +109,7 @@ export async function POST(request: Request) {
             client_id: clientId,
             mode,
             status: 'running',
-            brand_context: brandContext || null,
+            brand_context: finalBrandContext || null,
             topic_count: topics.length,
           })
           .select('id')
