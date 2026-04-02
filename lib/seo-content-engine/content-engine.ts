@@ -9,6 +9,7 @@ import type {
   DraftReview,
   RunMode,
   ProgressCallback,
+  HeartbeatCallback,
 } from './types'
 import { DRAFT_REVIEW_ENABLED, MAX_REVISION_ATTEMPTS, MIN_WORD_COUNT } from './config'
 import {
@@ -47,15 +48,18 @@ export class ContentEngine {
   private llm: SeoAnthropicClient
   private dataSources: DataSources
   private onProgress: ProgressCallback
+  private onHeartbeat: HeartbeatCallback
 
   constructor(
     llm: SeoAnthropicClient,
     dataSources: DataSources,
     onProgress: ProgressCallback,
+    onHeartbeat: HeartbeatCallback,
   ) {
     this.llm = llm
     this.dataSources = dataSources
     this.onProgress = onProgress
+    this.onHeartbeat = onHeartbeat
   }
 
   private progress(step: string, detail: string, pct: number) {
@@ -206,6 +210,7 @@ export class ContentEngine {
       'pre_brief_analysis',
       'You are a senior SEO strategist. Return all four analysis objects as a single JSON response.',
       userMsg,
+      () => this.onHeartbeat('A'),
     )
     if (!raw || Array.isArray(raw)) throw new Error('LLM returned no parseable JSON for pre-brief analysis')
     return raw as Record<string, unknown>
@@ -273,6 +278,7 @@ export class ContentEngine {
       'brief',
       'You are a senior SEO content director. Produce a comprehensive content brief as a single JSON object.',
       userMsg,
+      () => this.onHeartbeat('B'),
     )
     if (!raw || Array.isArray(raw)) throw new Error('LLM returned no parseable JSON for brief')
 
@@ -295,6 +301,7 @@ export class ContentEngine {
       'draft',
       'You are an expert SEO content writer. Produce a publication-ready article in Markdown based on the brief provided.',
       userMsg,
+      () => this.onHeartbeat('C'),
     )
     if (!draft?.trim()) throw new Error('LLM returned empty draft')
     return draft.trim()
@@ -311,6 +318,7 @@ export class ContentEngine {
       'draft_review',
       'You are an SEO editorial reviewer. Evaluate the draft against the brief and return structured feedback as JSON.',
       userMsg,
+      () => this.onHeartbeat('D'),
     )) as Record<string, unknown> | null
 
     if (!raw) throw new Error('LLM returned no parseable JSON for draft review')
@@ -338,6 +346,7 @@ export class ContentEngine {
       'draft_revision',
       'You are revising a blog draft based on editorial feedback. Fix ONLY the critical issues listed.',
       userMsg,
+      () => this.onHeartbeat('E'),
     )
     if (!revised?.trim()) throw new Error('LLM returned empty revision')
     return revised.trim()

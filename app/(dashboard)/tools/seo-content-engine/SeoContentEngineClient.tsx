@@ -240,6 +240,13 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
               }))
               break
 
+            case 'heartbeat':
+              updateTopicState(event.topicIndex, (prev) => ({
+                ...prev,
+                lastEventAt: Date.now(),
+              }))
+              break
+
             case 'run_complete':
               setRunId(event.runId)
               setActiveTab('Results')

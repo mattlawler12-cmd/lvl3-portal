@@ -196,21 +196,16 @@ export async function POST(request: Request) {
               },
             })
 
-            const keywordEngine = new KeywordEngine(
-              llm,
-              dataSources,
-              (phase, step, detail, pct) => {
-                emit({ type: 'progress', topicIndex: index, phase, step, detail, pct })
-              },
-            )
+            const onProgress = (phase: 'keywords' | 'content', step: string, detail: string, pct: number) => {
+              emit({ type: 'progress', topicIndex: index, phase, step, detail, pct })
+            }
 
-            const contentEngine = new ContentEngine(
-              llm,
-              dataSources,
-              (phase, step, detail, pct) => {
-                emit({ type: 'progress', topicIndex: index, phase, step, detail, pct })
-              },
-            )
+            const onHeartbeat = (stage: string) => {
+              emit({ type: 'heartbeat', topicIndex: index, stage })
+            }
+
+            const keywordEngine = new KeywordEngine(llm, dataSources, onProgress, onHeartbeat)
+            const contentEngine = new ContentEngine(llm, dataSources, onProgress, onHeartbeat)
 
             // Run keyword pipeline
             const keywordPlan = await keywordEngine.run(topic)

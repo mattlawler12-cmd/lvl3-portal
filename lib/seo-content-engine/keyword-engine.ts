@@ -9,6 +9,7 @@ import type {
   KeywordCluster,
   RejectedKeyword,
   ProgressCallback,
+  HeartbeatCallback,
 } from './types'
 import { KEYWORD_TARGETS } from './config'
 import { mergeDedup, toJsonStr } from './utils'
@@ -25,16 +26,19 @@ export class KeywordEngine {
   private llm: SeoAnthropicClient
   private dataSources: DataSources
   private onProgress: ProgressCallback
+  private onHeartbeat: HeartbeatCallback
   private seedMetrics: Record<string, KeywordMetrics> = {}
 
   constructor(
     llm: SeoAnthropicClient,
     dataSources: DataSources,
     onProgress: ProgressCallback,
+    onHeartbeat: HeartbeatCallback,
   ) {
     this.llm = llm
     this.dataSources = dataSources
     this.onProgress = onProgress
+    this.onHeartbeat = onHeartbeat
   }
 
   private progress(step: string, detail: string, pct: number) {
@@ -164,6 +168,7 @@ export class KeywordEngine {
       'keyword_gen',
       'You are a senior SEO keyword strategist.',
       userPrompt,
+      () => this.onHeartbeat('K1'),
     )) as Record<string, unknown> | null
 
     if (!response) throw new Error('K1 — LLM returned no parseable JSON')
@@ -227,6 +232,7 @@ export class KeywordEngine {
       'keyword_scoring',
       'You are a senior SEO keyword strategist. Apply reject-first methodology.',
       userPrompt,
+      () => this.onHeartbeat('K2'),
     )) as Record<string, unknown> | null
 
     // Non-fatal — if scoring fails, pass through the original candidates unscored
@@ -287,6 +293,7 @@ export class KeywordEngine {
       'keyword_replacement',
       'You are a senior SEO keyword strategist. Generate replacement keywords for categories below minimum counts.',
       userPrompt,
+      () => this.onHeartbeat('K4'),
     )
 
     if (!response) throw new Error('K4 — LLM returned no parseable JSON')
@@ -360,6 +367,7 @@ export class KeywordEngine {
       'keyword_clustering',
       'You are an SEO strategist. Group these keywords into semantic clusters.',
       userPrompt,
+      () => this.onHeartbeat('K5.5'),
     )
 
     // Non-fatal — if clustering fails, treat all keywords as orphans

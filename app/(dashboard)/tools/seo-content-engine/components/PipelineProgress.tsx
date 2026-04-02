@@ -23,15 +23,10 @@ function StatusIcon({ status }: { status: TopicState['status'] }) {
   }
 }
 
-// ── Stage badge colors ───────────────────────────────────────
 function stagePillColor(step: string): string {
   if (!step) return 'bg-surface-800 text-surface-500'
   const s = step.toUpperCase()
-  if (s.startsWith('K1')) return 'bg-violet-900/60 text-violet-300'
-  if (s.startsWith('K2')) return 'bg-violet-900/60 text-violet-300'
-  if (s.startsWith('K4')) return 'bg-violet-900/60 text-violet-300'
-  if (s.startsWith('K5')) return 'bg-violet-900/60 text-violet-300'
-  if (s.startsWith('K6')) return 'bg-violet-900/60 text-violet-300'
+  if (s.startsWith('K')) return 'bg-violet-900/60 text-violet-300'
   if (s.startsWith('A')) return 'bg-sky-900/60 text-sky-300'
   if (s.startsWith('B')) return 'bg-amber-900/60 text-amber-300'
   if (s.startsWith('C')) return 'bg-emerald-900/60 text-emerald-300'
@@ -47,19 +42,16 @@ function formatElapsed(ms: number): string {
   return `+${Math.floor(s / 60)}m${s % 60}s`
 }
 
-// ── Single topic card ────────────────────────────────────────
 function TopicCard({ title, state }: { title: string; state: TopicState }) {
   const [now, setNow] = useState(() => Date.now())
   const logEndRef = useRef<HTMLDivElement>(null)
 
-  // Tick every second while running
   useEffect(() => {
     if (state.status !== 'running') return
     const id = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(id)
   }, [state.status])
 
-  // Auto-scroll stage log to bottom when new entries arrive
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }, [state.stageLog.length])
@@ -68,10 +60,10 @@ function TopicCard({ title, state }: { title: string; state: TopicState }) {
   const noActivity =
     state.status === 'running' &&
     state.lastEventAt != null &&
-    now - state.lastEventAt > 30_000
+    now - state.lastEventAt > 60_000
 
-  // Extract current stage pill label from currentStep (e.g. "keywords: K1" → "K1")
   const stagePill = state.currentStep.split(':')[1]?.trim() ?? state.currentStep.split(':')[0]?.trim() ?? ''
+  const latestDetail = state.stageLog.at(-1)?.detail ?? ''
 
   const borderColor =
     state.status === 'running'
@@ -96,7 +88,6 @@ function TopicCard({ title, state }: { title: string; state: TopicState }) {
             {title}
           </h3>
         </div>
-        {/* Stage pill + elapsed */}
         <div className="flex items-center gap-1.5 shrink-0">
           {stagePill && state.status === 'running' && (
             <span
@@ -125,34 +116,40 @@ function TopicCard({ title, state }: { title: string; state: TopicState }) {
 
       {/* Progress bar */}
       <div>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-surface-500 truncate max-w-[75%]">
+        <div className="flex items-center justify-between mb-0.5">
+          <span className="text-[11px] font-medium text-surface-400 truncate max-w-[75%]">
             {state.currentStep || 'Waiting...'}
           </span>
           <span className="text-[11px] text-surface-500 tabular-nums">
-            {Math.round(state.pct)}%
+            {Math.round(state.pct * 100)}%
           </span>
         </div>
+        {/* Latest detail line */}
+        {latestDetail && (
+          <p className="text-[11px] text-surface-500 leading-snug mb-1.5">
+            {latestDetail}
+          </p>
+        )}
         <div className="bg-surface-800 rounded-full h-1.5">
           <div
             className="bg-brand-500 rounded-full h-1.5 transition-all duration-500"
-            style={{ width: `${Math.min(100, Math.max(0, state.pct))}%` }}
+            style={{ width: `${Math.min(100, Math.max(0, state.pct * 100))}%` }}
           />
         </div>
       </div>
 
       {/* Stage log */}
       {state.stageLog.length > 0 && (
-        <div className="max-h-40 overflow-y-auto space-y-0.5 pr-1">
+        <div className="max-h-40 overflow-y-auto space-y-1 pr-1">
           {state.stageLog.map((entry, i) => (
-            <div key={i} className="flex items-baseline gap-1.5">
-              <span className="text-[10px] font-mono text-surface-600 shrink-0 tabular-nums w-10 text-right">
+            <div key={i} className="flex items-start gap-1.5">
+              <span className="text-[10px] font-mono text-surface-600 shrink-0 tabular-nums w-10 text-right pt-px">
                 {formatElapsed(entry.elapsed)}
               </span>
-              <span className="text-[11px] text-surface-500 leading-tight">
+              <p className="text-[11px] text-surface-500 leading-snug">
                 <span className="text-surface-400 font-medium">{entry.step}</span>
                 {entry.detail ? ` — ${entry.detail}` : ''}
-              </span>
+              </p>
             </div>
           ))}
           <div ref={logEndRef} />
@@ -166,8 +163,6 @@ function TopicCard({ title, state }: { title: string; state: TopicState }) {
     </div>
   )
 }
-
-// ── Main component ───────────────────────────────────────────
 
 export default function PipelineProgress({ topicTitles, topicStates }: PipelineProgressProps) {
   return (

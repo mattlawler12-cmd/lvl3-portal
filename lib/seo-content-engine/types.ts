@@ -209,8 +209,11 @@ export type PipelineEvent =
       totalCount: number
     }
   | { type: 'error'; message: string }
+  | { type: 'heartbeat'; topicIndex: number; stage: string }
 
 // ── Progress / DataSource Callbacks ──────────────────────────
+
+export type HeartbeatCallback = (stage: string) => void
 
 export type ProgressCallback = (
   phase: 'keywords' | 'content',

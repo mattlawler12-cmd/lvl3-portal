@@ -33,8 +33,9 @@ export class SeoAnthropicClient {
 
   /**
    * Call the LLM for a given pipeline stage, returning raw text.
+   * onHeartbeat fires at most once per 3s during streaming to signal liveness.
    */
-  async call(stage: string, system: string, user: string): Promise<string> {
+  async call(stage: string, system: string, user: string, onHeartbeat?: () => void): Promise<string> {
     const model = MODELS[stage] ?? 'claude-sonnet-4-6'
     const temperature = TEMPERATURES[stage] ?? 0.5
     const maxTokens = MAX_TOKENS[stage] ?? 4096
@@ -46,7 +47,8 @@ export class SeoAnthropicClient {
         const controller = new AbortController()
         const timer = setTimeout(() => controller.abort(), 120_000)
 
-        const response = await this.client.messages.create(
+        let lastHeartbeat = 0
+        const stream = this.client.messages.stream(
           {
             model,
             max_tokens: maxTokens,
@@ -57,6 +59,18 @@ export class SeoAnthropicClient {
           { signal: controller.signal },
         )
 
+        // Emit throttled heartbeats during token streaming
+        stream.on('text', () => {
+          if (onHeartbeat) {
+            const now = Date.now()
+            if (now - lastHeartbeat > 3000) {
+              lastHeartbeat = now
+              onHeartbeat()
+            }
+          }
+        })
+
+        const response = await stream.finalMessage()
         clearTimeout(timer)
 
         // Track token usage
@@ -94,14 +108,16 @@ export class SeoAnthropicClient {
 
   /**
    * Call the LLM expecting JSON output. Parses the response automatically.
+   * onHeartbeat fires at most once per 3s during streaming to signal liveness.
    */
   async callJson(
     stage: string,
     system: string,
     user: string,
+    onHeartbeat?: () => void,
   ): Promise<Record<string, unknown> | unknown[] | null> {
     const jsonSystem = system + '\n\nReturn ONLY valid JSON. No commentary outside the JSON.'
-    const text = await this.call(stage, jsonSystem, user)
+    const text = await this.call(stage, jsonSystem, user, onHeartbeat)
     const parsed = parseJsonResponse(text)
     if (!parsed && text.length > 0) {
       console.error(`[${stage}] JSON parse failed. Response length: ${text.length}. Last 200 chars: ${text.slice(-200)}`)
