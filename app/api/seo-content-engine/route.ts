@@ -207,6 +207,107 @@ export async function POST(request: Request) {
 
         const topicIds = insertedTopics?.map((t) => t.id) ?? []
 
+        let completedCount = 0
+
+        // ── Cache: find completed topics from previous runs ────
+        const titleList = topics.map((t) => t.title)
+
+        // Get run IDs for this client (excluding current run)
+        const { data: clientRuns } = await service
+          .from('seo_content_engine_runs')
+          .select('id')
+          .eq('client_id', clientId)
+          .neq('id', runId)
+
+        const clientRunIds = clientRuns?.map((r) => r.id) ?? []
+
+        type CachedTopic = {
+          title: string
+          keyword_plan: Record<string, unknown> | null
+          brief: Record<string, unknown> | null
+          draft: string | null
+          draft_review: Record<string, unknown> | null
+          revised_draft: string | null
+          word_count: number | null
+          data_availability: Record<string, unknown>
+          docx_storage_path: string | null
+          warnings: string[]
+        }
+
+        let cachedRows: CachedTopic[] = []
+        if (clientRunIds.length > 0) {
+          const { data } = await service
+            .from('seo_content_engine_topics')
+            .select('title, keyword_plan, brief, draft, draft_review, revised_draft, word_count, data_availability, docx_storage_path, warnings')
+            .in('title', titleList)
+            .eq('status', 'complete')
+            .in('run_id', clientRunIds)
+
+          cachedRows = (data ?? []) as CachedTopic[]
+        }
+
+        // Build a map of title → most recent cached result
+        const cacheMap = new Map<string, CachedTopic>()
+        for (const row of cachedRows ?? []) {
+          cacheMap.set(row.title, row) // later rows overwrite earlier (ordered by default)
+        }
+
+        // Apply cache: copy results for matched topics, mark complete, emit immediately
+        const skipIndices = new Set<number>()
+        for (let i = 0; i < topics.length; i++) {
+          const cached = cacheMap.get(topics[i].title)
+          if (!cached) continue
+
+          // Check cache has data relevant to this mode
+          const hasKeywords = cached.keyword_plan != null
+          const hasBrief = cached.brief != null
+          const hasDraft = cached.draft != null
+          if (mode === 'full' && (!hasKeywords || !hasDraft)) continue
+          if (mode === 'brief' && (!hasKeywords || !hasBrief)) continue
+          if (mode === 'keywords_only' && !hasKeywords) continue
+
+          skipIndices.add(i)
+
+          // Copy cached data to new topic row
+          if (topicIds[i]) {
+            await service
+              .from('seo_content_engine_topics')
+              .update({
+                status: 'complete',
+                keyword_plan: cached.keyword_plan,
+                brief: cached.brief,
+                draft: cached.draft,
+                draft_review: cached.draft_review,
+                revised_draft: cached.revised_draft,
+                word_count: cached.word_count,
+                data_availability: cached.data_availability,
+                docx_storage_path: cached.docx_storage_path,
+                warnings: cached.warnings,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', topicIds[i])
+          }
+
+          completedCount++
+          emit({ type: 'topic_started', topicIndex: i, title: topics[i].title })
+          emit({
+            type: 'progress',
+            topicIndex: i,
+            phase: 'content',
+            step: 'Cached',
+            detail: 'Using results from a previous successful run',
+            pct: 1,
+          })
+          emit({
+            type: 'topic_complete',
+            topicIndex: i,
+            status: 'complete',
+            wordCount: cached.word_count ?? 0,
+          })
+        }
+
+        // Log cache hits (no stream event needed — individual topics already emitted)
+
         // ── Parallel execution with semaphore ──────────────────
         const semaphore = {
           count: 0,
@@ -225,9 +326,8 @@ export async function POST(request: Request) {
           },
         }
 
-        let completedCount = 0
-
         const processTopic = async (topic: TopicInput, index: number) => {
+          if (skipIndices.has(index)) return // Already handled from cache
           await semaphore.acquire()
           try {
             emit({ type: 'topic_started', topicIndex: index, title: topic.title })
