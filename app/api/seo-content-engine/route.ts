@@ -18,7 +18,7 @@ import type {
   DataAvailability,
 } from '@/lib/seo-content-engine/types'
 
-export const maxDuration = 300
+export const maxDuration = 800
 
 export async function POST(request: Request) {
   // ── Auth (before ReadableStream — cookies need sync context) ──
