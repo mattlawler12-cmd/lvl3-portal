@@ -6,7 +6,7 @@ import { listRuns, type RunMeta } from '@/app/actions/seo-content-engine'
 
 interface RunHistoryProps {
   clientId: string
-  onLoadRun: (runId: string) => void
+  onLoadRun: (runId: string, status: string) => void
 }
 
 function formatDate(iso: string): string {
@@ -169,7 +169,7 @@ export default function RunHistory({ clientId, onLoadRun }: RunHistoryProps) {
                   </td>
                   <td className="py-3">
                     <button
-                      onClick={() => onLoadRun(run.id)}
+                      onClick={() => onLoadRun(run.id, run.status)}
                       className="text-brand-400 hover:text-brand-300 text-xs font-medium transition-colors"
                     >
                       View

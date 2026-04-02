@@ -10,6 +10,7 @@ import type {
   ContentBrief,
   DraftReview,
 } from '@/lib/seo-content-engine/types'
+import { loadRun } from '@/app/actions/seo-content-engine'
 import TopicForm from './components/TopicForm'
 import XlsxUploader from './components/XlsxUploader'
 import PipelineProgress from './components/PipelineProgress'
@@ -311,6 +312,66 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
     })
   }, [])
 
+  // ── Load historical run from DB ─────────────────────────
+
+  const handleLoadRun = useCallback(async (id: string, status: string) => {
+    const result = await loadRun(id)
+    if (result.error || !result.data) return
+
+    const run = result.data
+    const loadedTopics: TopicInput[] = run.topics.map((t) => ({
+      title: t.title,
+      target_audience: t.target_audience ?? undefined,
+      angle: t.angle ?? undefined,
+      existing_url: t.existing_url ?? undefined,
+      pillar: t.pillar ?? undefined,
+      funnel_stage: t.funnel_stage ?? undefined,
+      primary_intent: t.primary_intent ?? undefined,
+      summary: t.summary ?? undefined,
+      differentiation_angle: t.differentiation_angle ?? undefined,
+      internal_linking: t.internal_linking ?? undefined,
+      geo_notes: t.geo_notes ?? undefined,
+      seed_keywords: (t.seed_keywords ?? []) as unknown as TopicInput['seed_keywords'],
+    }))
+
+    const loadedStates = new Map<number, TopicState>()
+    run.topics.forEach((t, i) => {
+      const validStatuses: TopicState['status'][] = ['complete', 'failed', 'running', 'pending']
+      const topicStatus = validStatuses.includes(t.status as TopicState['status'])
+        ? (t.status as TopicState['status'])
+        : 'pending'
+
+      loadedStates.set(i, {
+        status: topicStatus,
+        currentStep: topicStatus === 'complete'
+          ? 'Complete'
+          : topicStatus === 'failed'
+            ? (t.error ?? 'Failed')
+            : '',
+        pct: topicStatus === 'complete' ? 1 : t.status === 'partial' ? 0.5 : 0,
+        logs: [],
+        startedAt: null,
+        lastEventAt: null,
+        stageLog: [],
+        dataAvailability: (t.data_availability ?? {}) as DataAvailability,
+        result: (t.keyword_plan || t.brief || t.draft) ? {
+          keywordPlan: (t.keyword_plan as KeywordPlan | null) ?? null,
+          brief: (t.brief as ContentBrief | Record<string, unknown> | null) ?? null,
+          draft: t.revised_draft ?? t.draft ?? null,
+          draftReview: (t.draft_review as DraftReview | null) ?? null,
+          revisedDraft: t.revised_draft ?? null,
+          wordCount: t.word_count ?? 0,
+        } : null,
+      })
+    })
+
+    setTopics(loadedTopics)
+    setTopicStates(loadedStates)
+    setRunId(id)
+    setPreflightResults([])
+    setActiveTab(status === 'running' ? 'Progress' : 'Results')
+  }, [])
+
   // ── Completed topic indices ─────────────────────────────
 
   const completedTopics = Array.from(topicStates.entries())
@@ -547,10 +608,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
       {activeTab === 'History' && (
         <RunHistory
           clientId={clientId}
-          onLoadRun={(id) => {
-            setRunId(id)
-            setActiveTab('Results')
-          }}
+          onLoadRun={handleLoadRun}
         />
       )}
     </div>
