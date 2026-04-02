@@ -226,8 +226,7 @@ export async function regenerateDocx(
     const { error: uploadErr } = await service.storage
       .from('client-assets')
       .upload(storagePath, docxBuffer, {
-        contentType:
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         upsert: true,
       })
 
