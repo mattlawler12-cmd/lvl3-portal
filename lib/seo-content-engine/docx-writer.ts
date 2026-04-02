@@ -293,14 +293,28 @@ function markdownToParagraphs(mdText: string): (Paragraph | Table)[] {
   return elements
 }
 
+// ── Coerce Helper ─────────────────────────────────────────────
+// DB JSON may store keyword entries as objects {keyword, cpc, msv, ...}
+function toStr(entry: unknown): string {
+  if (typeof entry === 'string') return entry
+  if (typeof entry === 'number') return String(entry)
+  if (entry && typeof entry === 'object') return String((entry as Record<string, unknown>).keyword ?? entry)
+  return String(entry ?? '')
+}
+
+function toStrArray(arr: unknown): string[] {
+  if (!Array.isArray(arr)) return []
+  return arr.map(toStr)
+}
+
 // ── Category Helper ────────────────────────────────────────────
 
 function keywordCategory(kw: string, plan: KeywordPlan): string {
   const lower = kw.toLowerCase()
-  if (plan.primary.some((k) => k.toLowerCase() === lower)) return 'Primary'
-  if (plan.secondary.some((k) => k.toLowerCase() === lower)) return 'Secondary'
-  if (plan.supporting.some((k) => k.toLowerCase() === lower)) return 'Supporting'
-  if (plan.questions.some((k) => k.toLowerCase() === lower)) return 'Questions'
+  if (toStrArray(plan.primary).some((k) => k.toLowerCase() === lower)) return 'Primary'
+  if (toStrArray(plan.secondary).some((k) => k.toLowerCase() === lower)) return 'Secondary'
+  if (toStrArray(plan.supporting).some((k) => k.toLowerCase() === lower)) return 'Supporting'
+  if (toStrArray(plan.questions).some((k) => k.toLowerCase() === lower)) return 'Questions'
   return 'Other'
 }
 
@@ -340,15 +354,16 @@ export async function generateDocx(opts: {
     sections.push(eyebrow('Keyword Intelligence'))
     sections.push(h2('Keyword Strategy'))
 
+    const metrics = plan.metrics ?? {}
     const allKws = [
-      ...plan.primary,
-      ...plan.secondary,
-      ...plan.supporting,
-      ...plan.questions,
+      ...toStrArray(plan.primary),
+      ...toStrArray(plan.secondary),
+      ...toStrArray(plan.supporting),
+      ...toStrArray(plan.questions),
     ]
     const kwRows = allKws.map((kw) => {
       const cat = keywordCategory(kw, plan)
-      const m = plan.metrics[kw]
+      const m = metrics[kw]
       return [
         kw,
         cat,
@@ -369,7 +384,7 @@ export async function generateDocx(opts: {
       for (const cluster of plan.clusters) {
         const name = cluster.cluster_name ?? 'Cluster'
         const target = cluster.target_section ? ` → ${cluster.target_section}` : ''
-        const kws = cluster.keywords?.join(', ') ?? ''
+        const kws = toStrArray(cluster.keywords).join(', ')
         sections.push(bullet(`${name}${target}: ${kws}`))
       }
     }
@@ -386,8 +401,8 @@ export async function generateDocx(opts: {
       sections.push(labelValue('Dominant Intent', String(brief.intent)))
     }
 
-    const gaps = brief.competitive_gaps as string[] | undefined
-    if (gaps?.length) {
+    const gaps = toStrArray(brief.competitive_gaps)
+    if (gaps.length) {
       sections.push(h3('Competitive Gaps'))
       for (const g of gaps) sections.push(bullet(g))
     }
@@ -403,14 +418,14 @@ export async function generateDocx(opts: {
       }
     }
 
-    const geoTargets = brief.geo_targets as string[] | undefined
-    if (geoTargets?.length) {
+    const geoTargets = toStrArray(brief.geo_targets)
+    if (geoTargets.length) {
       sections.push(h3('GEO Targets'))
       for (const gt of geoTargets) sections.push(bullet(gt))
     }
 
-    const hooks = brief.citation_hooks as string[] | undefined
-    if (hooks?.length) {
+    const hooks = toStrArray(brief.citation_hooks)
+    if (hooks.length) {
       sections.push(h3('Citation Hooks'))
       for (const hook of hooks) sections.push(bullet(hook))
     }
@@ -444,15 +459,15 @@ export async function generateDocx(opts: {
     sections.push(
       labelValue('Status', review.passed ? 'PASS' : 'FAIL'),
     )
-    sections.push(labelValue('Word Count', String(review.word_count)))
-    sections.push(labelValue('GEO Score', review.geo_score))
+    sections.push(labelValue('Word Count', String(review.word_count ?? 0)))
+    sections.push(labelValue('GEO Score', review.geo_score ?? 'N/A'))
     sections.push(
-      labelValue('Recommendation', review.recommendation.toUpperCase()),
+      labelValue('Recommendation', (review.recommendation ?? 'N/A').toUpperCase()),
     )
 
-    if (review.issues?.length) {
+    if ((review.issues ?? []).length) {
       sections.push(h3('Issues'))
-      const issueRows = review.issues.map((i) => [i.type, i.detail, i.severity])
+      const issueRows = (review.issues ?? []).map((i) => [i.type ?? '', i.detail ?? '', i.severity ?? ''])
       sections.push(styledTable(['Type', 'Detail', 'Severity'], issueRows))
     }
   }
