@@ -71,16 +71,16 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
                   <span className="font-semibold text-surface-200">{section.heading}</span>
                   <span className="text-xs text-surface-500 ml-auto">{section.estimated_word_count} words</span>
                 </div>
-                {section.key_points.length > 0 && (
+                {(section.key_points ?? []).length > 0 && (
                   <ul className="list-disc list-inside text-surface-400 ml-5 space-y-0.5 text-xs">
-                    {section.key_points.map((pt, j) => (
+                    {(section.key_points ?? []).map((pt, j) => (
                       <li key={j}>{pt}</li>
                     ))}
                   </ul>
                 )}
-                {section.keywords_to_include.length > 0 && (
+                {(section.keywords_to_include ?? []).length > 0 && (
                   <div className="flex flex-wrap gap-1 ml-5 mt-1">
-                    {section.keywords_to_include.map((kw, j) => (
+                    {(section.keywords_to_include ?? []).map((kw, j) => (
                       <span key={j} className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-400">
                         {kw}
                       </span>

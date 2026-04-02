@@ -33,11 +33,12 @@ export default function KeywordPlanView({ plan }: { plan: KeywordPlan }) {
   const [sortField, setSortField] = useState<SortField>('msv')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
-  // Build flat rows from categorized keywords
+  // Build flat rows from categorized keywords (guard against null arrays from DB JSON)
+  const metrics = plan.metrics ?? {}
   const rows: KeywordRow[] = []
-  const addRows = (keywords: string[], category: Category) => {
-    for (const kw of keywords) {
-      const m = plan.metrics[kw]
+  const addRows = (keywords: string[] | null | undefined, category: Category) => {
+    for (const kw of keywords ?? []) {
+      const m = metrics[kw]
       rows.push({
         keyword: kw,
         category,
@@ -133,11 +134,11 @@ export default function KeywordPlanView({ plan }: { plan: KeywordPlan }) {
       )}
 
       {/* Clusters */}
-      {plan.clusters.length > 0 && (
+      {(plan.clusters ?? []).length > 0 && (
         <div className="bg-surface-900 border border-surface-700 rounded-xl p-4">
           <h4 className="text-xs font-medium uppercase tracking-wider text-brand-500 mb-3">Keyword Clusters</h4>
           <div className="space-y-3">
-            {plan.clusters.map((cluster, i) => (
+            {(plan.clusters ?? []).map((cluster, i) => (
               <div key={i}>
                 <h5 className="text-sm font-semibold text-surface-200 mb-1">{cluster.cluster_name}</h5>
                 {cluster.target_section && (

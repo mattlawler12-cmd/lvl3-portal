@@ -21,6 +21,13 @@ const SEVERITY_COLORS: Record<string, string> = {
 }
 
 export default function ReviewSummary({ review }: { review: DraftReview }) {
+  // Guard against null/undefined from DB JSON blobs
+  const issues = review.issues ?? []
+  const missingKeywords = review.missing_keywords ?? []
+  const wordCount = review.word_count ?? 0
+  const geoScore = review.geo_score ?? 'weak'
+  const recommendation = review.recommendation ?? 'revise'
+
   return (
     <div className="space-y-4">
       {/* Status row */}
@@ -37,31 +44,31 @@ export default function ReviewSummary({ review }: { review: DraftReview }) {
 
           {/* Word Count */}
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-surface-800 text-surface-300 font-mono">
-            {review.word_count.toLocaleString()} words
+            {wordCount.toLocaleString()} words
           </span>
 
           {/* GEO Score */}
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${GEO_COLORS[review.geo_score] ?? 'bg-surface-800 text-surface-400'}`}>
-            GEO: {review.geo_score}
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${GEO_COLORS[geoScore] ?? 'bg-surface-800 text-surface-400'}`}>
+            GEO: {geoScore}
           </span>
 
           {/* Recommendation */}
           <span
             className={`px-3 py-1 rounded-full text-xs font-semibold ${
-              RECOMMENDATION_COLORS[review.recommendation] ?? 'bg-surface-800 text-surface-400'
+              RECOMMENDATION_COLORS[recommendation] ?? 'bg-surface-800 text-surface-400'
             }`}
           >
-            {review.recommendation.charAt(0).toUpperCase() + review.recommendation.slice(1)}
+            {recommendation.charAt(0).toUpperCase() + recommendation.slice(1)}
           </span>
         </div>
       </div>
 
       {/* Issues */}
-      {review.issues.length > 0 && (
+      {issues.length > 0 && (
         <div className="bg-surface-900 border border-surface-700 rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-surface-700">
             <h4 className="text-xs font-medium uppercase tracking-wider text-brand-500">
-              Issues ({review.issues.length})
+              Issues ({issues.length})
             </h4>
           </div>
           <table className="w-full text-sm">
@@ -73,7 +80,7 @@ export default function ReviewSummary({ review }: { review: DraftReview }) {
               </tr>
             </thead>
             <tbody>
-              {review.issues.map((issue, i) => (
+              {issues.map((issue, i) => (
                 <tr key={i} className="border-b border-surface-800 hover:bg-surface-850">
                   <td className="px-4 py-2.5 text-surface-300 font-medium">{issue.type}</td>
                   <td className="px-4 py-2.5 text-surface-400">{issue.detail}</td>
@@ -90,13 +97,13 @@ export default function ReviewSummary({ review }: { review: DraftReview }) {
       )}
 
       {/* Missing Keywords */}
-      {review.missing_keywords.length > 0 && (
+      {missingKeywords.length > 0 && (
         <div className="bg-surface-900 border border-surface-700 rounded-xl p-4">
           <h4 className="text-xs font-medium uppercase tracking-wider text-brand-500 mb-2">
-            Missing Keywords ({review.missing_keywords.length})
+            Missing Keywords ({missingKeywords.length})
           </h4>
           <div className="flex flex-wrap gap-1.5">
-            {review.missing_keywords.map((kw, i) => (
+            {missingKeywords.map((kw, i) => (
               <span
                 key={i}
                 className="px-2 py-0.5 rounded-full text-xs bg-red-500/10 text-red-400 border border-red-500/20"

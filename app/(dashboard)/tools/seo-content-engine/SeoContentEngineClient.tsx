@@ -347,19 +347,26 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
 
     const loadedStates = new Map<number, TopicState>()
     run.topics.forEach((t, i) => {
-      const validStatuses: TopicState['status'][] = ['complete', 'failed', 'running', 'pending']
-      const topicStatus = validStatuses.includes(t.status as TopicState['status'])
-        ? (t.status as TopicState['status'])
-        : 'pending'
+      // Map DB status to TopicState status — 'partial' means some phases succeeded
+      const statusMap: Record<string, TopicState['status']> = {
+        complete: 'complete',
+        partial: 'complete', // partial topics have results — show them
+        failed: 'failed',
+        running: 'failed',   // orphaned running topics are effectively failed
+        pending: 'pending',
+      }
+      const topicStatus = statusMap[t.status] ?? 'pending'
 
       loadedStates.set(i, {
         status: topicStatus,
-        currentStep: topicStatus === 'complete'
+        currentStep: t.status === 'complete'
           ? 'Complete'
-          : topicStatus === 'failed'
-            ? (t.error ?? 'Failed')
-            : '',
-        pct: topicStatus === 'complete' ? 1 : t.status === 'partial' ? 0.5 : 0,
+          : t.status === 'partial'
+            ? 'Partial — some phases failed'
+            : topicStatus === 'failed'
+              ? (t.error ?? 'Failed')
+              : '',
+        pct: topicStatus === 'complete' ? 1 : 0,
         logs: [],
         startedAt: null,
         lastEventAt: null,
