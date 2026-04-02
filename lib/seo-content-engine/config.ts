@@ -81,7 +81,7 @@ export const MIN_WORD_COUNT = 1800
 export const DATA_COVERAGE_THRESHOLD = 0.8 // warn if < 80% primary keywords have metrics
 
 // ── Parallel Execution ─────────────────────────────────────────
-export const PARALLEL_TOPIC_LIMIT = 5
+export const PARALLEL_TOPIC_LIMIT = 10
 
 // ── Run Modes ──────────────────────────────────────────────────
 export const MODES: Record<string, string> = {
