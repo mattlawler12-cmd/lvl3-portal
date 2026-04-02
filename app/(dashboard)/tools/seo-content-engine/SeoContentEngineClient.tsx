@@ -399,16 +399,19 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
     .filter(([, s]) => s.status === 'complete')
     .map(([i]) => i)
 
-  const downloadDocx = useCallback(async (storagePath: string, title: string) => {
+  const [downloadError, setDownloadError] = useState<string | null>(null)
+
+  const downloadDocx = useCallback(async (storagePath: string, title: string): Promise<boolean> => {
     const result = await getDocxUrl(storagePath)
     if (result.error || !result.data) {
-      console.error('Failed to get download URL:', result.error)
-      return
+      setDownloadError(`Download failed for "${title}": ${result.error ?? 'File not found in storage'}`)
+      return false
     }
     const a = document.createElement('a')
     a.href = result.data
     a.download = `${title.replace(/[^a-zA-Z0-9-_ ]/g, '')}.docx`
     a.click()
+    return true
   }, [])
 
   // ── Render ──────────────────────────────────────────────
@@ -603,19 +606,43 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
             </div>
           ) : (
             <>
+              {/* Download error banner */}
+              {downloadError && (
+                <div className="flex items-start justify-between gap-3 rounded-lg border border-red-500/30 bg-red-900/20 px-4 py-3">
+                  <p className="text-sm text-red-300">{downloadError}</p>
+                  <button
+                    onClick={() => setDownloadError(null)}
+                    className="text-red-400 hover:text-red-300 text-xs font-medium shrink-0"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
               {/* Download All button */}
               {completedTopics.some((idx) => topicStates.get(idx)?.result?.docxStoragePath) && (
                 <div className="flex justify-end">
                   <button
                     onClick={async () => {
+                      setDownloadError(null)
+                      let ok = 0
+                      let fail = 0
                       for (const idx of completedTopics) {
                         const path = topicStates.get(idx)?.result?.docxStoragePath
                         const title = topics[idx]?.title ?? `Topic ${idx + 1}`
                         if (path) {
-                          await downloadDocx(path, title)
-                          // Small delay between downloads to avoid browser blocking
-                          await new Promise((r) => setTimeout(r, 300))
+                          const success = await downloadDocx(path, title)
+                          if (success) {
+                            ok++
+                            // Small delay between downloads to avoid browser blocking
+                            await new Promise((r) => setTimeout(r, 300))
+                          } else {
+                            fail++
+                          }
                         }
+                      }
+                      if (fail > 0) {
+                        setDownloadError(`Downloaded ${ok} of ${ok + fail} files. ${fail} file${fail > 1 ? 's' : ''} not found in storage (DOCX generation may have failed during the run).`)
                       }
                     }}
                     className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
@@ -639,7 +666,10 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
                       </h3>
                       {result?.docxStoragePath && (
                         <button
-                          onClick={() => downloadDocx(result.docxStoragePath!, topics[idx]?.title ?? `Topic ${idx + 1}`)}
+                          onClick={() => {
+                            setDownloadError(null)
+                            downloadDocx(result.docxStoragePath!, topics[idx]?.title ?? `Topic ${idx + 1}`)
+                          }}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-surface-700 bg-surface-800 px-3 py-1.5 text-xs font-medium text-surface-300 transition-colors hover:border-surface-600 hover:text-surface-100"
                         >
                           <Download className="h-3.5 w-3.5" />
