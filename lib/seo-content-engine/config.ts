@@ -9,10 +9,7 @@ export const MODELS: Record<string, string> = {
   keyword_scoring: 'claude-sonnet-4-6',
   keyword_replacement: 'claude-sonnet-4-6',
   keyword_clustering: 'claude-sonnet-4-6',
-  entity_map: 'claude-sonnet-4-6',
-  intent_map: 'claude-sonnet-4-6',
-  competitive_diff: 'claude-sonnet-4-6',
-  content_strategy: 'claude-sonnet-4-6',
+  pre_brief_analysis: 'claude-sonnet-4-6',
   brief: 'claude-sonnet-4-6',
   draft: 'claude-sonnet-4-6',
   draft_review: 'claude-sonnet-4-6',
@@ -25,10 +22,7 @@ export const TEMPERATURES: Record<string, number> = {
   keyword_scoring: 0.2,
   keyword_replacement: 0.5,
   keyword_clustering: 0.3,
-  entity_map: 0.4,
-  intent_map: 0.3,
-  competitive_diff: 0.4,
-  content_strategy: 0.5,
+  pre_brief_analysis: 0.4,
   brief: 0.5,
   draft: 0.6,
   draft_review: 0.2,
@@ -40,14 +34,11 @@ export const MAX_TOKENS: Record<string, number> = {
   keyword_gen: 4096,
   keyword_scoring: 8192,
   keyword_replacement: 2048,
-  keyword_clustering: 2048,
-  entity_map: 2048,
-  intent_map: 2048,
-  competitive_diff: 4096,
-  content_strategy: 4096,
-  brief: 16384,
+  keyword_clustering: 4096,
+  pre_brief_analysis: 4096,
+  brief: 8192,
   draft: 16384,
-  draft_review: 4096,
+  draft_review: 2048,
   draft_revision: 16384,
 }
 
@@ -76,7 +67,7 @@ export const MIN_WORD_COUNT = 1800
 export const DATA_COVERAGE_THRESHOLD = 0.8 // warn if < 80% primary keywords have metrics
 
 // ── Parallel Execution ─────────────────────────────────────────
-export const PARALLEL_TOPIC_LIMIT = 3
+export const PARALLEL_TOPIC_LIMIT = 5
 
 // ── Run Modes ──────────────────────────────────────────────────
 export const MODES: Record<string, string> = {

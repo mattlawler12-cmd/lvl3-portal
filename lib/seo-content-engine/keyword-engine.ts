@@ -132,17 +132,19 @@ export class KeywordEngine {
       }
     }
 
-    // Gather data from connectors
-    const related = await this.dataSources.getRelatedKeywords(topic.title)
-
-    let existingRankings: string[] = []
-    if (topic.existing_url) {
-      const gscRows = await this.dataSources.getTopQueries()
-      existingRankings = gscRows
-        .filter((r) => r.page?.includes(topic.existing_url!))
-        .map((r) => r.query)
-        .slice(0, 50)
-    }
+    // Gather data from connectors in parallel (related, PASF, GSC)
+    const [related, pasfKeywords, existingRankings] = await Promise.all([
+      this.dataSources.getRelatedKeywords(topic.title),
+      this.dataSources.getPasfKeywords(topic.title),
+      topic.existing_url
+        ? this.dataSources.getTopQueries().then((gscRows) =>
+            gscRows
+              .filter((r) => r.page?.includes(topic.existing_url!))
+              .map((r) => r.query)
+              .slice(0, 50),
+          )
+        : Promise.resolve([] as string[]),
+    ])
 
     // LLM call
     let seedContext = ''
@@ -154,7 +156,7 @@ export class KeywordEngine {
       keywordGenerationPrompt({
         topic,
         relatedKeywords: related,
-        pasfKeywords: [], // PASF not available via direct connectors yet
+        pasfKeywords,
         existingRankings,
       }) + seedContext
 
@@ -171,10 +173,10 @@ export class KeywordEngine {
     const llmSupporting = (response.supporting as string[]) ?? []
     const llmQuestions = (response.questions as string[]) ?? []
 
-    // Merge: seed → LLM → data sources
+    // Merge: seed → LLM → data sources (cap related to avoid K2 overload)
     return {
       primary: mergeDedup(seedPrimary, llmPrimary),
-      secondary: mergeDedup(seedSecondary, llmSecondary, related),
+      secondary: mergeDedup(seedSecondary, llmSecondary, related.slice(0, 30)),
       supporting: mergeDedup(seedSupporting, llmSupporting),
       questions: mergeDedup(seedQuestions, llmQuestions),
     }
@@ -196,8 +198,14 @@ export class KeywordEngine {
         )
       : []
 
+    // Cap candidates per category to avoid K2 prompt/response overload
+    const cappedPrimary = primary.slice(0, 20)
+    const cappedSecondary = secondary.slice(0, 40)
+    const cappedSupporting = supporting.slice(0, 30)
+    const cappedQuestions = questions.slice(0, 25)
+
     // Get metrics for scoring context — merge seed metrics with live data
-    const allCandidates = mergeDedup(primary, secondary, supporting, questions)
+    const allCandidates = mergeDedup(cappedPrimary, cappedSecondary, cappedSupporting, cappedQuestions)
     const fetchedMetrics = await this.dataSources.getKeywordVolumeBatch(
       allCandidates.slice(0, 100), // Limit to avoid API overload
     )
@@ -206,7 +214,7 @@ export class KeywordEngine {
 
     const userPrompt = keywordScoringPrompt({
       topic: toJsonStr(topic),
-      candidates: toJsonStr({ primary, secondary, supporting, questions }),
+      candidates: toJsonStr({ primary: cappedPrimary, secondary: cappedSecondary, supporting: cappedSupporting, questions: cappedQuestions }),
       competitorGaps: competitorGap.length
         ? toJsonStr(competitorGap.slice(0, 50))
         : '(not available)',
@@ -221,7 +229,18 @@ export class KeywordEngine {
       userPrompt,
     )) as Record<string, unknown> | null
 
-    if (!response) throw new Error('K2 — LLM returned no parseable JSON')
+    // Non-fatal — if scoring fails, pass through the original candidates unscored
+    if (!response) {
+      console.warn('K2 — LLM returned no parseable JSON, using unscored candidates')
+      return {
+        primary: cappedPrimary,
+        secondary: cappedSecondary,
+        supporting: cappedSupporting,
+        questions: cappedQuestions,
+        rejected: [],
+        rationale: 'Scoring unavailable — using K1 candidates directly',
+      }
+    }
 
     return {
       primary: (response.primary as string[]) ?? primary,
@@ -343,7 +362,11 @@ export class KeywordEngine {
       userPrompt,
     )
 
-    if (!response) throw new Error('K5.5 — LLM returned no parseable JSON')
+    // Non-fatal — if clustering fails, treat all keywords as orphans
+    if (!response) {
+      console.warn('K5.5 — LLM returned no parseable JSON, skipping clustering')
+      return { clusters: [], orphans: allKeywords }
+    }
 
     const clusters: KeywordCluster[] = Array.isArray(response)
       ? (response as KeywordCluster[])

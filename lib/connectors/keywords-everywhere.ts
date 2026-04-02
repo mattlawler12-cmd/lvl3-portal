@@ -31,6 +31,7 @@ async function kePost(
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: params.toString(),
+    signal: AbortSignal.timeout(15_000),
   })
 
   if (!res.ok) {

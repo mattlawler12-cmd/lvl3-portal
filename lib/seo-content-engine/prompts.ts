@@ -170,6 +170,61 @@ RULES:
 Return ONLY valid JSON. No commentary outside the JSON.`
 }
 
+// ── Pre-Brief Analysis (A1+A2+A4+A5 merged) ──────────────────
+
+export function preBriefAnalysisPrompt(opts: {
+  topic: TopicInput
+  keywordPlan: KeywordPlan
+  serpData: unknown
+}): string {
+  const hasSerpData = opts.serpData && Object.keys(opts.serpData as object).length > 0
+  return `You are a senior SEO strategist preparing context for a content brief. Analyze the topic and keyword plan, then return all four analysis objects in a single JSON response.
+
+INPUT:
+Topic: ${opts.topic.title}
+Target Audience: ${opts.topic.target_audience ?? '(general)'}
+Angle: ${opts.topic.angle ?? '(none specified)'}
+Brand Context: ${opts.topic.brand_context ?? '(none)'}
+Primary Keywords: ${toJsonStr(opts.keywordPlan.primary)}
+Question Keywords: ${toJsonStr(opts.keywordPlan.questions)}
+Full Keyword Plan: ${toJsonStr(opts.keywordPlan)}
+SERP / Competitive Data: ${hasSerpData ? toJsonStr(opts.serpData) : '(unavailable — infer from topic and keywords)'}
+
+OUTPUT JSON with exactly these four top-level keys:
+{
+  "entity_map": {
+    "core_entities": [{"name": "", "relevance": "", "mention_frequency": ""}],
+    "supporting_entities": [{"name": "", "relevance": "", "mention_frequency": ""}]
+  },
+  "intent_map": {
+    "dominant_intent": "",
+    "sub_intents": [],
+    "user_goal": "",
+    "success_criteria": ""
+  },
+  "competitive_diff": {
+    "gaps": [],
+    "opportunities": [],
+    "differentiation_angle": ""
+  },
+  "content_strategy": {
+    "angle": "",
+    "emphasis": [],
+    "structure_logic": "",
+    "what_to_avoid": [],
+    "geo_notes": ""
+  }
+}
+
+RULES:
+- entity_map: 5-8 core entities, 3-5 supporting. Focus on entities that MUST appear in the content.
+- intent_map: dominant_intent must be one of: informational/commercial/navigational/transactional. Be specific.
+- competitive_diff: use SERP data if available, otherwise infer from topic and keywords. 3-5 gaps, 3-5 opportunities.
+- content_strategy.what_to_avoid must reference competitive_diff.gaps so the writer knows what not to replicate from competitors.
+
+Return ONLY valid JSON. No commentary outside the JSON.`
+}
+
 // ── Content Brief (Phase B) ───────────────────────────────────
 
 export function briefPrompt(opts: {

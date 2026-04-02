@@ -105,6 +105,17 @@ export class DataSources {
     return rows?.map((r: KEKeywordRow) => r.keyword) ?? []
   }
 
+  async getPasfKeywords(query: string): Promise<string[]> {
+    // PASF (People Also Search For) — fetches from KE related endpoint with smaller limit
+    const rows = await this.tracked('keywords_everywhere', () =>
+      fetchKERelatedKeywords(query, this.keApiKey, 'us', 30),
+    )
+    // Filter for question-like terms (how, what, why, when, can, does, is, are)
+    return (rows?.map((r: KEKeywordRow) => r.keyword) ?? []).filter((kw: string) =>
+      /^(how|what|why|when|can|does|is|are|will|should|do|which)\b/i.test(kw),
+    )
+  }
+
   // ── Semrush ─────────────────────────────────────────────────
 
   async getCompetitorKeywordGap(domain: string): Promise<SemrushKeywordRow[]> {

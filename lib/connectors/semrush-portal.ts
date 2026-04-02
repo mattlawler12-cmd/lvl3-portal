@@ -24,7 +24,7 @@ export interface SemrushKeywordRow {
 
 async function semrushFetch(params: Record<string, string>): Promise<string> {
   const url = `https://api.semrush.com/?${new URLSearchParams(params).toString()}`
-  const res = await fetch(url)
+  const res = await fetch(url, { signal: AbortSignal.timeout(15_000) })
   const text = await res.text()
 
   if (!res.ok || text.startsWith('ERROR')) {

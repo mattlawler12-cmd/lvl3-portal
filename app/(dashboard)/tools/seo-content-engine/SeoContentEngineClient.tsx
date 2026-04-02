@@ -22,11 +22,20 @@ import RunHistory from './components/RunHistory'
 
 // ── Per-topic progress state ────────────────────────────────
 
-interface TopicState {
+export interface StageLogEntry {
+  step: string
+  detail: string
+  elapsed: number // ms since topic started
+}
+
+export interface TopicState {
   status: 'pending' | 'running' | 'complete' | 'failed'
   currentStep: string
   pct: number
   logs: string[]
+  startedAt: number | null
+  lastEventAt: number | null
+  stageLog: StageLogEntry[]
   dataAvailability: DataAvailability
   result: {
     keywordPlan: KeywordPlan | null
@@ -44,6 +53,9 @@ function emptyTopicState(): TopicState {
     currentStep: '',
     pct: 0,
     logs: [],
+    startedAt: null,
+    lastEventAt: null,
+    stageLog: [],
     dataAvailability: {},
     result: null,
   }
@@ -161,23 +173,38 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
               setRunId(event.runId)
               break
 
-            case 'topic_started':
+            case 'topic_started': {
+              const now = Date.now()
               updateTopicState(event.topicIndex, (prev) => ({
                 ...prev,
                 status: 'running',
                 currentStep: 'Starting...',
+                startedAt: now,
+                lastEventAt: now,
                 logs: [...prev.logs, `Topic started: ${event.title}`],
               }))
               break
+            }
 
-            case 'progress':
+            case 'progress': {
+              const now = Date.now()
               updateTopicState(event.topicIndex, (prev) => ({
                 ...prev,
                 currentStep: `${event.phase}: ${event.step}`,
                 pct: event.pct,
+                lastEventAt: now,
+                stageLog: [
+                  ...prev.stageLog,
+                  {
+                    step: event.step,
+                    detail: event.detail,
+                    elapsed: prev.startedAt ? now - prev.startedAt : 0,
+                  },
+                ],
                 logs: [...prev.logs, `[${event.phase}] ${event.step} — ${event.detail}`],
               }))
               break
+            }
 
             case 'data_source':
               updateTopicState(event.topicIndex, (prev) => ({
@@ -195,6 +222,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
                 status: event.status === 'complete' ? 'complete' : 'failed',
                 pct: 100,
                 currentStep: 'Complete',
+                lastEventAt: Date.now(),
                 logs: [
                   ...prev.logs,
                   `Topic ${event.status}${event.wordCount ? ` (${event.wordCount} words)` : ''}`,
@@ -207,6 +235,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
                 ...prev,
                 status: 'failed',
                 currentStep: 'Error',
+                lastEventAt: Date.now(),
                 logs: [...prev.logs, `Error: ${event.error}`],
               }))
               break

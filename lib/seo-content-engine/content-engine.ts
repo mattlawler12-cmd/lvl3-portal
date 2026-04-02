@@ -11,8 +11,8 @@ import type {
   ProgressCallback,
 } from './types'
 import { DRAFT_REVIEW_ENABLED, MAX_REVISION_ATTEMPTS, MIN_WORD_COUNT } from './config'
-import { toJsonStr } from './utils'
 import {
+  preBriefAnalysisPrompt,
   briefPrompt,
   draftPrompt,
   draftReviewPrompt,
@@ -79,33 +79,24 @@ export class ContentEngine {
 
     if (mode === 'keywords_only') return result
 
-    // ── Phase A: Build data layers ─────────────────────────────
-    this.progress('A1', 'Building entity map', 0.05)
-    const entityMap = await this.safePhase('entity_map', result, () =>
-      this.buildEntityMap(topic, keywordPlan),
-    )
+    // ── Phase A: SERP data + pre-brief analysis in parallel ────
+    this.progress('A', 'Gathering SERP data + building analysis layers in parallel', 0.05)
 
-    this.progress('A2', 'Building intent map', 0.12)
-    const intentMap = await this.safePhase('intent_map', result, () =>
-      this.buildIntentMap(topic, keywordPlan),
-    )
+    const [serpData, preBriefData] = await Promise.all([
+      this.safePhase('serp_data', result, () =>
+        this.gatherSerpData(topic, keywordPlan),
+      ),
+      this.safePhase('pre_brief_analysis', result, () =>
+        this.runPreBriefAnalysis(topic, keywordPlan),
+      ),
+    ])
 
-    this.progress('A3', 'Gathering SERP data', 0.18)
-    const serpData = await this.safePhase('serp_data', result, () =>
-      this.gatherSerpData(topic, keywordPlan),
-    )
+    const entityMap = (preBriefData as Record<string, unknown> | null)?.entity_map as Record<string, unknown> ?? {}
+    const intentMap = (preBriefData as Record<string, unknown> | null)?.intent_map as Record<string, unknown> ?? {}
+    const competitiveDiff = (preBriefData as Record<string, unknown> | null)?.competitive_diff as Record<string, unknown> ?? {}
+    const contentStrategy = (preBriefData as Record<string, unknown> | null)?.content_strategy as Record<string, unknown> ?? {}
 
-    this.progress('A4', 'Building competitive diff', 0.25)
-    const competitiveDiff = await this.safePhase('competitive_diff', result, () =>
-      this.buildCompetitiveDiff(topic, keywordPlan, serpData ?? {}),
-    )
-
-    this.progress('A5', 'Building content strategy', 0.32)
-    const contentStrategy = await this.safePhase('content_strategy', result, () =>
-      this.buildContentStrategy(topic, keywordPlan, serpData ?? {}, competitiveDiff ?? {}),
-    )
-
-    this.progress('A', 'Data layers complete', 0.38)
+    this.progress('A', 'Analysis layers complete', 0.35)
 
     // ── Phase B: Generate brief ────────────────────────────────
     this.progress('B', 'Generating content brief from all data layers', 0.4)
@@ -203,56 +194,20 @@ export class ContentEngine {
     return result
   }
 
-  // ── Phase A: Data-layer builders ─────────────────────────────
+  // ── Phase A: Pre-brief analysis (merged A1+A2+A4+A5) ─────────
 
-  private async buildEntityMap(
+  private async runPreBriefAnalysis(
     topic: TopicInput,
     keywordPlan: KeywordPlan,
+    serpData: Record<string, unknown> = {},
   ): Promise<Record<string, unknown>> {
-    const userMsg = `Topic: ${topic.title}
-Target audience: ${topic.target_audience ?? '(general)'}
-Angle: ${topic.angle ?? '(none specified)'}
-Brand context: ${topic.brand_context ?? '(none)'}
-
-Keyword plan:
-${toJsonStr(keywordPlan)}
-
-Return JSON with:
-  "core_entities": [{"name": "", "relevance": "", "mention_frequency": ""}]  (5-8 items)
-  "supporting_entities": [{"name": "", "relevance": "", "mention_frequency": ""}]  (3-5 items)`
-
+    const userMsg = preBriefAnalysisPrompt({ topic, keywordPlan, serpData })
     const raw = await this.llm.callJson(
-      'entity_map',
-      'You are an SEO content strategist. Identify the core entities for this content piece.',
+      'pre_brief_analysis',
+      'You are a senior SEO strategist. Return all four analysis objects as a single JSON response.',
       userMsg,
     )
-    if (!raw) throw new Error('LLM returned no parseable JSON for entity map')
-    return raw as Record<string, unknown>
-  }
-
-  private async buildIntentMap(
-    topic: TopicInput,
-    keywordPlan: KeywordPlan,
-  ): Promise<Record<string, unknown>> {
-    const userMsg = `Topic: ${topic.title}
-Target audience: ${topic.target_audience ?? '(general)'}
-Angle: ${topic.angle ?? '(none specified)'}
-
-Primary keywords: ${keywordPlan.primary.join(', ')}
-Question keywords: ${keywordPlan.questions.join(', ')}
-
-Return JSON with:
-  "dominant_intent": "",
-  "sub_intents": [],
-  "user_goal": "",
-  "success_criteria": ""`
-
-    const raw = await this.llm.callJson(
-      'intent_map',
-      'You are an SEO content strategist. Determine the search intent profile for this content piece.',
-      userMsg,
-    )
-    if (!raw) throw new Error('LLM returned no parseable JSON for intent map')
+    if (!raw || Array.isArray(raw)) throw new Error('LLM returned no parseable JSON for pre-brief analysis')
     return raw as Record<string, unknown>
   }
 
@@ -264,22 +219,26 @@ Return JSON with:
     const page1Rankings: Record<string, unknown> = {}
     let anyData = false
 
-    for (const kw of keywordPlan.primary.slice(0, 3)) {
-      const sf = await this.dataSources.getSerpFeatures(kw)
-      if (sf) {
-        serpFeatures[kw] = sf
+    const topKeywords = keywordPlan.primary.slice(0, 3)
+
+    // Run all SERP queries + content brief in parallel
+    const [contentBriefSeed, ...serpResults] = await Promise.all([
+      this.dataSources.getContentBrief(topic.title),
+      ...topKeywords.flatMap((kw) => [
+        this.dataSources.getSerpFeatures(kw).then((sf) => ({ kw, type: 'serp' as const, data: sf })),
+        this.dataSources.getPage1Rankings(kw).then((p1) => ({ kw, type: 'p1' as const, data: p1 })),
+      ]),
+    ])
+
+    for (const r of serpResults) {
+      if (r.data) {
         anyData = true
-      }
-      const p1 = await this.dataSources.getPage1Rankings(kw)
-      if (p1) {
-        page1Rankings[kw] = p1
-        anyData = true
+        if (r.type === 'serp') serpFeatures[r.kw] = r.data
+        else page1Rankings[r.kw] = r.data
       }
     }
 
-    const contentBriefSeed = await this.dataSources.getContentBrief(topic.title)
     if (contentBriefSeed) anyData = true
-
     if (!anyData) return {}
 
     return {
@@ -287,91 +246,6 @@ Return JSON with:
       page1_rankings: page1Rankings,
       content_brief_seed: contentBriefSeed ?? {},
     }
-  }
-
-  private async buildCompetitiveDiff(
-    topic: TopicInput,
-    keywordPlan: KeywordPlan,
-    serpData: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    // Trim SERP data
-    const trimmed: Record<string, unknown> = {}
-    if (serpData.serp_features) {
-      const sf = serpData.serp_features as Record<string, unknown>
-      const entries = Object.entries(sf).slice(0, 3)
-      trimmed.serp_features = Object.fromEntries(entries)
-    }
-    if (serpData.page1_rankings) {
-      const p1 = serpData.page1_rankings as Record<string, unknown>
-      const trimmedP1: Record<string, unknown> = {}
-      for (const [kw, rankings] of Object.entries(p1).slice(0, 3)) {
-        trimmedP1[kw] = Array.isArray(rankings) ? rankings.slice(0, 5) : rankings
-      }
-      trimmed.page1_rankings = trimmedP1
-    }
-    if (serpData.content_brief_seed) {
-      const cbs = String(serpData.content_brief_seed).slice(0, 800)
-      trimmed.content_brief_seed = cbs
-    }
-
-    const serpSummary = Object.keys(trimmed).length ? toJsonStr(trimmed) : '(SERP data unavailable)'
-
-    const userMsg = `Topic: ${topic.title}
-Angle: ${topic.angle ?? '(none specified)'}
-
-Primary keywords: ${keywordPlan.primary.slice(0, 8).join(', ')}
-
-SERP / page-1 data:
-${serpSummary}
-
-Analyze what the current top-ranking pages cover and identify what they miss.
-If SERP data is unavailable, infer gaps from the topic and keywords.
-
-Return compact JSON (no extra whitespace) with exactly these keys:
-{"gaps":["..."],"opportunities":["..."],"differentiation_angle":"..."}`
-
-    const raw = await this.llm.callJson(
-      'competitive_diff',
-      'You are an SEO competitive analyst. Given SERP data and a topic, identify content gaps and differentiation angles. Return ONLY valid JSON, no commentary.',
-      userMsg,
-    )
-    if (!raw) throw new Error('LLM returned no parseable JSON for competitive diff')
-    return raw as Record<string, unknown>
-  }
-
-  private async buildContentStrategy(
-    topic: TopicInput,
-    keywordPlan: KeywordPlan,
-    serpData: Record<string, unknown>,
-    competitiveDiff: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
-    const userMsg = `Topic: ${topic.title}
-Target audience: ${topic.target_audience ?? '(general)'}
-Angle: ${topic.angle ?? '(none specified)'}
-Brand context: ${topic.brand_context ?? '(none)'}
-
-Primary keywords: ${keywordPlan.primary.join(', ')}
-
-SERP data:
-${toJsonStr(serpData)}
-
-Competitive diff:
-${toJsonStr(competitiveDiff)}
-
-Return JSON with:
-  "angle": "",
-  "emphasis": [],
-  "structure_logic": "",
-  "what_to_avoid": [],
-  "geo_notes": ""`
-
-    const raw = await this.llm.callJson(
-      'content_strategy',
-      'You are a senior SEO content strategist. Synthesize all available data into a clear content strategy for the writer.',
-      userMsg,
-    )
-    if (!raw) throw new Error('LLM returned no parseable JSON for content strategy')
-    return raw as Record<string, unknown>
   }
 
   // ── Phase B: Brief ───────────────────────────────────────────

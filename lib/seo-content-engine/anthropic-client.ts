@@ -43,13 +43,21 @@ export class SeoAnthropicClient {
 
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
-        const response = await this.client.messages.create({
-          model,
-          max_tokens: maxTokens,
-          temperature,
-          system,
-          messages: [{ role: 'user', content: user }],
-        })
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 120_000)
+
+        const response = await this.client.messages.create(
+          {
+            model,
+            max_tokens: maxTokens,
+            temperature,
+            system,
+            messages: [{ role: 'user', content: user }],
+          },
+          { signal: controller.signal },
+        )
+
+        clearTimeout(timer)
 
         // Track token usage
         this._totalTokens.input += response.usage?.input_tokens ?? 0
@@ -94,6 +102,10 @@ export class SeoAnthropicClient {
   ): Promise<Record<string, unknown> | unknown[] | null> {
     const jsonSystem = system + '\n\nReturn ONLY valid JSON. No commentary outside the JSON.'
     const text = await this.call(stage, jsonSystem, user)
-    return parseJsonResponse(text)
+    const parsed = parseJsonResponse(text)
+    if (!parsed && text.length > 0) {
+      console.error(`[${stage}] JSON parse failed. Response length: ${text.length}. Last 200 chars: ${text.slice(-200)}`)
+    }
+    return parsed
   }
 }
