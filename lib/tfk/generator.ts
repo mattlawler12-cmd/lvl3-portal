@@ -82,6 +82,8 @@ function parseJsonResponse(text: string): Record<string, string> {
   return JSON.parse(cleaned)
 }
 
+const GENERATE_TIMEOUT_MS = 45_000
+
 export async function generateContent(location: TfkLocation): Promise<Record<string, string>> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) return { ...PLACEHOLDER_CONTENT }
@@ -89,11 +91,16 @@ export async function generateContent(location: TfkLocation): Promise<Record<str
   const client = new Anthropic({ apiKey })
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: buildPrompt(location) }],
-    })
+    const response = await Promise.race([
+      client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: buildPrompt(location) }],
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Claude generation timed out (45s)')), GENERATE_TIMEOUT_MS)
+      ),
+    ])
 
     const block = response.content?.[0]
     const text = block?.type === 'text' ? block.text : null
