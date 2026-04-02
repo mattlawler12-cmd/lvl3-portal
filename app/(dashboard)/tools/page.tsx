@@ -1,9 +1,17 @@
 import { requireAdmin } from '@/lib/auth'
 import { resolveSelectedClientId } from '@/lib/client-resolution'
 import Link from 'next/link'
-import { Wrench, TrendingUp, Eye, FileSearch, ImageIcon, GitCompare, Gauge, FileCode, BookOpen, Link2, FileText } from 'lucide-react'
+import { Wrench, TrendingUp, Eye, FileSearch, ImageIcon, GitCompare, Gauge, FileCode, BookOpen, Link2, FileText, FileSpreadsheet } from 'lucide-react'
 
 const TOOLS = [
+  {
+    href: '/tools/tfk-generator',
+    icon: FileSpreadsheet,
+    label: 'TFK Page Generator',
+    description:
+      'Generate ACF-ready location page copy for all True Food Kitchen stores via Google Places + Claude.',
+    requiresClient: false,
+  },
   {
     href: '/tools/keyword-quick-wins',
     icon: TrendingUp,
