@@ -67,6 +67,15 @@ const TOOLS: Array<{
   },
   // ── Generators ─────────────────────────────────────────────────────────
   {
+    href: '/tools/seo-content-engine',
+    icon: FileText,
+    label: 'SEO Content Engine',
+    description:
+      'Full pipeline: keyword research → content brief → draft article → DOCX export. Run multiple topics in parallel.',
+    requiresClient: true,
+    category: 'generators',
+  },
+  {
     href: '/tools/tfk-generator',
     icon: FileSpreadsheet,
     label: 'TFK Page Generator',
