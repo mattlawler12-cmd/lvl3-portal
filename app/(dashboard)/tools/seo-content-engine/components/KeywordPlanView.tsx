@@ -34,17 +34,23 @@ export default function KeywordPlanView({ plan }: { plan: KeywordPlan }) {
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   // Build flat rows from categorized keywords (guard against null arrays from DB JSON)
+  // DB may store entries as objects {keyword, cpc, msv, ...} instead of plain strings
   const metrics = plan.metrics ?? {}
   const rows: KeywordRow[] = []
-  const addRows = (keywords: string[] | null | undefined, category: Category) => {
-    for (const kw of keywords ?? []) {
+  const toStr = (entry: unknown): string =>
+    typeof entry === 'string' ? entry : String((entry as Record<string, unknown>)?.keyword ?? entry)
+  const addRows = (keywords: unknown[] | null | undefined, category: Category) => {
+    for (const entry of keywords ?? []) {
+      const kw = toStr(entry)
       const m = metrics[kw]
+      // If entry is an object with inline metrics, use those as fallback
+      const obj = typeof entry === 'object' && entry !== null ? (entry as Record<string, unknown>) : null
       rows.push({
         keyword: kw,
         category,
-        msv: m?.msv ?? 0,
-        cpc: m?.cpc ?? 0,
-        competition: m?.competition ?? 0,
+        msv: m?.msv ?? (obj?.msv as number | undefined) ?? 0,
+        cpc: m?.cpc ?? (obj?.cpc as number | undefined) ?? 0,
+        competition: m?.competition ?? (obj?.competition as number | undefined) ?? 0,
       })
     }
   }
@@ -145,12 +151,12 @@ export default function KeywordPlanView({ plan }: { plan: KeywordPlan }) {
                   <p className="text-xs text-surface-500 mb-1">Target: {cluster.target_section}</p>
                 )}
                 <div className="flex flex-wrap gap-1.5">
-                  {cluster.keywords.map((kw, j) => (
+                  {(cluster.keywords ?? []).map((kw, j) => (
                     <span
                       key={j}
                       className="px-2 py-0.5 rounded-full text-xs bg-surface-800 text-surface-400 border border-surface-700"
                     >
-                      {kw}
+                      {toStr(kw)}
                     </span>
                   ))}
                 </div>

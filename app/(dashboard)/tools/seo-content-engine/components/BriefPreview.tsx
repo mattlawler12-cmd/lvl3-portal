@@ -38,6 +38,10 @@ function Section({
   )
 }
 
+// DB JSON may store entries as objects instead of strings — always coerce to string
+const toStr = (v: unknown): string =>
+  typeof v === 'string' ? v : typeof v === 'number' ? String(v) : String((v as Record<string, unknown>)?.keyword ?? (v as Record<string, unknown>)?.name ?? v)
+
 export default function BriefPreview({ brief }: BriefPreviewProps) {
   const b = brief as ContentBrief
 
@@ -52,7 +56,7 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
               <p className="text-xs text-surface-500 uppercase tracking-wider mb-1">Sub-intents</p>
               <ul className="list-disc list-inside text-sm text-surface-400 space-y-0.5">
                 {b.sub_intents.map((si, i) => (
-                  <li key={i}>{si}</li>
+                  <li key={i}>{toStr(si)}</li>
                 ))}
               </ul>
             </div>
@@ -74,7 +78,7 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
                 {(section.key_points ?? []).length > 0 && (
                   <ul className="list-disc list-inside text-surface-400 ml-5 space-y-0.5 text-xs">
                     {(section.key_points ?? []).map((pt, j) => (
-                      <li key={j}>{pt}</li>
+                      <li key={j}>{toStr(pt)}</li>
                     ))}
                   </ul>
                 )}
@@ -82,7 +86,7 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
                   <div className="flex flex-wrap gap-1 ml-5 mt-1">
                     {(section.keywords_to_include ?? []).map((kw, j) => (
                       <span key={j} className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-400">
-                        {kw}
+                        {toStr(kw)}
                       </span>
                     ))}
                   </div>
@@ -98,7 +102,7 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
         <Section title="Competitive Gaps">
           <ul className="list-disc list-inside text-sm text-surface-300 space-y-1">
             {b.competitive_gaps.map((gap, i) => (
-              <li key={i}>{gap}</li>
+              <li key={i}>{toStr(gap)}</li>
             ))}
           </ul>
         </Section>
@@ -109,7 +113,7 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
         <Section title="GEO Targets">
           <ul className="list-disc list-inside text-sm text-surface-300 space-y-1">
             {b.geo_targets.map((t, i) => (
-              <li key={i}>{t}</li>
+              <li key={i}>{toStr(t)}</li>
             ))}
           </ul>
         </Section>
@@ -120,7 +124,7 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
         <Section title="Citation Hooks">
           <ul className="list-disc list-inside text-sm text-surface-300 space-y-1">
             {b.citation_hooks.map((h, i) => (
-              <li key={i}>{h}</li>
+              <li key={i}>{toStr(h)}</li>
             ))}
           </ul>
         </Section>
@@ -161,7 +165,7 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
                 <p className="text-xs text-surface-500 uppercase tracking-wider mb-0.5">Emphasize</p>
                 <ul className="list-disc list-inside text-surface-300 space-y-0.5">
                   {b.editorial_guidance.what_to_emphasize.map((e, i) => (
-                    <li key={i}>{e}</li>
+                    <li key={i}>{toStr(e)}</li>
                   ))}
                 </ul>
               </div>
@@ -171,7 +175,7 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
                 <p className="text-xs text-surface-500 uppercase tracking-wider mb-0.5">Avoid</p>
                 <ul className="list-disc list-inside text-surface-300 space-y-0.5">
                   {b.editorial_guidance.what_to_avoid.map((a, i) => (
-                    <li key={i}>{a}</li>
+                    <li key={i}>{toStr(a)}</li>
                   ))}
                 </ul>
               </div>
