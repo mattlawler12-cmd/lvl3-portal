@@ -246,3 +246,135 @@ export async function regenerateDocx(
     return { error: err instanceof Error ? err.message : 'Failed to regenerate DOCX' }
   }
 }
+
+// ── Markdown → clean HTML (no Tailwind) ─────────────────────────────────────
+
+function markdownToHtml(md: string): string {
+  const lines = md.split('\n')
+  const out: string[] = []
+  let inList = false
+
+  const inlineFormat = (text: string): string =>
+    text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+
+  for (const line of lines) {
+    const s = line.trim()
+    if (!s) {
+      if (inList) { out.push('</ul>'); inList = false }
+      continue
+    }
+
+    const isBullet = s.startsWith('- ') || s.startsWith('* ')
+    const numberedMatch = s.match(/^\d+\.\s(.*)/)
+
+    if (isBullet || numberedMatch) {
+      if (!inList) { out.push('<ul>'); inList = true }
+      const text = isBullet ? s.slice(2) : numberedMatch![1]
+      out.push(`<li>${inlineFormat(text)}</li>`)
+      continue
+    }
+
+    if (inList) { out.push('</ul>'); inList = false }
+
+    if (s.startsWith('#### ')) out.push(`<h4>${inlineFormat(s.slice(5))}</h4>`)
+    else if (s.startsWith('### ')) out.push(`<h3>${inlineFormat(s.slice(4))}</h3>`)
+    else if (s.startsWith('## ')) out.push(`<h2>${inlineFormat(s.slice(3))}</h2>`)
+    else if (s.startsWith('# ')) out.push(`<h2>${inlineFormat(s.slice(2))}</h2>`)
+    else out.push(`<p>${inlineFormat(s)}</p>`)
+  }
+
+  if (inList) out.push('</ul>')
+  return out.join('\n')
+}
+
+function csvEscape(val: string): string {
+  if (val.includes('"') || val.includes(',') || val.includes('\n')) {
+    return `"${val.replace(/"/g, '""')}"`
+  }
+  return val
+}
+
+// ── exportMatrixifyCsv ─────────────────────────────────────────────────────
+
+export async function exportMatrixifyCsv(
+  runId: string
+): Promise<{ data?: string; error?: string }> {
+  try {
+    await requireAdmin()
+    const service = await createServiceClient()
+
+    const { data: topics, error: topicsErr } = await service
+      .from('seo_content_engine_topics')
+      .select('*')
+      .eq('run_id', runId)
+      .eq('status', 'complete')
+      .order('created_at', { ascending: true })
+
+    if (topicsErr) throw topicsErr
+    if (!topics?.length) throw new Error('No completed topics found')
+
+    const headers = [
+      'ID', 'Handle', 'Command', 'Title', 'Author', 'Body HTML', 'Summary HTML',
+      'Tags', 'Tags Command', 'Published', 'Published At', 'Blog: ID',
+      'Blog: Handle', 'Blog: Title', 'Blog: Commentable', 'Image Src',
+      'Image Alt Text', 'Metafield: title_tag', 'Metafield: description_tag',
+    ]
+
+    const rows: string[][] = []
+
+    for (const topic of topics) {
+      const draft = (topic.revised_draft ?? topic.draft) as string | null
+      const brief = (topic.brief ?? {}) as Record<string, unknown>
+      const bodyHtml = draft ? markdownToHtml(draft) : ''
+
+      // Summary = first paragraph
+      const firstPara = draft?.split('\n').find((l: string) => {
+        const t = l.trim()
+        return t && !t.startsWith('#') && !t.startsWith('-') && !t.startsWith('*') && !t.startsWith('|')
+      }) ?? ''
+      const summaryHtml = firstPara ? `<p>${firstPara.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\*(.+?)\*/g, '<em>$1</em>')}</p>` : ''
+
+      // Tags from pillar + funnel_stage
+      const tags: string[] = []
+      if (topic.pillar) tags.push(String(topic.pillar))
+      if (topic.funnel_stage) tags.push(String(topic.funnel_stage))
+
+      const metaTitle = String(brief.meta_title ?? '')
+      const metaDesc = String(brief.meta_description ?? '').slice(0, 160)
+
+      rows.push([
+        '',                                    // ID
+        slugify(topic.title),                  // Handle
+        'NEW',                                 // Command
+        topic.title,                           // Title
+        'IgniteIQ',                            // Author
+        bodyHtml,                              // Body HTML
+        summaryHtml,                           // Summary HTML
+        tags.join(', '),                       // Tags
+        'REPLACE',                             // Tags Command
+        'TRUE',                                // Published
+        '',                                    // Published At
+        '',                                    // Blog: ID
+        'news',                                // Blog: Handle
+        'News',                                // Blog: Title
+        'moderate',                            // Blog: Commentable
+        '',                                    // Image Src
+        '',                                    // Image Alt Text
+        metaTitle,                             // Metafield: title_tag
+        metaDesc,                              // Metafield: description_tag
+      ])
+    }
+
+    const csv = [
+      headers.map(csvEscape).join(','),
+      ...rows.map((row) => row.map(csvEscape).join(',')),
+    ].join('\n')
+
+    return { data: csv }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to export CSV' }
+  }
+}

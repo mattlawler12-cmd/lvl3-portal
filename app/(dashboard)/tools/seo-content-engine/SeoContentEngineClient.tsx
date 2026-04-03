@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
-import { Download, RefreshCw } from 'lucide-react'
+import { Download, RefreshCw, FileArchive, FileSpreadsheet } from 'lucide-react'
+import JSZip from 'jszip'
 import type {
   TopicInput,
   RunMode,
@@ -11,7 +12,7 @@ import type {
   ContentBrief,
   DraftReview,
 } from '@/lib/seo-content-engine/types'
-import { loadRun, getDocxUrl, regenerateDocx } from '@/app/actions/seo-content-engine'
+import { loadRun, getDocxUrl, regenerateDocx, exportMatrixifyCsv } from '@/app/actions/seo-content-engine'
 import TopicForm from './components/TopicForm'
 import XlsxUploader from './components/XlsxUploader'
 import PipelineProgress from './components/PipelineProgress'
@@ -94,7 +95,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
   const [mode, setMode] = useState<RunMode>('full')
   const [brandContext, setBrandContext] = useState(clientBrandContext ?? '')
   const [isRunning, setIsRunning] = useState(false)
-  const [, setRunId] = useState<string | null>(null)
+  const [runId, setRunId] = useState<string | null>(null)
   const [topicStates, setTopicStates] = useState<Map<number, TopicState>>(new Map())
   const [preflightResults, setPreflightResults] = useState<{ source: string; ok: boolean; detail: string }[]>([])
   const [activeTab, setActiveTab] = useState<Tab>('New Run')
@@ -417,6 +418,8 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
   }, [])
 
   const [regenerating, setRegenerating] = useState<Set<number>>(new Set())
+  const [zipping, setZipping] = useState(false)
+  const [exportingCsv, setExportingCsv] = useState(false)
 
   const handleRegenerateDocx = useCallback(async (topicIndex: number) => {
     const state = topicStates.get(topicIndex)
@@ -687,29 +690,76 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
                       <button
                         onClick={async () => {
                           setDownloadError(null)
-                          let ok = 0
-                          let fail = 0
-                          for (const idx of withDocx) {
-                            const path = topicStates.get(idx)?.result?.docxStoragePath
-                            const title = topics[idx]?.title ?? `Topic ${idx + 1}`
-                            if (path) {
-                              const success = await downloadDocx(path, title)
-                              if (success) {
-                                ok++
-                                await new Promise((r) => setTimeout(r, 300))
-                              } else {
-                                fail++
-                              }
+                          setZipping(true)
+                          try {
+                            const zip = new JSZip()
+                            let fail = 0
+                            for (const idx of withDocx) {
+                              const path = topicStates.get(idx)?.result?.docxStoragePath
+                              const title = topics[idx]?.title ?? `Topic ${idx + 1}`
+                              if (!path) { fail++; continue }
+                              const urlResult = await getDocxUrl(path)
+                              if (urlResult.error || !urlResult.data) { fail++; continue }
+                              try {
+                                const resp = await fetch(urlResult.data)
+                                if (!resp.ok) { fail++; continue }
+                                const blob = await resp.blob()
+                                const filename = `${title.replace(/[^a-zA-Z0-9-_ ]/g, '')}.docx`
+                                zip.file(filename, blob)
+                              } catch { fail++ }
                             }
-                          }
-                          if (fail > 0) {
-                            setDownloadError(`Downloaded ${ok} of ${ok + fail} files. ${fail} file${fail > 1 ? 's' : ''} not found in storage.`)
+                            const zipBlob = await zip.generateAsync({ type: 'blob' })
+                            const url = URL.createObjectURL(zipBlob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = `seo-content-${runId ?? 'export'}.zip`
+                            a.click()
+                            URL.revokeObjectURL(url)
+                            if (fail > 0) {
+                              setDownloadError(`Zipped ${withDocx.length - fail} of ${withDocx.length} files. ${fail} failed.`)
+                            }
+                          } catch (err) {
+                            setDownloadError(`ZIP failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+                          } finally {
+                            setZipping(false)
                           }
                         }}
-                        className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-600"
+                        disabled={zipping}
+                        className="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-600 disabled:opacity-50"
                       >
-                        <Download className="h-4 w-4" />
-                        Download All DOCX ({withDocx.length})
+                        <FileArchive className={`h-4 w-4 ${zipping ? 'animate-pulse' : ''}`} />
+                        {zipping ? 'Preparing ZIP...' : `Download ZIP (${withDocx.length})`}
+                      </button>
+                    )}
+                    {runId && completedTopics.length > 0 && (
+                      <button
+                        onClick={async () => {
+                          setDownloadError(null)
+                          setExportingCsv(true)
+                          try {
+                            const result = await exportMatrixifyCsv(runId)
+                            if (result.error || !result.data) {
+                              setDownloadError(`CSV export failed: ${result.error ?? 'Unknown error'}`)
+                              return
+                            }
+                            const blob = new Blob([result.data], { type: 'text/csv;charset=utf-8;' })
+                            const url = URL.createObjectURL(blob)
+                            const a = document.createElement('a')
+                            a.href = url
+                            a.download = 'matrixify-blog-posts.csv'
+                            a.click()
+                            URL.revokeObjectURL(url)
+                          } catch (err) {
+                            setDownloadError(`CSV export failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+                          } finally {
+                            setExportingCsv(false)
+                          }
+                        }}
+                        disabled={exportingCsv}
+                        className="inline-flex items-center gap-2 rounded-lg border border-surface-600 bg-surface-800 px-4 py-2 text-sm font-semibold text-surface-200 transition-colors hover:bg-surface-700 disabled:opacity-50"
+                      >
+                        <FileSpreadsheet className={`h-4 w-4 ${exportingCsv ? 'animate-pulse' : ''}`} />
+                        {exportingCsv ? 'Exporting...' : 'Export Matrixify CSV'}
                       </button>
                     )}
                   </div>
