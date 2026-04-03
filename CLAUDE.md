@@ -1,13 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 Internal client portal for LVL3 digital marketing agency. Admins manage clients, view analytics, deliver work, and run SEO tools. Clients log in to view deliverables, a project tracker, and their dashboard.
 
-Deployed at: **https://lvl3-portal.vercel.app**
-Repo: **https://github.com/mattlawler12-cmd/lvl3-portal**
-
----
+Deployed at: **https://lvl3-portal.vercel.app** | Repo: **https://github.com/mattlawler12-cmd/lvl3-portal**
 
 ## Stack
 
@@ -25,364 +20,59 @@ Repo: **https://github.com/mattlawler12-cmd/lvl3-portal**
 
 No ORM. All DB queries are raw Supabase client calls.
 
----
-
-## Development Commands
+## Commands
 
 ```bash
 npm run dev          # Start dev server (localhost:3000)
-npm run build        # Production build (runs next build)
-npm run lint         # ESLint
+npm run build        # Production build
 npx tsc --noEmit     # Type-check — run after every set of changes
 vercel --prod        # Deploy to production (always follow with git push)
 ```
 
-No test framework is configured. Validate changes with `npx tsc --noEmit` and `npm run build`.
-
-Database migrations live in `supabase/migrations/`. Push with `supabase db push --include-all` to handle out-of-order files.
-
----
-
-## Environment Variables
-
-These must be set in `.env.local` (dev) and Vercel dashboard (prod):
-
-```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-
-GOOGLE_CLIENT_ID=          # OAuth2 for GA4 + GSC admin connection
-GOOGLE_CLIENT_SECRET=
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=
-
-GOOGLE_SERVICE_ACCOUNT_KEY=  # JSON string — used for Google Sheets ONLY
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=            # DALL-E image generation (blog image tool only)
-SEMRUSH_API_KEY=           # Semrush gap analysis tool
-```
-
----
+No test framework. Validate with `npx tsc --noEmit` and `npm run build`. Migrations: `supabase db push --include-all`.
 
 ## User Roles
 
-Three roles, enforced server-side in every page via `lib/auth.ts`:
-
 | Role | Access |
 |------|--------|
-| `admin` | Everything. All pages, all clients, settings, tools |
-| `member` | Same as admin except `/admin` page and client settings |
-| `client` | Their assigned client only — deliverables, projects, dashboard, insights |
+| `admin` | Everything |
+| `member` | Same except `/admin` page and client settings |
+| `client` | Their assigned client only |
 
 ```typescript
-// lib/auth.ts
-await requireAuth()   // any logged-in user
-await requireAdmin()  // admin only, redirects to / if not
+await requireAuth()   // any logged-in user (lib/auth.ts)
+await requireAdmin()  // admin only
 ```
-
----
-
-## Auth Architecture
-
-- **Supabase Auth** handles login sessions (email/password).
-- Middleware (`middleware.ts`) refreshes sessions and redirects unauthenticated users to `/login`. It does NOT enforce roles — pages handle that.
-- User profile lives in `public.users` table (id, email, role, client_id).
-- `client_id` on the users row only matters for `client` role users — it pins them to one client.
-
----
-
-## Google API Auth — Two Separate Systems
-
-### 1. Admin OAuth2 — used for GA4 + GSC + GSC Tools
-The admin connects their Google account once via `/admin` → `GoogleConnectionPanel`. The token is stored in the `admin_google_token` table (single row, id=1).
-
-```typescript
-// lib/google-auth.ts — NO 'use server'
-const auth = await getAdminOAuthClient()
-// Returns an OAuth2 client with auto-refresh. Reads cookies via createServiceClient.
-// CANNOT be called inside unstable_cache — it reads cookies.
-```
-
-Used in:
-- `lib/google-analytics.ts` — `fetchGA4Metrics`, `fetchGA4Report`
-- `lib/google-search-console.ts` — `listGSCSites`, `fetchGSCMetrics`, `fetchGSCReport`
-- `lib/tools-gsc.ts` — `fetchGSCRows` (raw query+page rows, up to 25k)
-- `app/actions/analytics.ts` — `detectGSCSiteUrl`, `listGA4Properties`, `listGSCSiteOptions`
-
-### 2. Service Account — used for Google Sheets ONLY
-Key stored as JSON string in `GOOGLE_SERVICE_ACCOUNT_KEY` env var.
-
-```typescript
-// lib/google-sheets.ts — NO 'use server'
-// getCredentials() reads GOOGLE_SERVICE_ACCOUNT_KEY
-// getAuthAndSheets() creates GoogleAuth with spreadsheets.readonly scope
-```
-
-Used in:
-- `lib/google-sheets.ts` — `fetchSheetRows`, `fetchSheetHeaders`
-- `app/actions/projects.ts` — `getSheetData` calls `fetchSheetRows`
-
-**IMPORTANT:** Do NOT add `unstable_cache` around anything that calls `getAdminOAuthClient()` — it reads cookies and will throw inside a cache scope.
-
----
 
 ## Supabase Clients
 
-Two clients, always use the right one:
+```typescript
+import { createClient } from '@/lib/supabase/server'       // user session (respects RLS)
+import { createServiceClient } from '@/lib/supabase/server' // bypasses RLS (admin ops)
+```
+
+## Client Selection
+
+Admins pick client via TopBar dropdown → `selected_client` cookie. Client-role users pinned to their `client_id`.
 
 ```typescript
-// Server components and server actions — user session (respects RLS)
-import { createClient } from '@/lib/supabase/server'
-const supabase = await createClient()
-
-// Service operations — bypasses RLS (use for cross-client queries, admin ops)
-import { createServiceClient } from '@/lib/supabase/server'
-const service = await createServiceClient()
+const { user } = await requireAuth()
+const selectedClientId = await resolveSelectedClientId(user)  // lib/client-resolution.ts
+const client = selectedClientId ? await getClientById(selectedClientId, 'id, name') : null
 ```
 
----
+## Key Conventions
 
-## Client Selection Pattern
-
-Admins/members pick a client via a dropdown in the TopBar. The selection is stored in a cookie (`selected_client`). Client-role users are always pinned to their `client_id`.
-
-Every page that needs the active client does:
-
-```typescript
-const { user } = await requireAuth()          // or requireAdmin()
-const selectedClientId = await resolveSelectedClientId(user)
-const client = selectedClientId
-  ? await getClientById<{ id: string; name: string }>(selectedClientId, 'id, name')
-  : null
-```
-
-Helper functions: `lib/client-resolution.ts`
-- `resolveSelectedClientId(user)` — returns client_id for client role, cookie value for admin/member
-- `getClientById<T>(id, columns)` — typed fetch of a single client
-- `getClientListForUser(userId, role, clientId)` — used by layout to populate dropdown
-
----
-
-## Database Schema (key tables)
-
-```sql
-clients
-  id uuid PK
-  name text
-  slug text UNIQUE
-  logo_url text
-  hero_image_url text
-  google_sheet_id text        -- Google Sheets ID or URL
-  sheet_header_row int        -- which row has column headers (default 1)
-  sheet_column_map jsonb      -- { month, category, task, status, fee, note } → column header names
-  looker_embed_url text
-  ga4_property_id text        -- numeric property ID (not "properties/XXX")
-  gsc_site_url text           -- e.g. "https://example.com/" or "sc-domain:example.com"
-  analytics_summary text      -- AI-generated narrative (updated by generateAnalyticsInsights)
-  analytics_summary_updated_at timestamptz
-  snapshot_insights jsonb     -- { takeaways, anomalies, opportunities }
-  ai_summary text             -- project AI summary (updated by generateClientSummary)
-
-users
-  id uuid PK (= auth.users.id)
-  email text
-  role text  ('admin' | 'member' | 'client')
-  client_id uuid FK → clients  (null for admin/member)
-
-deliverables
-  id, client_id, title, type, status, file_url, created_at, updated_at, is_read
-
-comments
-  id, deliverable_id, user_id, body, resolved, created_at
-
-admin_google_token          -- single row (id=1)
-  id int PK CHECK (id = 1)
-  access_token text
-  refresh_token text
-  expiry_date bigint
-  email text
-
-user_client_access          -- member ↔ client many-to-many
-  user_id, client_id
-
-ask_lvl3_conversations      -- chat threads per client
-  id uuid PK, client_id FK, title, created_at, updated_at
-
-ask_lvl3_messages           -- messages within a thread
-  id uuid PK, conversation_id FK, role, content, created_at
-
-semrush_reports             -- persisted gap analysis results
-  id uuid PK, client_id FK, client_domain, competitors, database,
-  page_section, filters, keywords jsonb, client_keyword_count, keyword_count, created_at
-```
-
----
-
-## App Routes
-
-```
-/                        → Home (client summary, engagement strip, nav cards)
-/dashboard               → GA4 + GSC tabs + Looker embed (period/compare via URL params)
-/projects                → Google Sheet task tracker
-/deliverables            → Deliverable cards with comments
-/insights                → Blog/insights posts
-/services                → Services page (redirect stub)
-/tools                   → SEO tools hub (admin only)
-/tools/keyword-quick-wins → GSC positions 4-20 opportunity table
-/tools/ai-visibility      → Branded vs non-branded search share
-/tools/content-gaps       → High-impression low-CTR query finder
-/tools/semrush-gap        → Semrush competitor keyword gap analysis
-/tools/blog-image-generator → Batch AI blog image generation (OpenAI DALL-E)
-/ask-lvl3                 → Claude-powered chat with client analytics context
-/clients                  → Client list (admin only)
-/clients/[id]             → Client detail + settings form merged (admin only)
-/clients/[id]/settings    → Redirects to /clients/[id]
-/admin                    → Admin health overview + Google OAuth connect panel
-/login                    → Auth page
-/auth/callback            → Supabase OAuth callback
-/auth/google-callback     → Google OAuth callback (stores token in admin_google_token)
-```
-
-### Route Handlers (`app/api/`)
-
-| Route | Purpose |
-|-------|---------|
-| `app/api/ask-lvl3/route.ts` | Streaming NDJSON endpoint for Ask LVL3 chat. Agentic loop with Claude tool_use (GSC/GA4 queries). Manual auth check (no `requireAdmin()` — it uses `redirect()` which throws inside ReadableStream). |
-| `app/api/generate-blog-images/route.ts` | Batch blog image generation via OpenAI DALL-E + sharp for resizing. Uploads to Supabase Storage. `maxDuration = 300`. |
-
-Route Handlers do NOT use `'use server'`. They use manual auth via `supabase.auth.getUser()` + profile role check.
-
----
-
-## Server Actions (`app/actions/`)
-
-All files must have `'use server'` at the top. No `'use server'` in `lib/` files.
-
-| File | Key exports |
-|------|-------------|
-| `analytics.ts` | `fetchAnalyticsData`, `fetchDashboardReport`, `detectGSCSiteUrl`, `listGA4Properties`, `listGSCSiteOptions`, `generateAnalyticsInsights`, `fetchLogoUrl`, `getSheetHeadersAction` |
-| `tools.ts` | `fetchQuickWins`, `checkAIVisibility`, `fetchContentGaps` |
-| `ask-lvl3.ts` | `sendChatMessage` (injects GSC + GA4 context dynamically) |
-| `clients.ts` | `getClientsWithStats`, `updateClient`, `getClientUsers`, `inviteUser`, `removeUser` |
-| `projects.ts` | `getSheetData`, `syncSheet` |
-| `admin-google.ts` | `getAdminGoogleStatus`, `connectAdminGoogle`, `disconnectAdminGoogle` |
-| `client-selection.ts` | `setSelectedClient` (sets the `selected_client` cookie) |
-| `summaries.ts` | `generateClientSummary` (AI project summary) |
-| `deliverables.ts` | CRUD + comment actions |
-| `ask-lvl3-conversations.ts` | `listConversations`, `loadConversation`, `deleteConversation` — thread persistence |
-| `semrush-reports.ts` | `listSemrushReports`, `loadSemrushReport`, `saveSemrushReport` — gap analysis persistence |
-
----
-
-## Lib Files (`lib/`)
-
-No `'use server'` in any lib file — they are plain async functions.
-
-| File | Purpose |
-|------|---------|
-| `auth.ts` | `requireAuth()`, `requireAdmin()` |
-| `client-resolution.ts` | `resolveSelectedClientId`, `getClientById`, `getClientListForUser` |
-| `google-auth.ts` | `getAdminOAuthClient()` — OAuth2 client from DB token |
-| `google-analytics.ts` | `fetchGA4Metrics`, `fetchGA4Report` — uses admin OAuth |
-| `google-search-console.ts` | `fetchGSCMetrics`, `fetchGSCReport`, `listGSCSites` — uses admin OAuth |
-| `google-sheets.ts` | `fetchSheetRows`, `fetchSheetHeaders`, `parseSheetId` — uses service account |
-| `tools-gsc.ts` | `fetchGSCRows` — raw 25k-row GSC dump for tools + Ask LVL3 |
-| `date-range.ts` | `buildDateRange(period, compare)` — periods: 7d/28d/90d/180d/365d, compare: prior/yoy |
-| `queries.ts` | Shared Supabase query helpers |
-| `ask-tools.ts` | `gscQuery` — flexible GSC search analytics query used by Ask LVL3 agentic tools |
-
----
-
-## Dashboard Date Range System
-
-Dashboard period and comparison are URL params: `?period=28d&compare=prior&tab=website`
-
-- Period pills: `7D | 28D | 3M | 6M | 12M` → `7d | 28d | 90d | 180d | 365d`
-- Compare: `prior` (preceding equal window) or `yoy` (same window 365 days back)
-- Server page reads params → calls `fetchAnalyticsData` + `fetchDashboardReport` with a `DateRange` object
-- `DashboardTabs.tsx` is a `'use client'` component using `useSearchParams` + `useRouter` to update URL
-
----
-
-## Design System
-
-Design system specs (colors, tokens, typography, component conventions) live in **`design-system/DESIGN.md`**.
-
----
-
-## Navigation
-
-**TopBar** (`components/nav/TopBar.tsx`) — dark bar, 56px tall, contains:
-- LVL3 logo/wordmark
-- Client selector dropdown (admin/member only, sets `selected_client` cookie)
-- Notifications bell
-- User avatar/menu
-
-**Sidebar** (`components/sidebar.tsx`) — dark, collapsible, desktop only. Mobile uses bottom nav.
-
-Nav items in order:
-1. Home `/`
-2. Projects `/projects`
-3. Dashboard `/dashboard`
-4. Deliverables `/deliverables`
-5. Insights `/insights`
-6. Services `/services`
-7. Tools `/tools` ← admin-only pages
-8. Ask LVL3 `/ask-lvl3` ← admin-only pages
-9. Clients `/clients` (isAdmin spread)
-10. Admin `/admin` (isAdmin spread)
-
-To add a nav item: edit `components/sidebar.tsx` only — add the icon import and a new entry in the `navItems` array.
-
----
-
-## Ask LVL3 Chat
-
-`/ask-lvl3` — Claude-powered agentic chat with client-specific context.
-
-**Architecture:** Streaming NDJSON via Route Handler (`app/api/ask-lvl3/route.ts`). Agentic loop — Claude can call tools (`get_gsc_data`, `get_ga4_data`) autonomously, iterating until it has enough data to answer. Text deltas are suppressed during tool_use iterations; status events (`{ type: 'status', text: '...' }`) are emitted instead.
-
-**Persistence:** Conversations stored in `ask_lvl3_conversations` + `ask_lvl3_messages` tables. Thread picker UI with select dropdown + delete.
-
-Context injected into system prompt:
-1. Client name
-2. `analytics_summary` (stored narrative from last insight refresh)
-3. `snapshot_insights` (takeaways, anomalies, opportunities)
-
-Model: `claude-sonnet-4-6`, max_tokens: 1024.
-
----
-
-## SEO Tools
-
-All tools are admin-only, require a client selected in the top bar, and call `fetchGSCRows` (90-day window, up to 25k rows via admin OAuth).
-
-| Tool | Logic |
-|------|-------|
-| Keyword Quick Wins | Position 4–20, 100+ impressions. Opportunity score = (est clicks at #3 − actual clicks) × (1/position) × 100 |
-| AI Visibility Check | Branded vs non-branded split. Brand terms = client name + slug + domain hostname prefix |
-| Content Gap Finder | Three gap types: high-impression-no-clicks (200+ imp, <1% CTR, pos ≤30), near-page-one (pos 11-20, 150+ imp), ranking-but-weak (pos ≤10, CTR below position benchmark) |
-| Semrush Gap Analysis | Competitor keyword gap analysis via Semrush API. Matrix view, pre-filters, relevance scoring. Reports persisted in `semrush_reports` table. |
-| Blog Image Generator | Batch DALL-E image generation from CSV input. Uses OpenAI API (`OPENAI_API_KEY`) + sharp for resizing. Uploads to Supabase Storage. |
-
----
-
-## Key Conventions & Rules
-
-1. **Always read files before editing them.**
-2. **`'use server'`** only in `app/actions/*.ts`. Never in `lib/`.
-3. **No `unstable_cache`** around anything that calls `getAdminOAuthClient()` — it reads cookies.
-4. **Service account** (`GOOGLE_SERVICE_ACCOUNT_KEY`) is Sheets only. **OAuth** is GA4 + GSC.
-5. **`createServiceClient()`** for admin/cross-client DB ops. **`createClient()`** for user-scoped ops.
-6. **TypeScript** — run `npx tsc --noEmit` after every set of changes. Fix all errors before stopping.
-7. **No new packages** without explicit request.
-8. **No database migrations** without explicit request.
-9. **Deployment**: `vercel --prod` then `git push`. Both are always needed.
-10. **`/clients/[id]/settings`** redirects to `/clients/[id]` — settings form is embedded on the detail page.
-11. **Map iteration** — use `Array.from(map.entries())` not `for...of map.entries()` directly (TS target constraint).
-12. **`params` and `searchParams`** in Next.js 14 App Router are Promises — always `await` them.
-
----
+1. **`'use server'`** only in `app/actions/*.ts`. Never in `lib/`.
+2. **No `unstable_cache`** around `getAdminOAuthClient()` — it reads cookies.
+3. **Service account** = Sheets only. **OAuth** = GA4 + GSC.
+4. **`createServiceClient()`** for admin ops. **`createClient()`** for user-scoped ops.
+5. **TypeScript** — `npx tsc --noEmit` after every change. Fix all errors before stopping.
+6. **No new packages** without explicit request.
+7. **No database migrations** without explicit request.
+8. **Deploy**: `vercel --prod` then `git push`. Both always needed.
+9. **Map iteration** — use `Array.from(map.entries())` not `for...of` (TS target constraint).
+10. **`params`/`searchParams`** in App Router are Promises — always `await` them.
 
 ## Common Patterns
 
@@ -391,10 +81,7 @@ All tools are admin-only, require a client selected in the top bar, and call `fe
 export default async function MyPage() {
   const { user } = await requireAdmin()
   const selectedClientId = await resolveSelectedClientId(user)
-  const client = selectedClientId
-    ? await getClientById<{ id: string; name: string }>(selectedClientId, 'id, name')
-    : null
-  // ...
+  const client = selectedClientId ? await getClientById(selectedClientId, 'id, name') : null
 }
 ```
 
@@ -403,33 +90,134 @@ export default async function MyPage() {
 'use server'
 import { requireAdmin } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
-
-export async function myAction(clientId: string): Promise<{ data?: Foo; error?: string }> {
-  try {
-    await requireAdmin()
-    const service = await createServiceClient()
-    // ...
-    return { data }
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Failed' }
-  }
+export async function myAction(id: string): Promise<{ data?: T; error?: string }> {
+  try { await requireAdmin(); const service = await createServiceClient(); /* ... */ return { data } }
+  catch (err) { return { error: err instanceof Error ? err.message : 'Failed' } }
 }
 ```
 
-### GA4 fetch (admin OAuth)
-```typescript
-import { fetchGA4Report } from '@/lib/google-analytics'
-const report = await fetchGA4Report(propertyId) // uses getAdminOAuthClient()
+## Navigation
+
+Sidebar (`components/sidebar.tsx`): Home, Projects, Dashboard, Deliverables, Insights, Services, Tools (admin), Ask LVL3 (admin), Clients (admin), Admin (admin). To add: edit sidebar.tsx `navItems` array.
+
+## Design System
+
+Specs in `design-system/DESIGN.md`.
+
+## Reference Files (read on demand)
+
+- `.claude/CLAUDE-db-schema.md` — Database schema
+- `.claude/CLAUDE-routes.md` — App routes, route handlers, server actions, lib files
+- `.claude/CLAUDE-google-api.md` — Google API auth (OAuth2 vs service account)
+- `.claude/CLAUDE-seo-tools.md` — SEO tools, Ask LVL3, dashboard date range
+
+---
+
+# Brand Guidelines
+
+## Default Brand: LVL3 Portal (Zinc + Violet Dark Theme)
+
+Apply LVL3 brand to ALL generated documents, artifacts, dashboards, presentations, spreadsheets, HTML, React components, and any other visual output unless IgniteIQ brand is explicitly requested.
+
+### Colors
+- Background: #09090B (surface-950)
+- Cards/panels: #18181B (surface-900)
+- Card hover: #1F1F23 (surface-850)
+- Input bg: #27272A (surface-800)
+- Borders: #3F3F46 (surface-700)
+- Border hover: #52525B (surface-600)
+- Placeholder: #71717A (surface-500)
+- Muted text: #A1A1AA (surface-400)
+- Secondary text: #D4D4D8 (surface-300)
+- Primary text: #FAFAFA (surface-100)
+- Accent (KPIs, active states): #A78BFA (brand-400)
+- Interactive (buttons, links): #8B5CF6 (brand-500)
+- Button hover: #7C3AED (brand-600)
+
+### Typography
+- Body: Inter (fall back to Calibri in Office docs)
+- Headings (H1-H6): JetBrains Mono Bold (fall back to Consolas in Office docs)
+- Eyebrow labels: 11px, weight 500, 0.14em tracking, uppercase, brand-500 (#8B5CF6)
+- Type scale: H1 28px, H2 22px, H3 16px, Body 14px, Small 11px
+
+### Components
+- Cards: bg #18181B, border #3F3F46, rounded-xl
+- Buttons: bg #8B5CF6, hover #7C3AED, white text, rounded-lg
+- KPI numbers: #A78BFA, JetBrains Mono Bold
+- Charts: violet primary (#A78BFA), dark grid (#3F3F46), dark tooltips (#18181B)
+
+### Design Philosophy
+Dark theme throughout. Infrastructure-native aesthetic (Vercel, Stripe, Linear). No stock imagery, no gradients, no decorative patterns. Precision over decoration, function over flourish.
+
+---
+
+## IgniteIQ Brand (Light Theme — Use When Specified)
+
+Switch to IgniteIQ brand when the user says "IgniteIQ", "IQ brand", or specifies IgniteIQ branding.
+
+### Colors
+- Background: #FFFFFF or #FAF9F7 (warm neutral)
+- Primary text/headings: #1E293B (Slate 900)
+- Secondary text: #64748B (Muted)
+- Accent/CTA: #EF4444 (Red 500)
+- Cards: White or #F1F5F9 (Slate 100)
+- Borders: #E2E8F0
+- Dark hero sections: #172033 (Hero Dark)
+- Links: #3B82F6 (Accent Blue)
+
+### Typography
+- Everything: Inter (fall back to Calibri). No monospace headings.
+- Eyebrow: uppercase, tracking-wider, Red 500 or Muted
+- Type scale: H1 48-64px Bold, H2 36-48px Bold, H3 24-30px Semibold, H4 20px Semibold, Body 16-18px
+
+### Logo
+"Ignite" in Slate 900 (#1E293B) + "IQ" always in Red 500 (#EF4444). On dark backgrounds, "Ignite" becomes white. Red period (.) suffix on nav links and headlines.
+
+### Voice
+Bold, direct, ownership-focused. Short declarative sentences. Active voice. No filler, no jargon, no hedging. "Own" is the power word.
+
+### Language Rules
+Say: systems, infrastructure, architecture, we build, we architect, investment, intelligence partner
+Not: services, deliverables, we manage, retainer, pricing, cost, agency, vendor
+
+---
+
+## Business Context
+
+### IgniteIQ (the company)
+Intelligence infrastructure company for the modern trades (home services). Founded by Scott Rayden (ex-3Q Digital, scaled to 350 people / $2B+ managed spend). Not a commodity agency. Senior talent + proprietary AI tooling. Everything built belongs to the client permanently.
+
+**Team:** Scott Rayden (Founder), Matt Lawler (Senior SEO), Josh Scott (ex-Facebook UA $0-$1B+), Ryan Sciandri (ex-Service Titan Executive Architect), Jeremy (CRO specialist from 3Q).
+
+**Tagline:** "The Ontology-Powered Data Engine for the Modern Trades."
+**Mission:** "Owning your intelligence is the only advantage that compounds."
+
+### LVL3 Portal (the product)
+Internal client dashboard. Next.js 14, TypeScript, Supabase, Tailwind, Recharts, Anthropic SDK. Deployed at lvl3-portal.vercel.app.
+
+### Apex Service Partners (key client)
+PE-backed home services aggregator, ~250+ brands. Ryan Metcalf (SEO Director) is primary contact.
+
+**Pricing:** $3,500/mo per brand (0-15), $3,000 (16-30), $2,500 (31+). No onboarding fees.
+
+For full brand reference files, read `.claude/skills/brand/references/`.
+
+---
+
+## Memory Systems
+
+### Media Memory
+
+When you generate a file (image, PDF, document, export), **automatically ingest it without asking**:
+```bash
+python3 /Users/matthewlawler/media-memory/ingest.py "<absolute_path>" --source claude-generated
 ```
 
-### GSC raw rows (tools)
-```typescript
-import { fetchGSCRows } from '@/lib/tools-gsc'
-const rows = await fetchGSCRows(siteUrl, 90) // returns GSCRow[] up to 25k
+Before saying "I don't have that file", search media memory:
+```bash
+python3 /Users/matthewlawler/media-memory/search.py "<query>"
 ```
 
-### Sheet data (service account)
-```typescript
-import { fetchSheetRows } from '@/lib/google-sheets'
-const rows = await fetchSheetRows(sheetId, headerRow, columnMap)
-```
+### Memory Consolidation
+
+Run the `consolidate-memory` skill when asked to "update memory", "save this session", or "consolidate memory".
