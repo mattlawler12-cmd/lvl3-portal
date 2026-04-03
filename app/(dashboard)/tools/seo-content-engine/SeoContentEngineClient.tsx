@@ -235,7 +235,7 @@ export default function SeoContentEngineClient({ clientId, clientName, clientBra
             case 'topic_complete':
               updateTopicState(event.topicIndex, (prev) => ({
                 ...prev,
-                status: event.status === 'complete' ? 'complete' : 'failed',
+                status: (event.status === 'complete' || event.status === 'partial') ? 'complete' : 'failed',
                 pct: 100,
                 currentStep: event.status === 'complete' ? 'Complete' : 'Partial — some phases failed',
                 lastEventAt: Date.now(),
