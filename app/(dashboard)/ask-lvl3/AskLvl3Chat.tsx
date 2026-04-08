@@ -358,13 +358,24 @@ export default function AskLvl3Chat({
             >
               <p className="whitespace-pre-wrap">{msg.content}</p>
               {msg.artifacts?.map((a, j) => (
-                <a
+                <button
                   key={j}
-                  href={a.url}
-                  download={a.filename}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 flex items-center gap-3 rounded-lg border border-surface-700 bg-surface-800 px-4 py-3 hover:border-brand-400/40 hover:bg-surface-800/80 transition-colors group"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(a.url!)
+                      const blob = await res.blob()
+                      const blobUrl = URL.createObjectURL(blob)
+                      const link = document.createElement('a')
+                      link.href = blobUrl
+                      link.download = a.filename
+                      link.click()
+                      URL.revokeObjectURL(blobUrl)
+                    } catch {
+                      // Fallback: open in new tab
+                      window.open(a.url, '_blank')
+                    }
+                  }}
+                  className="mt-3 w-full flex items-center gap-3 rounded-lg border border-surface-700 bg-surface-800 px-4 py-3 hover:border-brand-400/40 hover:bg-surface-800/80 transition-colors group text-left"
                 >
                   <FileSpreadsheet className="w-5 h-5 text-brand-400 shrink-0" />
                   <div className="min-w-0 flex-1">
@@ -372,7 +383,7 @@ export default function AskLvl3Chat({
                     <p className="text-xs text-surface-500">.xlsx spreadsheet</p>
                   </div>
                   <Download className="w-4 h-4 text-surface-500 group-hover:text-brand-400 transition-colors" />
-                </a>
+                </button>
               ))}
             </div>
           </div>
