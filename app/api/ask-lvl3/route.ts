@@ -8,11 +8,8 @@ import { fetchKEKeywordData, fetchKERelatedKeywords } from '@/lib/connectors/key
 import { fetchPageSpeedInsights } from '@/lib/connectors/pagespeed'
 import { fetchAndParse } from '@/lib/connectors/crawler'
 import { fetchSemrushDomainOrganic, fetchSemrushDomainRanks, fetchSemrushBacklinksOverview } from '@/lib/connectors/semrush-portal'
-
-export type ChatMessage = {
-  role: 'user' | 'assistant'
-  content: string
-}
+import * as XLSX from 'xlsx'
+import type { ChatMessage, ChatArtifact } from '@/app/actions/ask-lvl3'
 
 // ── Tool definitions ──────────────────────────────────────────────────────────
 
@@ -186,6 +183,41 @@ Defaults to the current client's domain if no domain is specified.`,
       required: [],
     },
   },
+  {
+    name: 'create_spreadsheet',
+    description: `Generate a downloadable .xlsx spreadsheet file for the user.
+Use this when the user asks to export data, create a spreadsheet, download results, or says "give me a spreadsheet/CSV/Excel file".
+You MUST have already fetched the data using other tools before calling this.
+Pass the data as structured sheets with headers and rows.
+Each sheet has a name (tab label), headers (column names), and rows (2D array of cell values).`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        filename: {
+          type: 'string',
+          description: 'File name without extension (e.g., "top-keywords-march")',
+        },
+        sheets: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              name: { type: 'string', description: 'Sheet tab name' },
+              headers: { type: 'array', items: { type: 'string' }, description: 'Column headers' },
+              rows: {
+                type: 'array',
+                items: { type: 'array', items: {} },
+                description: 'Row data — each row is an array of cell values',
+              },
+            },
+            required: ['name', 'headers', 'rows'],
+          },
+          description: 'One or more sheets to include in the workbook',
+        },
+      },
+      required: ['filename', 'sheets'],
+    },
+  },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -212,7 +244,8 @@ async function executeTool(
   name: string,
   input: Record<string, unknown>,
   client: { gsc_site_url: string | null; ga4_property_id: string | null },
-  auth: OAuthClient
+  auth: OAuthClient,
+  context?: { service: Awaited<ReturnType<typeof createServiceClient>>; clientId: string; conversationId: string }
 ): Promise<string> {
   try {
     if (name === 'get_gsc_data') {
@@ -353,6 +386,47 @@ async function executeTool(
       return JSON.stringify(overview)
     }
 
+    if (name === 'create_spreadsheet') {
+      if (!context) return 'Error: Missing storage context for spreadsheet generation.'
+      const filename = (input.filename as string) || 'export'
+      const sheets = input.sheets as Array<{ name: string; headers: string[]; rows: unknown[][] }>
+      if (!sheets?.length) return 'Error: No sheets provided.'
+
+      const wb = XLSX.utils.book_new()
+      for (const sheet of sheets) {
+        const ws = XLSX.utils.aoa_to_sheet([sheet.headers, ...sheet.rows])
+        // Auto-size columns based on header lengths
+        ws['!cols'] = sheet.headers.map((h) => ({ wch: Math.max(h.length + 2, 12) }))
+        XLSX.utils.book_append_sheet(wb, ws, sheet.name.slice(0, 31))
+      }
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+
+      const storagePath = `${context.clientId}/${context.conversationId}/${filename}-${Date.now()}.xlsx`
+      const { error: uploadErr } = await context.service.storage
+        .from('chat-artifacts')
+        .upload(storagePath, buffer, {
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          upsert: false,
+        })
+      if (uploadErr) return `Error uploading spreadsheet: ${uploadErr.message}`
+
+      const { data: signed } = await context.service.storage
+        .from('chat-artifacts')
+        .createSignedUrl(storagePath, 86400) // 24h
+      const url = signed?.signedUrl ?? ''
+
+      const totalRows = sheets.reduce((sum, s) => sum + s.rows.length, 0)
+      return JSON.stringify({
+        artifact: true,
+        path: storagePath,
+        filename: `${filename}.xlsx`,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        url,
+        sheetCount: sheets.length,
+        totalRows,
+      })
+    }
+
     return `Unknown tool: ${name}`
   } catch (err) {
     // Extract the specific Google API error reason if available
@@ -467,7 +541,7 @@ ${contextParts.join('\n\n')}
 
 Client domain: ${clientDomain || 'not configured'}
 
-You have 9 tools available to fetch live data:
+You have 10 tools available to fetch live data:
 - get_gsc_data: Query Google Search Console (keywords, pages, clicks, impressions, rankings)
 - get_ga4_data: Query Google Analytics 4 (sessions, users, traffic, revenue, landing pages)
 - get_keyword_data: Look up search volume, CPC, competition, and trends for specific keywords
@@ -477,8 +551,10 @@ You have 9 tools available to fetch live data:
 - crawl_page_seo: On-page SEO audit of a URL (title, meta, headings, images, structured data)
 - get_core_web_vitals: PageSpeed Insights + Core Web Vitals for a URL
 - get_backlink_overview: Semrush backlink profile (total backlinks, referring domains, authority score)
+- create_spreadsheet: Generate a downloadable .xlsx file from structured data. Use AFTER fetching data with other tools when the user wants to export, download, or get a spreadsheet/CSV/Excel file.
 
 When a question requires data, use the tools to fetch it rather than saying you don't have it.
+When the user asks to export data, download a spreadsheet, or get an Excel file, first fetch the data with the appropriate tool, then call create_spreadsheet with the results formatted as headers and rows.
 For trend or comparison questions, call the tool twice — once for the current period and once for the prior period — then calculate the delta yourself.
 Tools that accept a domain default to "${clientDomain || 'the client domain'}" when not specified.
 Be specific and direct. Skip preamble. Lead with the actual answer, then support it with data.`
@@ -520,6 +596,7 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
 
         const MAX_ITERATIONS = 6
         let assistantText = ''
+        const allArtifacts: ChatArtifact[] = []
 
         for (let i = 0; i < MAX_ITERATIONS; i++) {
           const streamObj = anthropic.messages.stream({
@@ -570,6 +647,7 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
                 conversation_id: conversationId,
                 role: 'assistant',
                 content: assistantText,
+                artifacts: allArtifacts.length > 0 ? allArtifacts : [],
               })
             }
             emit(controller, { type: 'done', conversationId })
@@ -593,6 +671,7 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
               crawl_page_seo: 'Crawling page for SEO audit\u2026',
               get_core_web_vitals: 'Running PageSpeed analysis\u2026',
               get_backlink_overview: 'Fetching backlink profile\u2026',
+              create_spreadsheet: 'Generating spreadsheet\u2026',
             }
             for (const block of toolBlocks) {
               if (block.type !== 'tool_use') continue
@@ -601,6 +680,7 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
             }
 
             // Execute tools in parallel using the pre-built oauthClient
+            const collectedArtifacts: ChatArtifact[] = []
             const toolResults = await Promise.all(
               toolBlocks.map(async (block) => {
                 if (block.type !== 'tool_use') return null
@@ -608,8 +688,32 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
                   block.name,
                   block.input as Record<string, unknown>,
                   { gsc_site_url: client.gsc_site_url, ga4_property_id: client.ga4_property_id },
-                  oauthClient
+                  oauthClient,
+                  { service, clientId, conversationId }
                 )
+
+                // Detect artifact results and emit download event
+                try {
+                  const parsed = JSON.parse(result)
+                  if (parsed?.artifact === true && parsed.url) {
+                    const artifact: ChatArtifact = {
+                      path: parsed.path,
+                      filename: parsed.filename,
+                      mimeType: parsed.mimeType,
+                    }
+                    collectedArtifacts.push(artifact)
+                    emit(controller, {
+                      type: 'artifact',
+                      path: parsed.path,
+                      filename: parsed.filename,
+                      mimeType: parsed.mimeType,
+                      url: parsed.url,
+                    })
+                  }
+                } catch {
+                  // Not JSON or not an artifact — fine
+                }
+
                 return {
                   type: 'tool_result' as const,
                   tool_use_id: block.id,
@@ -617,6 +721,8 @@ Be specific and direct. Skip preamble. Lead with the actual answer, then support
                 }
               })
             )
+
+            allArtifacts.push(...collectedArtifacts)
 
             loopMessages.push({
               role: 'user',

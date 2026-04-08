@@ -2,7 +2,7 @@
 
 import { requireAdmin } from '@/lib/auth'
 import { createServiceClient } from '@/lib/supabase/server'
-import type { ChatMessage } from '@/app/actions/ask-lvl3'
+import type { ChatMessage, ChatArtifact } from '@/app/actions/ask-lvl3'
 
 export type ConversationSummary = {
   id: string
@@ -31,14 +31,36 @@ export async function loadConversation(conversationId: string): Promise<ChatMess
   const service = await createServiceClient()
   const { data } = await service
     .from('ask_lvl3_messages')
-    .select('role, content')
+    .select('role, content, artifacts')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
 
-  return (data ?? []).map((row) => ({
-    role: row.role as 'user' | 'assistant',
-    content: row.content as string,
-  }))
+  const rows = data ?? []
+
+  // Re-sign any artifact URLs (they expire after 24h)
+  const messages: ChatMessage[] = []
+  for (const row of rows) {
+    const rawArtifacts = (row.artifacts ?? []) as ChatArtifact[]
+    let artifacts: ChatArtifact[] | undefined
+    if (rawArtifacts.length > 0) {
+      artifacts = await Promise.all(
+        rawArtifacts.map(async (a) => {
+          if (!a.path) return a
+          const { data: signed } = await service.storage
+            .from('chat-artifacts')
+            .createSignedUrl(a.path, 86400)
+          return { ...a, url: signed?.signedUrl ?? '' }
+        })
+      )
+    }
+    messages.push({
+      role: row.role as 'user' | 'assistant',
+      content: row.content as string,
+      ...(artifacts?.length ? { artifacts } : {}),
+    })
+  }
+
+  return messages
 }
 
 // Hard deletes a thread (cascades to messages)

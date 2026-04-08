@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, Send, Loader2, Trash2 } from 'lucide-react'
-import { type ChatMessage } from '@/app/actions/ask-lvl3'
+import { MessageCircle, Send, Loader2, Trash2, FileSpreadsheet, Download } from 'lucide-react'
+import { type ChatMessage, type ChatArtifact } from '@/app/actions/ask-lvl3'
 import {
   loadConversation,
   deleteConversation,
@@ -151,11 +151,15 @@ export default function AskLvl3Chat({
           if (!line.trim()) continue
           try {
             const event = JSON.parse(line) as {
-              type: 'status' | 'clear_partial' | 'text' | 'done' | 'error' | string
+              type: 'status' | 'clear_partial' | 'text' | 'artifact' | 'done' | 'error' | string
               text?: string
               delta?: string
               conversationId?: string
               message?: string
+              path?: string
+              filename?: string
+              mimeType?: string
+              url?: string
             }
 
             if (event.type === 'status') {
@@ -178,6 +182,23 @@ export default function AskLvl3Chat({
                   ]
                 }
                 return [...prev, { role: 'assistant', content: delta }]
+              })
+            } else if (event.type === 'artifact' && event.url && event.filename) {
+              const artifact: ChatArtifact = {
+                path: event.path ?? '',
+                filename: event.filename,
+                mimeType: event.mimeType ?? '',
+                url: event.url,
+              }
+              setMessages((prev) => {
+                const last = prev[prev.length - 1]
+                if (last?.role === 'assistant') {
+                  return [
+                    ...prev.slice(0, -1),
+                    { ...last, artifacts: [...(last.artifacts ?? []), artifact] },
+                  ]
+                }
+                return [...prev, { role: 'assistant', content: '', artifacts: [artifact] }]
               })
             } else if (event.type === 'done') {
               const newConvId = event.conversationId ?? ''
@@ -336,6 +357,23 @@ export default function AskLvl3Chat({
               }`}
             >
               <p className="whitespace-pre-wrap">{msg.content}</p>
+              {msg.artifacts?.map((a, j) => (
+                <a
+                  key={j}
+                  href={a.url}
+                  download={a.filename}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 flex items-center gap-3 rounded-lg border border-surface-700 bg-surface-800 px-4 py-3 hover:border-brand-400/40 hover:bg-surface-800/80 transition-colors group"
+                >
+                  <FileSpreadsheet className="w-5 h-5 text-brand-400 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-surface-100 truncate">{a.filename}</p>
+                    <p className="text-xs text-surface-500">.xlsx spreadsheet</p>
+                  </div>
+                  <Download className="w-4 h-4 text-surface-500 group-hover:text-brand-400 transition-colors" />
+                </a>
+              ))}
             </div>
           </div>
         ))}
