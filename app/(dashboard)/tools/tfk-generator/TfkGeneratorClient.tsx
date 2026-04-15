@@ -60,7 +60,10 @@ export default function TfkGeneratorClient() {
   const [selectedRowIndex, setSelectedRowIndex] = useState(0)
   const [summary, setSummary] = useState<SummaryStats | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadedFromFile, setLoadedFromFile] = useState<string | null>(null)
   const storeDnaRef = useRef<HTMLInputElement>(null)
+  const outputXlsxRef = useRef<HTMLInputElement>(null)
 
   const completedCount = locations.filter(l => l.step === 'done' || l.step === 'error').length
   const progress = total > 0 ? Math.round((completedCount / total) * 100) : 0
@@ -74,6 +77,34 @@ export default function TfkGeneratorClient() {
       return rows as unknown as TfkLocation[]
     } catch {
       return []
+    }
+  }
+
+  async function handleLoadExistingOutput(file: File) {
+    setLoadError(null)
+    setLoadedFromFile(null)
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const wb = XLSX.read(arrayBuffer, { type: 'array' })
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      if (!ws) throw new Error('No worksheet found in xlsx')
+
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws) as unknown as TfkLocation[]
+      if (!rows || rows.length === 0) throw new Error('No rows found in xlsx')
+
+      // Build a base64 string so the Download button still works
+      const buffer = Buffer.from(arrayBuffer)
+      const base64 = buffer.toString('base64')
+
+      setOutputRows(rows)
+      setOutputBase64(base64)
+      setSelectedRowIndex(0)
+      setLoadedFromFile(file.name)
+      setDone(true)
+      // Switch to preview so they see the result immediately
+      setActiveTab('Preview')
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to parse xlsx')
     }
   }
 
@@ -245,6 +276,58 @@ export default function TfkGeneratorClient() {
             'Generate All Locations'
           )}
         </button>
+
+        {/* Divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-surface-700" />
+          <span className="text-xs uppercase tracking-widest text-surface-500">Or</span>
+          <div className="flex-1 h-px bg-surface-700" />
+        </div>
+
+        {/* Load Existing Output */}
+        <div className="bg-surface-900 border border-surface-700 rounded-xl p-6 space-y-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: 'var(--color-accent)' }}>
+              Load Existing Output
+            </p>
+            <p className="text-xs text-surface-400 mb-3">
+              Already have a generated <strong className="text-surface-300">tfk-locations-draft.xlsx</strong>? Upload it to skip generation and jump straight to preview and validation.
+            </p>
+            <button
+              onClick={() => outputXlsxRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-surface-700 bg-surface-800 text-sm text-surface-300 hover:border-surface-600 hover:bg-surface-700 transition-all"
+            >
+              <Upload className="w-4 h-4" />
+              {loadedFromFile ? `Loaded: ${loadedFromFile}` : 'Choose output .xlsx file'}
+            </button>
+            <input
+              ref={outputXlsxRef}
+              type="file"
+              accept=".xlsx"
+              className="hidden"
+              onChange={e => {
+                const f = e.target.files?.[0]
+                if (f) handleLoadExistingOutput(f)
+                // Reset input so re-selecting same file fires onChange again
+                if (outputXlsxRef.current) outputXlsxRef.current.value = ''
+              }}
+            />
+            {loadError && (
+              <div className="mt-3 flex items-start gap-2 bg-red-950/30 border border-red-900/40 rounded-lg p-3">
+                <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-300">{loadError}</p>
+              </div>
+            )}
+            {loadedFromFile && !loadError && (
+              <div className="mt-3 flex items-start gap-2 bg-emerald-950/30 border border-emerald-900/40 rounded-lg p-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-emerald-300">
+                  Loaded {outputRows.length} location{outputRows.length === 1 ? '' : 's'}. Switch to the Preview or Validation tab.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Progress bar */}
         {(generating || done) && total > 0 && (
