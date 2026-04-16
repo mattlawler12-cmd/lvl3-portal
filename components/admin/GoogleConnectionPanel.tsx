@@ -99,13 +99,21 @@ export default function GoogleConnectionPanel({ googleParam }: Props) {
         connected ? (
           <div className="flex items-center justify-between">
             <p className="text-xs text-surface-400">{email ?? 'Connected'}</p>
-            <button
-              onClick={handleDisconnect}
-              disabled={disconnecting}
-              className="text-xs text-rose-400 hover:text-rose-300 transition-colors disabled:opacity-50"
-            >
-              {disconnecting ? 'Disconnecting...' : 'Disconnect'}
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleConnect}
+                className="text-xs text-surface-400 hover:text-surface-300 transition-colors"
+              >
+                Reconnect
+              </button>
+              <button
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+                className="text-xs text-rose-400 hover:text-rose-300 transition-colors disabled:opacity-50"
+              >
+                {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+              </button>
+            </div>
           </div>
         ) : (
           <button
