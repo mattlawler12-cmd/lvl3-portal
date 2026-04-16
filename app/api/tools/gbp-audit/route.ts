@@ -1,5 +1,5 @@
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { getAdminOAuthClient } from '@/lib/google-auth'
+import { getAdminGBPOAuthClient } from '@/lib/gbp-auth'
 import { listGBPLocations, auditLocation } from '@/lib/connectors/gbp'
 
 export const maxDuration = 120
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
         emit({ type: 'progress', message: 'Connecting to Google Business Profile…', pct: 5 })
 
-        const auth = await getAdminOAuthClient()
+        const auth = await getAdminGBPOAuthClient()
 
         emit({ type: 'progress', message: 'Fetching locations…', pct: 15 })
 

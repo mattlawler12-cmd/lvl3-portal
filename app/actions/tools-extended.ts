@@ -11,7 +11,7 @@ import type { KEKeywordRow } from '@/lib/connectors/keywords-everywhere'
 import { fetchSemrushBacklinksOverview, fetchSemrushDomainRanks } from '@/lib/connectors/semrush-portal'
 import type { SemrushBacklinksOverview, SemrushDomainRank } from '@/lib/connectors/semrush-portal'
 import { normalizeDomain } from '@/lib/normalize-domain'
-import { getAdminOAuthClient } from '@/lib/google-auth'
+import { getAdminGBPOAuthClient } from '@/lib/gbp-auth'
 import { listGBPAccounts } from '@/lib/connectors/gbp'
 import type { GBPAccount } from '@/lib/connectors/gbp'
 
@@ -229,7 +229,7 @@ export async function fetchContentQuality(
 export async function fetchGBPAccounts(): Promise<{ data?: GBPAccount[]; error?: string }> {
   try {
     await requireAdmin()
-    const auth = await getAdminOAuthClient()
+    const auth = await getAdminGBPOAuthClient()
     const accounts = await listGBPAccounts(auth)
     return { data: accounts }
   } catch (err) {
