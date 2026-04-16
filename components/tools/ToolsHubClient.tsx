@@ -120,7 +120,8 @@ function ToolCard({
 }) {
   const Icon = ICON_MAP[tool.slug] ?? Wrench
   const requiresClient = tool.inputType === 'client' || tool.inputType === 'mixed'
-  const enabled = !requiresClient || !!selectedClientId
+  const isComingSoon = tool.status === 'coming-soon'
+  const enabled = !isComingSoon && (!requiresClient || !!selectedClientId)
 
   return (
     <Link

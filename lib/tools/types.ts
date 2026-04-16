@@ -16,7 +16,7 @@ export type ToolDataSource =
 
 export type ToolAccess = 'admin' | 'member' | 'client'
 
-export type ToolStatus = 'stable' | 'beta' | 'new' | 'deprecated'
+export type ToolStatus = 'stable' | 'beta' | 'new' | 'deprecated' | 'coming-soon'
 
 export type ToolRuntime = 'fast' | 'medium' | 'slow' | 'background'
 

@@ -16,6 +16,7 @@ type RunStatus =
   | "beta"
   | "new"
   | "deprecated"
+  | "coming-soon"
   | "running"
   | "complete"
   | "failed"
@@ -83,6 +84,7 @@ export function RunStatusBadge({ variant, className = "" }: RunStatusBadgeProps)
     new: "bg-brand-400/15 text-brand-400 border border-brand-400/20",
     beta: "bg-surface-700 text-surface-300 border border-surface-600",
     deprecated: "bg-surface-800 text-surface-500 border border-surface-700",
+    "coming-soon": "bg-surface-800 text-surface-500 border border-surface-700",
     partial: "bg-surface-700 text-surface-300 border border-surface-600",
     queued: "bg-surface-700 text-surface-400 border border-surface-600",
   };
@@ -91,6 +93,7 @@ export function RunStatusBadge({ variant, className = "" }: RunStatusBadgeProps)
     new: "New",
     beta: "Beta",
     deprecated: "Deprecated",
+    "coming-soon": "Coming Soon",
     partial: "Partial",
     queued: "Queued",
   };
