@@ -7,6 +7,101 @@ import {
   Zap,
 } from "lucide-react";
 
+// ---------------------------------------------------------------------------
+// RunStatusBadge — tool / pipeline run status pill
+// ---------------------------------------------------------------------------
+
+type RunStatus =
+  | "stable"
+  | "beta"
+  | "new"
+  | "deprecated"
+  | "running"
+  | "complete"
+  | "failed"
+  | "partial"
+  | "queued";
+
+interface RunStatusBadgeProps {
+  variant: RunStatus;
+  className?: string;
+}
+
+const BASE =
+  "inline-flex items-center text-[10px] font-medium uppercase tracking-[0.1em] px-2 py-0.5 rounded-full";
+
+export function RunStatusBadge({ variant, className = "" }: RunStatusBadgeProps) {
+  if (variant === "stable") return null;
+
+  if (variant === "running") {
+    return (
+      <span
+        className={`${BASE} border ${className}`}
+        style={{
+          backgroundColor: "rgba(167,139,250,0.15)",
+          color: "#a78bfa",
+          borderColor: "rgba(167,139,250,0.2)",
+        }}
+      >
+        <span className="animate-pulse w-1.5 h-1.5 rounded-full bg-brand-400 mr-1" />
+        Running
+      </span>
+    );
+  }
+
+  if (variant === "complete") {
+    return (
+      <span
+        className={`${BASE} border ${className}`}
+        style={{
+          backgroundColor: "rgba(74,222,128,0.1)",
+          color: "#4ade80",
+          borderColor: "rgba(74,222,128,0.2)",
+        }}
+      >
+        Complete
+      </span>
+    );
+  }
+
+  if (variant === "failed") {
+    return (
+      <span
+        className={`${BASE} border ${className}`}
+        style={{
+          backgroundColor: "rgba(248,113,113,0.1)",
+          color: "#f87171",
+          borderColor: "rgba(248,113,113,0.2)",
+        }}
+      >
+        Failed
+      </span>
+    );
+  }
+
+  const variantClasses: Record<Exclude<RunStatus, "stable" | "running" | "complete" | "failed">, string> = {
+    new: "bg-brand-400/15 text-brand-400 border border-brand-400/20",
+    beta: "bg-surface-700 text-surface-300 border border-surface-600",
+    deprecated: "bg-surface-800 text-surface-500 border border-surface-700",
+    partial: "bg-surface-700 text-surface-300 border border-surface-600",
+    queued: "bg-surface-700 text-surface-400 border border-surface-600",
+  };
+
+  const labels: Record<Exclude<RunStatus, "stable" | "running" | "complete" | "failed">, string> = {
+    new: "New",
+    beta: "Beta",
+    deprecated: "Deprecated",
+    partial: "Partial",
+    queued: "Queued",
+  };
+
+  return (
+    <span className={`${BASE} ${variantClasses[variant as keyof typeof variantClasses]} ${className}`}>
+      {labels[variant as keyof typeof labels]}
+    </span>
+  );
+}
+
 type Status =
   | "new"
   | "needs-review"

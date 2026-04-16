@@ -41,3 +41,28 @@ export async function fetchGSCRows(
     position: row.position ?? 0,
   }))
 }
+
+/** Fetch page-level GSC data for an explicit date range */
+export async function fetchGSCPageRows(
+  siteUrl: string,
+  startDate: string,   // YYYY-MM-DD
+  endDate: string      // YYYY-MM-DD
+): Promise<{ page: string; clicks: number; impressions: number; position: number }[]> {
+  const auth = await getAdminOAuthClient()
+  const searchconsole = google.searchconsole({ version: 'v1', auth })
+  const { data } = await searchconsole.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate,
+      endDate,
+      dimensions: ['page'],
+      rowLimit: 25000,
+    },
+  })
+  return (data.rows ?? []).map(row => ({
+    page: row.keys?.[0] ?? '',
+    clicks: row.clicks ?? 0,
+    impressions: row.impressions ?? 0,
+    position: row.position ?? 0,
+  }))
+}

@@ -51,6 +51,10 @@ const config: Config = {
           800: 'rgb(var(--brand-900) / <alpha-value>)',
           900: 'rgb(var(--brand-900) / <alpha-value>)',
         },
+        // Status colors — semantic tokens
+        error:   'var(--color-error)',
+        warning: 'var(--color-warning)',
+        success: 'var(--color-success)',
       },
       fontFamily: {
         sans:  ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import TopBar from "./TopBar";
 import Sidebar from "@/components/sidebar";
+import MobileNavDrawer from "@/components/nav/MobileNavDrawer";
 import CommandPalette from "@/components/search/CommandPalette";
 import NotificationsPanel from "@/components/notifications/NotificationsPanel";
 
@@ -48,6 +50,8 @@ export default function LayoutShell({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     const stored = localStorage.getItem("sidebar-collapsed");
@@ -86,6 +90,7 @@ export default function LayoutShell({
         unreadCount={unreadCount}
         onSearchOpen={() => setCommandPaletteOpen(true)}
         onNotificationsOpen={() => setNotificationsOpen(true)}
+        onMobileNavOpen={() => setMobileNavOpen(true)}
       />
       <Sidebar
         isAdmin={isAdmin}
@@ -96,6 +101,17 @@ export default function LayoutShell({
         servicesBadgeCount={servicesBadgeCount}
         onSearchOpen={() => setCommandPaletteOpen(true)}
       />
+      {mobileNavOpen && (
+        <MobileNavDrawer
+          isOpen={mobileNavOpen}
+          onClose={() => setMobileNavOpen(false)}
+          isAdmin={isAdmin}
+          pathname={pathname}
+          deliverableBadgeCount={deliverableBadgeCount}
+          postsBadgeCount={postsBadgeCount}
+          servicesBadgeCount={servicesBadgeCount}
+        />
+      )}
       <main
         className={`pt-14 pb-16 md:pb-0 min-h-screen transition-all duration-200 ${
           sidebarCollapsed ? "md:pl-14" : "md:pl-56"

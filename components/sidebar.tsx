@@ -38,13 +38,16 @@ export default function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
 
-  const navItems: NavItem[] = [
+  const coreItems: NavItem[] = [
     { label: "Home",         href: "/",             icon: Home },
     { label: "Projects",     href: "/projects",     icon: FolderKanban },
     { label: "Dashboard",    href: "/dashboard",    icon: LayoutDashboard },
     { label: "Deliverables", href: "/deliverables", icon: PackageOpen, badge: deliverableBadgeCount || undefined },
     { label: "Insights",     href: "/insights",     icon: Lightbulb,   badge: postsBadgeCount || undefined },
     { label: "Services",     href: "/services",     icon: Sparkles,    badge: servicesBadgeCount || undefined },
+  ];
+
+  const adminItems: NavItem[] = [
     { label: 'Tools',    href: '/tools',    icon: Wrench },
     { label: 'Ask LVL3', href: '/ask-lvl3', icon: MessageCircle },
     ...(isAdmin ? [
@@ -66,51 +69,65 @@ export default function Sidebar({
         style={{ backgroundColor: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)' }}
       >
         <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
-          {navItems.map(({ label, href, icon: Icon, badge }) => {
+          {[...coreItems, ...adminItems].map(({ label, href, icon: Icon, badge }, index) => {
             const active = isActive(href);
+            const isCoreCount = coreItems.length;
+            const isFirstAdminItem = index === isCoreCount;
             return (
-              <div key={href} className="relative">
-                <Link
-                  href={href}
-                  title={collapsed ? label : undefined}
-                  className={`flex items-center gap-3 px-2.5 py-2 rounded text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-inset ${collapsed ? "justify-center" : ""}`}
-                  style={{
-                    color:           active ? NAV_ACTIVE    : NAV_TEXT,
-                    backgroundColor: active ? NAV_ACTIVE_BG : 'transparent',
-                  }}
-                  onMouseEnter={e => {
-                    if (!active) {
-                      const el = e.currentTarget as HTMLAnchorElement
-                      el.style.color           = NAV_TEXT_BRIGHT
-                      el.style.backgroundColor = NAV_HOVER_BG
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (!active) {
-                      const el = e.currentTarget as HTMLAnchorElement
-                      el.style.color           = NAV_TEXT
-                      el.style.backgroundColor = 'transparent'
-                    }
-                  }}
-                >
-                  <Icon size={16} strokeWidth={active ? 2.5 : 1.8} className="shrink-0" />
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 truncate">{label}</span>
-                      {badge && badge > 0 && (
-                        <span
-                          className="text-xs rounded-full px-1.5 py-0.5 leading-none shrink-0"
-                          style={{ backgroundColor: NAV_ACTIVE_BG, color: NAV_ACTIVE }}
-                        >
-                          {badge > 99 ? "99+" : badge}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </Link>
-                {collapsed && badge && badge > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full pointer-events-none bg-brand-400" />
+              <div key={href}>
+                {isFirstAdminItem && (
+                  <>
+                    <div className="my-1 mx-2 h-px" style={{ backgroundColor: 'var(--sidebar-border)' }} />
+                    {!collapsed && isAdmin && (
+                      <p className="px-2 pt-2 pb-0.5 text-[10px] font-medium uppercase tracking-[0.14em]" style={{ color: NAV_TEXT }}>
+                        Admin
+                      </p>
+                    )}
+                  </>
                 )}
+                <div className="relative">
+                  <Link
+                    href={href}
+                    title={collapsed ? label : undefined}
+                    className={`flex items-center gap-3 px-2.5 py-2 rounded text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-inset ${collapsed ? "justify-center" : ""}`}
+                    style={{
+                      color:           active ? NAV_ACTIVE    : NAV_TEXT,
+                      backgroundColor: active ? NAV_ACTIVE_BG : 'transparent',
+                    }}
+                    onMouseEnter={e => {
+                      if (!active) {
+                        const el = e.currentTarget as HTMLAnchorElement
+                        el.style.color           = NAV_TEXT_BRIGHT
+                        el.style.backgroundColor = NAV_HOVER_BG
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!active) {
+                        const el = e.currentTarget as HTMLAnchorElement
+                        el.style.color           = NAV_TEXT
+                        el.style.backgroundColor = 'transparent'
+                      }
+                    }}
+                  >
+                    <Icon size={16} strokeWidth={active ? 2.5 : 1.8} className="shrink-0" />
+                    {!collapsed && (
+                      <>
+                        <span className="flex-1 truncate">{label}</span>
+                        {badge && badge > 0 && (
+                          <span
+                            className="text-xs rounded-full px-1.5 py-0.5 leading-none shrink-0"
+                            style={{ backgroundColor: NAV_ACTIVE_BG, color: NAV_ACTIVE }}
+                          >
+                            {badge > 99 ? "99+" : badge}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </Link>
+                  {collapsed && badge && badge > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full pointer-events-none bg-brand-400" />
+                  )}
+                </div>
               </div>
             );
           })}

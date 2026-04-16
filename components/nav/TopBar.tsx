@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Bell, HelpCircle, ChevronDown, LogOut, Search } from "lucide-react";
+import { Bell, HelpCircle, ChevronDown, LogOut, Search, Menu } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setSelectedClient } from "@/app/actions/client-selection";
 
@@ -18,6 +18,7 @@ interface TopBarProps {
   unreadCount: number;
   onSearchOpen: () => void;
   onNotificationsOpen: () => void;
+  onMobileNavOpen: () => void;
 }
 
 function formatRelativeTime(dateStr: string): string {
@@ -48,6 +49,7 @@ export default function TopBar({
   unreadCount,
   onSearchOpen,
   onNotificationsOpen,
+  onMobileNavOpen,
 }: TopBarProps) {
   const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -72,6 +74,16 @@ export default function TopBar({
       className="fixed top-0 left-0 right-0 h-14 z-30 flex items-center px-4 gap-3"
       style={{ backgroundColor: 'var(--nav-bg)', borderBottom: '1px solid var(--nav-border)' }}
     >
+      {/* Hamburger — mobile only */}
+      <button
+        onClick={onMobileNavOpen}
+        className="md:hidden p-2 rounded-lg -ml-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+        style={{ color: 'var(--nav-text)' }}
+        aria-label="Open menu"
+      >
+        <Menu size={20} />
+      </button>
+
       {/* Brand */}
       <Link
         href="/"
@@ -176,7 +188,7 @@ export default function TopBar({
 
       {/* Help */}
       <a
-        href="#"
+        href="/help"
         className="p-2 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
         style={{ color: 'var(--nav-text)' }}
         onMouseEnter={e => {

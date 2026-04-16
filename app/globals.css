@@ -46,6 +46,11 @@
   --color-muted:     rgb(var(--surface-400));
   --color-border:    rgb(var(--surface-800));
 
+  /* ── Status colors ────────────────────────────────── */
+  --color-error:   #F87171;   /* red-400  */
+  --color-warning: #FBBF24;   /* amber-400 */
+  --color-success: #34D399;   /* emerald-400 */
+
   /* ── Nav tokens ────────────────────────────────────────── */
   --nav-bg:          rgb(var(--surface-900));
   --nav-hover:       rgb(var(--surface-800));

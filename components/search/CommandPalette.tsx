@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ArrowRight, Home, FolderKanban, LayoutDashboard, PackageOpen, Lightbulb, Sparkles } from "lucide-react";
+import { TOOLS } from "@/lib/tools/registry";
 
 interface Result {
   id: string;
@@ -12,6 +13,15 @@ interface Result {
   href: string;
   icon?: React.ElementType;
 }
+
+const TOOL_RESULTS: Result[] = TOOLS.map((t) => ({
+  id: `tool-${t.slug}`,
+  label: t.name,
+  sublabel: t.description.length > 55 ? t.description.slice(0, 55) + "…" : t.description,
+  category: "Tools",
+  href: t.route,
+  icon: t.icon,
+}));
 
 const QUICK_ACTIONS: Result[] = [
   { id: "qa-home", label: "Go to Home", category: "Navigation", href: "/", icon: Home },
@@ -49,12 +59,25 @@ export default function CommandPalette({ onClose }: Props) {
       setActiveIndex(0);
       return;
     }
-    const filtered = QUICK_ACTIONS.filter(
+
+    const navResults = QUICK_ACTIONS.filter(
       (r) =>
         r.label.toLowerCase().includes(q) ||
         r.category.toLowerCase().includes(q)
     );
-    setResults(filtered);
+
+    const toolResults = TOOL_RESULTS.filter((r) => {
+      const tool = TOOLS.find((t) => t.slug === r.id.replace("tool-", ""));
+      if (!tool) return false;
+      return (
+        tool.name.toLowerCase().includes(q) ||
+        tool.description.toLowerCase().includes(q) ||
+        tool.tags.some((tag) => tag.toLowerCase().includes(q)) ||
+        tool.category.toLowerCase().includes(q)
+      );
+    });
+
+    setResults([...navResults, ...toolResults]);
     setActiveIndex(0);
   }, [query]);
 
@@ -138,7 +161,7 @@ export default function CommandPalette({ onClose }: Props) {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search pages, deliverables, insights…"
+              placeholder="Search pages and tools…"
               className="flex-1 bg-transparent text-surface-100 placeholder-surface-400 text-sm focus:outline-none"
               aria-label="Search"
             />
