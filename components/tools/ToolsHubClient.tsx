@@ -158,12 +158,10 @@ function ToolCard({
 // ---------------------------------------------------------------------------
 
 const CATEGORY_CHIPS = ['all', 'analyze', 'create', 'audit', 'research', 'monitor'] as const
-type CategoryChip = (typeof CATEGORY_CHIPS)[number]
 
 export default function ToolsHubClient({ tools, selectedClientId }: Props) {
   const [query, setQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<ToolCategory | 'all'>('all')
-  const [activeInput, setActiveInput] = useState<ToolInputType | 'all'>('all')
   const [recentSlugs, setRecentSlugs] = useState<string[]>([])
 
   useEffect(() => {
@@ -185,8 +183,7 @@ export default function ToolsHubClient({ tools, selectedClientId }: Props) {
       t.description.toLowerCase().includes(q) ||
       t.tags.some(tag => tag.includes(q))
     const matchesCategory = activeCategory === 'all' || t.category === activeCategory
-    const matchesInput = activeInput === 'all' || t.inputType === activeInput
-    return matchesQuery && matchesCategory && matchesInput
+    return matchesQuery && matchesCategory
   })
 
   // ── Derived rows ──────────────────────────────────────────────────────────
@@ -196,7 +193,7 @@ export default function ToolsHubClient({ tools, selectedClientId }: Props) {
     .map(slug => filtered.find(t => t.slug === slug))
     .filter(Boolean) as SerializedTool[]
 
-  const hasActiveFilter = query || activeCategory !== 'all' || activeInput !== 'all'
+  const hasActiveFilter = query || activeCategory !== 'all'
 
   return (
     <div className="max-w-7xl mx-auto p-6 pb-8 space-y-8">
