@@ -35,6 +35,7 @@ export interface ParsedPage {
   images: ImageInfo[]
   structuredData: StructuredDataItem[]
   wordCount: number
+  bodyText: string
   contentToHtmlRatio: number
   ogTags: Record<string, string>
   hreflang: { lang: string; href: string }[]
@@ -65,6 +66,10 @@ export async function fetchAndParse(url: string): Promise<ParsedPage> {
     redirect: 'follow',
     signal: AbortSignal.timeout(15000),
   })
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${res.statusText || 'Failed to fetch page'}`)
+  }
 
   const html = await res.text()
   const $ = cheerio.load(html)
@@ -145,6 +150,7 @@ export async function fetchAndParse(url: string): Promise<ParsedPage> {
     images,
     structuredData,
     wordCount,
+    bodyText,
     contentToHtmlRatio,
     ogTags,
     hreflang,

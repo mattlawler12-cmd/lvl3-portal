@@ -37,6 +37,7 @@ export default function GoogleConnectionPanel({ googleParam }: Props) {
       'https://www.googleapis.com/auth/webmasters.readonly',
       'https://www.googleapis.com/auth/spreadsheets.readonly',
       'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/business.manage',
     ].join(' ')
 
     const params = new URLSearchParams({

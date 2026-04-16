@@ -140,7 +140,7 @@ export async function POST(request: Request) {
             : 0
 
           // Filter: >10% impression decline OR dropped 3+ rank spots
-          if (impressionChange >= -0.1 && positionChange <= 3) continue
+          if (impressionChange > -0.1 && positionChange < 3) continue
 
           const declineScore = cur.impressions * Math.abs(impressionChange)
 

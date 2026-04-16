@@ -11,6 +11,9 @@ import type { KEKeywordRow } from '@/lib/connectors/keywords-everywhere'
 import { fetchSemrushBacklinksOverview, fetchSemrushDomainRanks } from '@/lib/connectors/semrush-portal'
 import type { SemrushBacklinksOverview, SemrushDomainRank } from '@/lib/connectors/semrush-portal'
 import { normalizeDomain } from '@/lib/normalize-domain'
+import { getAdminOAuthClient } from '@/lib/google-auth'
+import { listGBPAccounts } from '@/lib/connectors/gbp'
+import type { GBPAccount } from '@/lib/connectors/gbp'
 
 // ── Core Web Vitals ─────────────────────────────────────────────────────────
 
@@ -159,13 +162,7 @@ export async function fetchContentQuality(
     await requireAdmin()
     const page = await fetchAndParse(url)
 
-    const grade = fleschKincaidGrade(
-      page.headings.map((h) => h.text).join('. ') +
-        '. ' +
-        page.metaDescription +
-        '. ' +
-        page.title,
-    )
+    const grade = fleschKincaidGrade(page.bodyText || page.headings.map((h) => h.text).join('. '))
 
     const withAlt = page.images.filter((i) => i.hasAlt).length
     const internalLinks = page.links.filter((l) => l.isInternal).length
@@ -224,5 +221,18 @@ export async function fetchContentQuality(
     }
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Failed to analyze content quality' }
+  }
+}
+
+// ── GBP Accounts ─────────────────────────────────────────────────────────────
+
+export async function fetchGBPAccounts(): Promise<{ data?: GBPAccount[]; error?: string }> {
+  try {
+    await requireAdmin()
+    const auth = await getAdminOAuthClient()
+    const accounts = await listGBPAccounts(auth)
+    return { data: accounts }
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to list GBP accounts' }
   }
 }

@@ -61,7 +61,7 @@ export async function fetchQuickWins(clientId: string): Promise<{
         return {
           query: r.query,
           page: r.page,
-          position: Math.round(r.position * 10) / 10,
+          position: Math.round(r.position),
           impressions: r.impressions,
           clicks: r.clicks,
           ctr: Math.round(r.ctr * 10) / 10,
@@ -113,11 +113,16 @@ export async function checkAIVisibility(clientId: string): Promise<{
 
     const rows = await fetchGSCRows(client.gsc_site_url, 90)
 
-    const siteHost = client.gsc_site_url
-      .replace('sc-domain:', '')
-      .replace(/^https?:\/\//, '')
-      .replace(/\/$/, '')
-      .split('.')[0]
+    // Extract the registrable domain name (e.g. "example" from www.example.com or example.co.uk)
+    const siteHost = (() => {
+      const clean = client.gsc_site_url
+        .replace('sc-domain:', '')
+        .replace(/^https?:\/\//, '')
+        .replace(/^www\./, '')
+        .replace(/\/$/, '')
+      // Take the first label of the cleaned hostname (before any dot)
+      return clean.split('.')[0]
+    })()
 
     const brandTerms = [
       client.slug.toLowerCase(),
