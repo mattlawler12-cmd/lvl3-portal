@@ -4,81 +4,88 @@
 
 :root {
   /* ═══════════════════════════════════════════════════════════
-     SINGLE SOURCE OF TRUTH — Zinc + Violet palette
-     Change colors here → everything updates automatically.
-     RGB channels (R G B) enable Tailwind opacity modifiers.
+     SINGLE SOURCE OF TRUTH — IgniteIQ palette (Brand v4.2)
+     Light canvas · neutral ink ramp · single red accent.
+     Variable names preserved (surface-*, brand-*) so existing
+     components track automatically. RGB channels enable
+     Tailwind opacity modifiers.
      ═══════════════════════════════════════════════════════════ */
 
-  /* ── Surface scale (zinc neutrals) ─────────────────────── */
-  --surface-950: 9 9 11;         /* #09090B  body bg */
-  --surface-900: 24 24 27;       /* #18181B  card / panel */
-  --surface-850: 31 31 35;       /* #1F1F23  card hover */
-  --surface-800: 39 39 42;       /* #27272A  input bg / elevated */
-  --surface-700: 63 63 70;       /* #3F3F46  border */
-  --surface-600: 82 82 91;       /* #52525B  border hover */
-  --surface-500: 113 113 122;    /* #71717A  placeholder */
-  --surface-400: 161 161 170;    /* #A1A1AA  muted text */
-  --surface-300: 212 212 216;    /* #D4D4D8  secondary text */
-  --surface-200: 228 228 231;    /* #E4E4E7  lighter text */
-  --surface-100: 250 250 250;    /* #FAFAFA  primary text */
+  /* ── Surface scale → IgniteIQ ink ramp ────────────────────
+     surface-950 = lightest (page canvas), surface-100 = darkest (text)
+     Names kept inverted-from-color so the rest of the codebase
+     (which assumes surface-950=bg, surface-100=fg) keeps working. */
+  --surface-950: 252 251 249;    /* ink-50    page canvas */
+  --surface-900: 247 246 244;    /* ink-100   sunken surface / cards */
+  --surface-850: 241 240 237;    /* ink-150   card hover */
+  --surface-800: 229 228 225;    /* ink-200   border-default / hairlines */
+  --surface-700: 209 208 205;    /* ink-300   strong border / input rule */
+  --surface-600: 165 164 161;    /* ink-400   disabled */
+  --surface-500: 124 123 120;    /* ink-500   reflective clause / captions */
+  --surface-400: 92 91 89;       /* ink-600   fg-secondary (body prose) */
+  --surface-300: 60 59 57;       /* ink-800   strong text */
+  --surface-200: 30 29 28;       /* ink-900   near-black */
+  --surface-100: 10 10 10;       /* ink-1000  primary text / CTA band */
 
-  /* ── Brand scale (violet) ──────────────────────────────── */
-  --brand-50:  245 243 255;      /* #F5F3FF */
-  --brand-100: 237 233 254;      /* #EDE9FE */
-  --brand-200: 221 214 254;      /* #DDD6FE */
-  --brand-300: 196 181 253;      /* #C4B5FD */
-  --brand-400: 167 139 250;      /* #A78BFA  main accent */
-  --brand-500: 139 92 246;       /* #8B5CF6  interactive */
-  --brand-600: 124 58 237;       /* #7C3AED */
-  --brand-700: 109 40 217;       /* #6D28D9  deep violet */
-  --brand-800: 91 33 182;        /* #5B21B6 */
-  --brand-900: 76 29 149;        /* #4C1D95 */
+  /* ── Brand scale → IgniteIQ ignite ramp ──────────────────
+     brand-500 = #EF4444 (the only accent outside the neutral ramp). */
+  --brand-50:  254 242 242;
+  --brand-100: 254 226 226;      /* diagram pill bg */
+  --brand-200: 254 202 202;
+  --brand-300: 252 165 165;
+  --brand-400: 248 113 113;      /* eyebrow on dark */
+  --brand-500: 239 68 68;        /* #EF4444  brand red — CTAs, accents */
+  --brand-600: 220 38 38;        /* hover */
+  --brand-700: 185 28 28;
+  --brand-800: 153 27 27;
+  --brand-900: 127 29 29;
 
-  /* ── Semantic aliases ──────────────────────────────────── */
-  --background:      rgb(var(--surface-950));
-  --foreground:      rgb(var(--surface-100));
-  --color-ink:       rgb(var(--surface-950));
-  --color-cream:     rgb(var(--surface-100));
-  --color-cream-alt: rgb(var(--surface-200));
-  --color-card:      rgb(var(--surface-900));
-  --color-accent:    rgb(var(--brand-400));
+  /* ── Semantic aliases ────────────────────────────────── */
+  --background:      rgb(var(--surface-950));         /* light page */
+  --foreground:      rgb(var(--surface-100));         /* near-black ink */
+  --color-ink:       rgb(var(--surface-100));
+  --color-cream:     rgb(var(--surface-950));
+  --color-cream-alt: rgb(var(--surface-900));
+  --color-card:      255 255 255;                     /* pure white on warm canvas */
+  --color-accent:    rgb(var(--brand-500));           /* red */
   --color-primary:   rgb(var(--brand-500));
-  --color-muted:     rgb(var(--surface-400));
+  --color-muted:     rgb(var(--surface-500));
   --color-border:    rgb(var(--surface-800));
 
-  /* ── Status colors ────────────────────────────────── */
-  --color-error:   #F87171;   /* red-400  */
-  --color-warning: #FBBF24;   /* amber-400 */
-  --color-success: #34D399;   /* emerald-400 */
+  /* ── Status colors (light-canvas tuned) ─────────────── */
+  --color-error:   #DC2626;   /* red-600   */
+  --color-warning: #D97706;   /* amber-600 */
+  --color-success: #059669;   /* emerald-600 */
 
-  /* ── Nav tokens ────────────────────────────────────────── */
-  --nav-bg:          rgb(var(--surface-900));
-  --nav-hover:       rgb(var(--surface-800));
+  /* ── Nav tokens (light) ─────────────────────────────── */
+  --nav-bg:          rgb(255 255 255);
+  --nav-hover:       rgb(var(--surface-900));
   --nav-text:        rgb(var(--surface-400));
   --nav-text-bright: rgb(var(--surface-100));
-  --nav-active:      rgb(var(--brand-400));
+  --nav-active:      rgb(var(--brand-500));
   --nav-border:      rgb(var(--surface-800));
 
-  /* ── Sidebar tokens ────────────────────────────────────── */
+  /* ── Sidebar tokens (light) ─────────────────────────── */
   --sidebar-bg:          rgb(var(--surface-950));
   --sidebar-hover:       rgb(var(--surface-900));
   --sidebar-text:        rgb(var(--surface-400));
   --sidebar-text-bright: rgb(var(--surface-100));
-  --sidebar-active:      rgb(var(--brand-400));
+  --sidebar-active:      rgb(var(--brand-500));
   --sidebar-border:      rgb(var(--surface-800));
 
-  /* ── Chart tokens ──────────────────────────────────────── */
-  --chart-tooltip-bg:     rgb(var(--surface-900));
-  --chart-tooltip-border: rgb(var(--surface-700));
-  --chart-grid:           rgb(var(--surface-700));
-  --chart-tick:           rgb(var(--surface-400));
-  --chart-label:          rgb(var(--surface-300));
-  --chart-line:           rgb(var(--brand-400));
+  /* ── Chart tokens (light) ───────────────────────────── */
+  --chart-tooltip-bg:     rgb(255 255 255);
+  --chart-tooltip-border: rgb(var(--surface-800));
+  --chart-grid:           rgb(var(--surface-800));
+  --chart-tick:           rgb(var(--surface-500));
+  --chart-label:          rgb(var(--surface-400));
+  --chart-line:           rgb(var(--brand-500));
+  --chart-line-secondary: rgb(var(--surface-400));
   --chart-bar-secondary:  rgb(var(--surface-800));
 
-  /* ── Active-state backgrounds (with alpha) ─────────────── */
-  --active-bg:       rgb(var(--brand-400) / 0.12);
-  --active-bg-bold:  rgb(var(--brand-400) / 0.15);
+  /* ── Active-state backgrounds (with alpha) ──────────── */
+  --active-bg:       rgb(var(--brand-500) / 0.10);
+  --active-bg-bold:  rgb(var(--brand-500) / 0.14);
 }
 
 * {
@@ -93,11 +100,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Headings use monospace */
+/* Headings — Inter 600, tight tracking (Aeonik fallback per IgniteIQ v4.2) */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-weight: 700;
-  color: var(--foreground);
+  font-family:    var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-weight:    600;
+  letter-spacing: -0.02em;
+  color:          var(--foreground);
 }
 
 /* ── Scrollbar ──────────────────────────────────────────── */
@@ -113,13 +121,51 @@ h1, h2, h3, h4, h5, h6 {
 @layer utilities {
   .text-balance { text-wrap: balance; }
 
-  /* Eyebrow labels — uppercase small caps above headings */
+  /* Eyebrow labels — uppercase mono caps above headings (Aeonik Fono role) */
   .eyebrow {
-    font-family:    var(--font-inter), sans-serif;
+    font-family:    var(--font-jetbrains-mono), ui-monospace, monospace;
     font-size:      11px;
     font-weight:    500;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color:          var(--color-primary);
+  }
+
+  /* Two-tone declarative headline — primary clause + reflective clause */
+  .headline-reflective { color: var(--color-muted); }
+
+  /* IgniteIQ form pattern — underline-only inputs.
+     Apply to <input>/<textarea>/<select>: <input className="iiq-input" />. */
+  .iiq-input {
+    width:           100%;
+    padding:         8px 0;
+    background:      transparent;
+    border:          0;
+    border-bottom:   1px solid var(--color-border);
+    border-radius:   0;
+    color:           var(--foreground);
+    font-family:     var(--font-inter), sans-serif;
+    font-size:       15px;
+    line-height:     1.45;
+    transition:      border-color 140ms cubic-bezier(0.2, 0.0, 0.0, 1.0);
+  }
+  .iiq-input::placeholder { color: var(--color-muted); }
+  .iiq-input:focus {
+    outline:        none;
+    border-bottom:  1px solid var(--color-primary);
+  }
+  .iiq-label {
+    font-family:    var(--font-jetbrains-mono), ui-monospace, monospace;
+    font-size:      11px;
+    font-weight:    500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color:          var(--color-muted);
+    display:        block;
+    margin-bottom:  6px;
+  }
+  .iiq-required::after {
+    content:    " *";
+    color:      var(--color-primary);
   }
 }

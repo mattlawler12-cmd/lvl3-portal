@@ -171,7 +171,7 @@ export default function VerticalBenchmarkClient({
       <div className="space-y-6">
         {/* Competitors analyzed */}
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: '#8B5CF6' }}>
+          <p className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-primary)' }}>
             Competitors Analyzed
           </p>
           <div className="flex flex-wrap gap-2">
@@ -217,7 +217,7 @@ export default function VerticalBenchmarkClient({
             <ul className="space-y-1.5">
               {report.differentiators.map((d, i) => (
                 <li key={i} className="text-xs text-surface-400 flex gap-2">
-                  <span style={{ color: '#A78BFA' }}>★</span>
+                  <span style={{ color: 'var(--color-accent)' }}>★</span>
                   {d}
                 </li>
               ))}
@@ -241,7 +241,7 @@ export default function VerticalBenchmarkClient({
                           className="h-full rounded-full"
                           style={{
                             width: `${(count / citationTotal) * 100}%`,
-                            backgroundColor: '#A78BFA',
+                            backgroundColor: 'var(--color-accent)',
                           }}
                         />
                       </div>
@@ -443,14 +443,14 @@ export default function VerticalBenchmarkClient({
               onClick={handleRun}
               disabled={!vertical.trim()}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#8B5CF6' }}
+              style={{ backgroundColor: 'var(--color-primary)' }}
               onMouseEnter={e => {
                 if (vertical.trim()) {
-                  ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = '#7C3AED'
+                  ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = 'rgb(var(--brand-600))'
                 }
               }}
               onMouseLeave={e => {
-                ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = '#8B5CF6'
+                ;(e.currentTarget as HTMLButtonElement).style.backgroundColor = 'var(--color-primary)'
               }}
             >
               Run Benchmark

@@ -51,7 +51,7 @@ export default function BackgroundJobTool({
           <div className="h-1.5 bg-surface-800 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${progress}%`, backgroundColor: '#A78BFA' /* brand-400 / accent */ }}
+              style={{ width: `${progress}%`, backgroundColor: 'var(--color-accent)' }}
             />
           </div>
         </div>

@@ -1,24 +1,33 @@
 import type { Metadata } from 'next'
-import { Inter, JetBrains_Mono } from 'next/font/google'
+import localFont from 'next/font/local'
 import './globals.css'
 
-const inter = Inter({
-  subsets: ['latin'],
+const aeonik = localFont({
   variable: '--font-inter',
-  weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
+  src: [
+    { path: '../public/fonts/Aeonik-Light.otf',   weight: '300', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Regular.otf', weight: '400', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Medium.otf',  weight: '500', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Medium.otf',  weight: '600', style: 'normal' },
+    { path: '../public/fonts/Aeonik-Bold.otf',    weight: '700', style: 'normal' },
+  ],
 })
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
+const aeonikFono = localFont({
   variable: '--font-jetbrains-mono',
-  weight: ['400', '500', '600', '700'],
   display: 'swap',
+  src: [
+    { path: '../public/fonts/AeonikFono-Light.otf',  weight: '300', style: 'normal' },
+    { path: '../public/fonts/AeonikFono-Medium.otf', weight: '500', style: 'normal' },
+    { path: '../public/fonts/AeonikFono-Medium.otf', weight: '600', style: 'normal' },
+    { path: '../public/fonts/AeonikFono-Medium.otf', weight: '700', style: 'normal' },
+  ],
 })
 
 export const metadata: Metadata = {
-  title: 'LVL3 Portal',
-  description: 'Client portal for LVL3',
+  title: 'IgniteIQ Portal · Own Your Intelligence',
+  description: 'The Decision Engine for Modern Trades.',
 }
 
 export default function RootLayout({
@@ -28,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
+      <body className={`${aeonik.variable} ${aeonikFono.variable} antialiased`}>
         {children}
       </body>
     </html>

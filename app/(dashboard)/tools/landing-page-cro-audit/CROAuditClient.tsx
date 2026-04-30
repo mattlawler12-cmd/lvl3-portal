@@ -36,11 +36,11 @@ type StreamEvent =
 // ── Grade colours ─────────────────────────────────────────────────────────────
 
 const GRADE_COLOR: Record<CROAuditScore['grade'], string> = {
-  A: '#34D399',
-  B: '#A78BFA',
-  C: '#FBBF24',
-  D: '#F87171',
-  F: '#F87171',
+  A: '#059669', // emerald-600
+  B: '#34D399', // emerald-400
+  C: '#D97706', // amber-600
+  D: '#F87171', // red-400
+  F: '#DC2626', // red-600
 }
 
 const IMPACT_COLOR: Record<'high' | 'medium' | 'low', string> = {
@@ -69,7 +69,7 @@ function SectionCard({ title, data }: { title: string; data: CROAuditScore }) {
         <h3 className="text-sm font-semibold text-surface-100">{title}</h3>
         <div className="flex items-center gap-2">
           <GradeBadge grade={data.grade} />
-          <span className="text-lg font-bold font-mono" style={{ color: '#A78BFA' }}>
+          <span className="text-lg font-bold font-mono" style={{ color: 'var(--color-accent)' }}>
             {data.score}
           </span>
         </div>
@@ -95,7 +95,7 @@ function SectionCard({ title, data }: { title: string; data: CROAuditScore }) {
           <ul className="space-y-1">
             {data.suggestions.map((s, i) => (
               <li key={i} className="flex items-start gap-2 text-xs text-surface-400">
-                <span className="mt-0.5 shrink-0" style={{ color: '#A78BFA' }}>&#x2192;</span>
+                <span className="mt-0.5 shrink-0" style={{ color: 'var(--color-accent)' }}>&#x2192;</span>
                 {s}
               </li>
             ))}
@@ -123,7 +123,7 @@ function AuditResult({ audit }: { audit: CROAudit }) {
           <p className="text-xs uppercase tracking-widest font-medium text-surface-500 mb-1">Overall Score</p>
           <p
             className="text-5xl font-bold font-mono"
-            style={{ color: '#A78BFA' }}
+            style={{ color: 'var(--color-accent)' }}
           >
             {audit.overallScore}
           </p>
@@ -153,7 +153,7 @@ function AuditResult({ audit }: { audit: CROAudit }) {
       {/* Top fixes */}
       {audit.topFixes.length > 0 && (
         <div className="bg-surface-900 border border-surface-700 rounded-xl p-5 space-y-3">
-          <p className="text-xs uppercase tracking-widest font-medium" style={{ color: '#8B5CF6' }}>
+          <p className="text-xs uppercase tracking-widest font-medium" style={{ color: 'var(--color-primary)' }}>
             Top Priority Fixes
           </p>
           <ol className="space-y-3">
@@ -161,7 +161,7 @@ function AuditResult({ audit }: { audit: CROAudit }) {
               <li key={fix.priority} className="flex items-start gap-3">
                 <span
                   className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold font-mono"
-                  style={{ backgroundColor: '#27272A', color: '#A78BFA' }}
+                  style={{ backgroundColor: 'var(--active-bg)', color: 'var(--color-accent)' }}
                 >
                   {fix.priority}
                 </span>
@@ -334,7 +334,7 @@ export default function CROAuditClient({ recentRuns }: Props) {
           <div className="space-y-4">
             <p
               className="text-xs uppercase tracking-widest font-medium"
-              style={{ color: '#8B5CF6' }}
+              style={{ color: 'var(--color-primary)' }}
             >
               Landing Page CRO Audit
             </p>

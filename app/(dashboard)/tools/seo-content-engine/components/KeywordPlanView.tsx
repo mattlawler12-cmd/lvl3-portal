@@ -8,10 +8,10 @@ type SortDir = 'asc' | 'desc'
 type Category = 'primary' | 'secondary' | 'supporting' | 'questions'
 
 const CATEGORY_COLORS: Record<Category, string> = {
-  primary: 'bg-violet-500/15 text-violet-400',
-  secondary: 'bg-blue-500/15 text-blue-400',
-  supporting: 'bg-emerald-500/15 text-emerald-400',
-  questions: 'bg-amber-500/15 text-amber-400',
+  primary: 'bg-red-500/15 text-red-600',
+  secondary: 'bg-blue-500/15 text-blue-600',
+  supporting: 'bg-emerald-500/15 text-emerald-600',
+  questions: 'bg-amber-500/15 text-amber-600',
 }
 
 const CATEGORY_LABELS: Record<Category, string> = {

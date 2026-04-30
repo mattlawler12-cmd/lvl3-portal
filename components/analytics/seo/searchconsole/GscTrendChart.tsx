@@ -76,11 +76,11 @@ export default function GscTrendChart({ data }: Props) {
             yAxisId="right"
             type="monotone"
             dataKey="impressions"
-            stroke="#2dd4bf"
-            fill="#2dd4bf22"
+            stroke="var(--chart-line-secondary)"
+            fill="rgb(var(--surface-400) / 0.13)"
             strokeWidth={2}
             strokeDasharray="4 2"
-            dot={{ fill: '#2dd4bf', r: 3 }}
+            dot={{ fill: 'var(--chart-line-secondary)', r: 3 }}
             name="Impressions"
           />
         </ComposedChart>

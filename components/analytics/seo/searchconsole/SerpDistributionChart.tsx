@@ -18,10 +18,10 @@ interface Props {
 
 const BUCKETS = [
   { key: 'top3' as keyof SerpDistribution, label: 'Top 3', color: 'var(--chart-line)', range: 'positions 1–3' },
-  { key: 'top10' as keyof SerpDistribution, label: 'Page 1 (4–10)', color: '#2dd4bf', range: 'positions 4–10' },
-  { key: 'page2' as keyof SerpDistribution, label: 'Page 2 (11–20)', color: '#6b7280', range: 'positions 11–20' },
-  { key: 'page3to5' as keyof SerpDistribution, label: 'Pages 3–5 (21–50)', color: '#4e5569', range: 'positions 21–50' },
-  { key: 'beyond' as keyof SerpDistribution, label: 'Page 5+ (51+)', color: '#4a5568', range: 'positions 51+' },
+  { key: 'top10' as keyof SerpDistribution, label: 'Page 1 (4–10)', color: 'rgb(var(--brand-300))', range: 'positions 4–10' },
+  { key: 'page2' as keyof SerpDistribution, label: 'Page 2 (11–20)', color: 'rgb(var(--surface-400))', range: 'positions 11–20' },
+  { key: 'page3to5' as keyof SerpDistribution, label: 'Pages 3–5 (21–50)', color: 'rgb(var(--surface-500))', range: 'positions 21–50' },
+  { key: 'beyond' as keyof SerpDistribution, label: 'Page 5+ (51+)', color: 'rgb(var(--surface-600))', range: 'positions 51+' },
 ]
 
 interface TooltipPayload {
