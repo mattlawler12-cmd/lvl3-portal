@@ -25,11 +25,11 @@ interface SidebarProps {
   onSearchOpen: () => void;
 }
 
-// Sidebar uses its own CSS variables so nav-* (cream topbar) doesn't bleed in.
-const NAV_TEXT        = 'var(--sidebar-text)'        // #A1A1AA zinc
-const NAV_TEXT_BRIGHT = 'var(--sidebar-text-bright)' // #F1F5F9
-const NAV_HOVER_BG    = 'var(--sidebar-hover)'        // #18181B
-const NAV_ACTIVE      = 'var(--sidebar-active)'       // #A78BFA violet
+// Sidebar uses its own CSS variables so nav-* (top bar) doesn't bleed in.
+const NAV_TEXT        = 'var(--sidebar-text)'
+const NAV_TEXT_BRIGHT = 'var(--sidebar-text-bright)'
+const NAV_HOVER_BG    = 'var(--sidebar-hover)'
+const NAV_ACTIVE      = 'var(--sidebar-active)'
 const NAV_ACTIVE_BG   = 'var(--active-bg)'
 
 export default function Sidebar({

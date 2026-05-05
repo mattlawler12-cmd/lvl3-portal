@@ -85,7 +85,7 @@ export default function BriefPreview({ brief }: BriefPreviewProps) {
                 {(section.keywords_to_include ?? []).length > 0 && (
                   <div className="flex flex-wrap gap-1 ml-5 mt-1">
                     {(section.keywords_to_include ?? []).map((kw, j) => (
-                      <span key={j} className="px-1.5 py-0.5 rounded text-[10px] bg-violet-500/10 text-violet-400">
+                      <span key={j} className="px-1.5 py-0.5 rounded text-[10px]" style={{ backgroundColor: 'var(--active-bg)', color: 'var(--color-accent)' }}>
                         {toStr(kw)}
                       </span>
                     ))}

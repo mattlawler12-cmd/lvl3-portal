@@ -27,13 +27,13 @@ function stagePillColor(step: string): string {
   if (!step) return 'bg-surface-800 text-surface-500'
   const s = step.toLowerCase()
   if (s.includes('keyword') || s.includes('metric') || s.includes('cluster') || s.includes('finaliz'))
-    return 'bg-violet-900/60 text-violet-300'
-  if (s.includes('analyz')) return 'bg-sky-900/60 text-sky-300'
-  if (s.includes('brief')) return 'bg-amber-900/60 text-amber-300'
-  if (s.includes('writing draft')) return 'bg-emerald-900/60 text-emerald-300'
-  if (s.includes('reviewing')) return 'bg-orange-900/60 text-orange-300'
-  if (s.includes('revis')) return 'bg-rose-900/60 text-rose-300'
-  if (s.includes('validat')) return 'bg-teal-900/60 text-teal-300'
+    return 'bg-red-100 text-red-700'
+  if (s.includes('analyz')) return 'bg-sky-100 text-sky-700'
+  if (s.includes('brief')) return 'bg-amber-100 text-amber-700'
+  if (s.includes('writing draft')) return 'bg-emerald-100 text-emerald-700'
+  if (s.includes('reviewing')) return 'bg-orange-100 text-orange-700'
+  if (s.includes('revis')) return 'bg-rose-100 text-rose-700'
+  if (s.includes('validat')) return 'bg-teal-100 text-teal-700'
   return 'bg-surface-800 text-surface-400'
 }
 

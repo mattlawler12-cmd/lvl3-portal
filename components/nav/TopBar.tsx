@@ -84,13 +84,29 @@ export default function TopBar({
         <Menu size={20} />
       </button>
 
-      {/* Brand */}
+      {/* Brand — IgniteIQ Q-mark + Aeonik wordmark */}
       <Link
         href="/"
-        className="flex items-center gap-1.5 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+        className="flex items-center gap-2 shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        aria-label="IgniteIQ Portal — home"
       >
-        <span className="font-bold tracking-tight text-base" style={{ color: 'var(--color-primary)', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>LVL3</span>
-        <span className="hidden sm:inline text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--nav-text)', letterSpacing: '0.06em' }}>
+        <img
+          src="/logo-black.png"
+          alt=""
+          width={22}
+          height={22}
+          className="shrink-0"
+        />
+        <span
+          className="font-semibold text-base"
+          style={{ color: 'var(--foreground)', letterSpacing: '-0.02em' }}
+        >
+          IgniteIQ
+        </span>
+        <span
+          className="hidden sm:inline text-xs uppercase font-medium"
+          style={{ color: 'var(--nav-text)', letterSpacing: '0.18em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}
+        >
           Portal
         </span>
       </Link>
@@ -180,7 +196,7 @@ export default function TopBar({
       >
         <Bell size={17} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-brand-400 text-[10px] font-bold rounded-full flex items-center justify-center px-0.5" style={{ color: 'var(--color-ink)' }}>
+          <span className="absolute top-1 right-1 min-w-[16px] h-4 text-[10px] font-bold rounded-full flex items-center justify-center px-0.5" style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}>
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -227,7 +243,7 @@ export default function TopBar({
         >
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
-            style={{ backgroundColor: 'var(--background)', color: 'var(--color-accent)' }}
+            style={{ backgroundColor: 'var(--active-bg)', color: 'var(--color-accent)' }}
           >
             {userEmail.slice(0, 1).toUpperCase()}
           </div>

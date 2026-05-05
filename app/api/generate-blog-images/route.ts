@@ -5,7 +5,11 @@ import sharp from 'sharp'
 
 export const maxDuration = 300
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+function getOpenAI(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured')
+  return new OpenAI({ apiKey })
+}
 
 interface ParsedRow {
   filename: string
@@ -73,6 +77,7 @@ function parseCsvTsv(text: string): ParsedRow[] {
 const PER_IMAGE_TIMEOUT_MS = 90_000
 
 async function generateAndCrop(prompt: string): Promise<Buffer> {
+  const openai = getOpenAI()
   const resp = await Promise.race([
     openai.images.generate({
       model: 'gpt-image-1',
